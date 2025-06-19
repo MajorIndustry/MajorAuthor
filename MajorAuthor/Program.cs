@@ -1,3 +1,6 @@
+// Проект: MajorAuthor.Web
+// Файл: Program.cs
+
 using MajorAuthor.Data; // Используем наш DbContext
 using Microsoft.EntityFrameworkCore; // Используем Entity Framework Core
 using Microsoft.AspNetCore.Identity; // Если вы будете использовать ASP.NET Core Identity
@@ -15,17 +18,9 @@ builder.Services.AddDbContext<MajorAuthorDbContext>(options =>
 
 // --- Опционально: Добавление ASP.NET Core Identity ---
 // Если вы планируете использовать систему аутентификации и управления пользователями ASP.NET Core Identity,
-// раскомментируйте следующие строки и настройте ее. В наших моделях User уже есть поле PasswordHash,
-// но Identity предоставляет гораздо более полную систему (роли, токены, управление паролями).
-// Если вы используете собственный класс User, то:
-// builder.Services.AddDefaultIdentity<User>(options => options.SignIn.RequireConfirmedAccount = true)
-//     .AddEntityFrameworkStores<MajorAuthorDbContext>();
-// Или, если вы хотите использовать стандартный IdentityUser и IdentityDbContext:
+// раскомментируйте следующие строки и настройте ее.
 // builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
 //    .AddEntityFrameworkStores<MajorAuthorDbContext>();
-// ВАЖНО: Если вы решите использовать ASP.NET Core Identity, вам потребуется создать
-// отдельный IdentityDbContext или интегрировать Identity со своим MajorAuthorDbContext,
-// что повлечет дополнительные миграции для таблиц Identity.
 
 builder.Services.AddControllersWithViews();
 
@@ -35,7 +30,6 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // Значение по умолчанию для HSTS production scenarios, см. https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -44,9 +38,10 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// --- Опционально: Автоматическое применение миграций при запуске (ТОЛЬКО ДЛЯ РАЗРАБОТКИ!) ---
-// Этот блок кода может быть полезен в процессе разработки для автоматического обновления базы данных.
-// В production-среде миграции следует применять контролируемо, например, с помощью CI/CD пайплайна.
+// --- Автоматическое применение миграций и инициализация базы данных при запуске (ТОЛЬКО ДЛЯ РАЗРАБОТКИ!) ---
+// Этот блок кода очень полезен в процессе разработки для автоматического обновления и заполнения базы данных.
+// В production-среде миграции следует применять контролируемо, например, с помощью CI/CD пайплайна,
+// а инициализацию данных - отдельно, если это необходимо.
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -56,8 +51,9 @@ using (var scope = app.Services.CreateScope())
         context.Database.Migrate(); // Применяет все ожидающие миграции
         Console.WriteLine("Database migrations applied successfully.");
 
-        // Здесь также можно добавить логику для инициализации данных (seeding)
-        // DbInitializer.Initialize(context);
+        // Инициализация базы данных (seeding)
+        await DbInitializer.Initialize(context); // Вызов метода инициализации
+        Console.WriteLine("Database seeded successfully.");
     }
     catch (Exception ex)
     {
@@ -67,8 +63,8 @@ using (var scope = app.Services.CreateScope())
 }
 // --------------------------------------------------------------------------------------
 
-// app.UseAuthentication(); // Если используете ASP.NET Core Identity
-// app.UseAuthorization();  // Если используете ASP.NET Core Identity
+// app.UseAuthentication(); // Если используете ASP.NET Core Identity (раскомментируйте после настройки)
+// app.UseAuthorization();  // Если используете ASP.NET Core Identity (раскомментируйте после настройки)
 
 app.MapControllerRoute(
     name: "default",

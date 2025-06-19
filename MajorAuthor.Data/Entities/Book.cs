@@ -89,5 +89,10 @@ namespace MajorAuthor.Data.Entities
         /// Коллекция связей с тегами для этой книги (многие-ко-многим).
         /// </summary>
         public ICollection<BookTag> BookTags { get; set; } = new List<BookTag>();
+
+        /// <summary>
+        /// Коллекция пользователей, добавивших эту книгу в избранное.
+        /// </summary>
+        public ICollection<UserFavoriteBook> UserFavorites { get; set; } = new List<UserFavoriteBook>();
     }
 }
