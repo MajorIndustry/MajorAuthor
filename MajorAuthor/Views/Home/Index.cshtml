@@ -1,106 +1,169 @@
-﻿@model MajorAuthor.Web.Models.HomeViewModel
+﻿@model MajorAuthor.Models.HomeViewModel
 @{
     ViewData["Title"] = "Главная";
 }
 
-<div class="min-h-screen flex flex-col items-center py-8 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-6xl w-full mx-auto p-6 rounded-lg border shadow-xl container">
-        <h1 class="text-4xl font-bold text-center mb-10 section-title">Добро пожаловать в MajorAuthor</h1>
+<div class="min-h-screen flex flex-col items-center py-8 w-full">
+    <div class="max-w-7xl w-full mx-auto ">
 
         <!-- Секция популярных книг -->
-        <section class="mb-12">
+        <section class="mb-12 p-6">
             <h2 class="text-3xl font-semibold mb-6 section-title text-center">Популярные книги</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                @foreach (var book in Model.PopularBooks)
-                {
-                    <div class="card p-4 rounded-lg border-2 book-item">
-                        <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/D4AF37/FFFFFF?text=Книга';">
-                        <div>
-                            <h3 class="text-xl font-semibold">@book.Title</h3>
-                            <p class="text-sm text-gray-500">Автор: @book.AuthorName</p>
-                            <p class="text-xs text-gray-400">Прочтений: @(book.ReadsCount.ToString("N0")), Лайков: @(book.LikesCount.ToString("N0"))</p>
-                            @if (book.IsAdultContent)
-                            {
-                                <span class="text-xs text-red-500 font-bold">18+</span>
-                            }
+            @if (Model.PopularBooks != null && Model.PopularBooks.Any())
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach (var book in Model.PopularBooks)
+                    {
+                        <div class="card p-4 rounded-lg border-2 book-item">
+                            <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/D4AF37/FFFFFF?text=Книга';">
+                            <div>
+                                <h3 class="text-xl font-semibold">@book.Title</h3>
+                                <p class="text-sm text-gray-500">Автор: @book.AuthorName</p>
+                                <p class="text-xs text-gray-400">Прочтений: @(book.ReadsCount.ToString("N0")), Лайков: @(book.LikesCount.ToString("N0"))</p>
+                                @if (book.IsAdultContent)
+                                {
+                                    <span class="text-xs text-red-500 font-bold">18+</span>
+                                }
+                            </div>
                         </div>
-                    </div>
-                }
-            </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-center text-secondary">Книги не найдены в этом разделе.</p>
+            }
         </section>
 
         <!-- Секция популярных авторов -->
-        <section class="mb-12">
+        <section class="mb-12 p-6">
             <h2 class="text-3xl font-semibold mb-6 section-title text-center">Популярные авторы</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                @foreach (var author in Model.PopularAuthors)
-                {
-                    <div class="card p-4 rounded-lg border-2 author-item">
-                        <img src="@author.PhotoUrl" alt="Аватар автора" class="author-avatar" onerror="this.onerror=null;this.src='https://placehold.co/60x60/D4AF37/FFFFFF?text=А';">
-                        <div>
-                            <h3 class="text-xl font-semibold">@author.Name</h3>
-                            <p class="text-sm text-gray-500">Книг: @author.BooksCount, Прочтений: @(author.TotalReadsCount.ToString("N0"))</p>
+            @if (Model.PopularAuthors != null && Model.PopularAuthors.Any())
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach (var author in Model.PopularAuthors)
+                    {
+                        <div class="card p-4 rounded-lg border-2 author-item">
+                            <img src="@author.PhotoUrl" alt="Аватар автора" class="author-avatar" onerror="this.onerror=null;this.src='https://placehold.co/60x60/D4AF37/FFFFFF?text=А';">
+                            <div>
+                                <h3 class="text-xl font-semibold">@author.Name</h3>
+                                <p class="text-sm text-gray-500">Книг: @author.BooksCount, Прочтений: @(author.TotalReadsCount.ToString("N0"))</p>
+                            </div>
                         </div>
-                    </div>
-                }
-            </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-center text-secondary">Авторы не найдены в этом разделе.</p>
+            }
         </section>
 
         <!-- Секция недавно обновленных книг -->
-        <section class="mb-12">
+        <section class="mb-12 p-6">
             <h2 class="text-3xl font-semibold mb-6 section-title text-center">Недавно обновлённые книги</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                @foreach (var book in Model.RecentlyUpdatedBooks)
-                {
-                    <div class="card p-4 rounded-lg border-2 book-item">
-                        <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/A79273/FFFFFF?text=Книга';">
-                        <div>
-                            <h3 class="text-xl font-semibold">@book.Title</h3>
-                            <p class="text-sm text-gray-500">Автор: @book.AuthorName</p>
-                            <p class="text-xs text-gray-400">@book.UpdateInfo</p>
+            @if (Model.RecentlyUpdatedBooks != null && Model.RecentlyUpdatedBooks.Any())
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach (var book in Model.RecentlyUpdatedBooks)
+                    {
+                        <div class="card p-4 rounded-lg border-2 book-item">
+                            <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/A79273/FFFFFF?text=Книга';">
+                            <div>
+                                <h3 class="text-xl font-semibold">@book.Title</h3>
+                                <p class="text-sm text-gray-500">Автор: @book.AuthorName</p>
+                                <p class="text-xs text-gray-400">@book.UpdateInfo</p>
+                            </div>
                         </div>
-                    </div>
-                }
-            </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-center text-secondary">Книги не найдены в этом разделе.</p>
+            }
         </section>
 
         <!-- Секция новые популярные книги -->
-        <section class="mb-12">
+        <section class="mb-12 p-6">
             <h2 class="text-3xl font-semibold mb-6 section-title text-center">Новые популярные книги (Топ 10)</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                @foreach (var book in Model.NewPopularBooks)
-                {
-                    <div class="card p-4 rounded-lg border-2 book-item">
-                        <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/D4AF37/FFFFFF?text=Книга';">
-                        <div>
-                            <h3 class="text-xl font-semibold">@book.Title</h3>
-                            <p class="text-sm text-gray-500">Автор: @book.AuthorName</p>
-                            <p class="text-xs text-gray-400">Прочтений: @book.ReadsCount.ToString("N0"), Лайков: @book.LikesCount.ToString("N0")</p>
+            @if (Model.NewPopularBooks != null && Model.NewPopularBooks.Any())
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach (var book in Model.NewPopularBooks)
+                    {
+                        <div class="card p-4 rounded-lg border-2 book-item">
+                            <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/D4AF37/FFFFFF?text=Книга';">
+                            <div>
+                                <h3 class="text-xl font-semibold">@book.Title</h3>
+                                <p class="text-sm text-gray-500">Автор: @book.AuthorName</p>
+                                <p class="text-xs text-gray-400">Прочтений: @book.ReadsCount.ToString("N0"), Лайков: @book.LikesCount.ToString("N0")</p>
+                            </div>
                         </div>
-                    </div>
-                }
-            </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-center text-secondary">Книги не найдены в этом разделе.</p>
+            }
         </section>
 
         <!-- Секция новые популярные авторы -->
-        <section class="mb-12">
+        <section class="mb-12 p-6">
             <h2 class="text-3xl font-semibold mb-6 section-title text-center">Новые популярные авторы (Топ 10)</h2>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                @foreach (var author in Model.NewPopularAuthors)
-                {
-                    <div class="card p-4 rounded-lg border-2 author-item">
-                        <img src="@author.PhotoUrl" alt="Аватар автора" class="author-avatar" onerror="this.onerror=null;this.src='https://placehold.co/60x60/D4AF37/FFFFFF?text=А';">
-                        <div>
-                            <h3 class="text-xl font-semibold">@author.Name</h3>
-                            <p class="text-sm text-gray-500">@author.RegistrationInfo, Прочтений: @(author.TotalReadsCount.ToString("N0"))</p>
+            @if (Model.NewPopularAuthors != null && Model.NewPopularAuthors.Any())
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach (var author in Model.NewPopularAuthors)
+                    {
+                        <div class="card p-4 rounded-lg border-2 author-item">
+                            <img src="@author.PhotoUrl" alt="Аватар автора" class="author-avatar" onerror="this.onerror=null;this.src='https://placehold.co/60x60/D4AF37/FFFFFF?text=А';">
+                            <div>
+                                <h3 class="text-xl font-semibold">@author.Name</h3>
+                                <p class="text-sm text-gray-500">@author.RegistrationInfo, Прочтений: @(author.TotalReadsCount.ToString("N0"))</p>
+                            </div>
                         </div>
-                    </div>
-                }
-            </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-center text-secondary">Авторы не найдены в этом разделе.</p>
+            }
         </section>
 
-        <!-- НОВАЯ Секция: Популярные по жанрам -->
-        <section class="mb-12">
+        <!-- НОВАЯ Секция: Продвигающиеся книги -->
+        <section class="mb-12 p-6">
+            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Продвигающиеся книги</h2>
+            @if (Model.PromotedBooks != null && Model.PromotedBooks.Any())
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach (var book in Model.PromotedBooks)
+                    {
+                        <div class="card p-4 rounded-lg border-2 book-item">
+                            <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/D4AF37/FFFFFF?text=Книга';">
+                            <div>
+                                <h3 class="text-xl font-semibold">@book.Title</h3>
+                                <p class="text-sm text-gray-500">Автор: @book.AuthorName</p>
+                                <p class="text-xs text-gray-400">Прочтений: @(book.ReadsCount.ToString("N0")), Лайков: @(book.LikesCount.ToString("N0"))</p>
+                                @if (book.IsAdultContent)
+                                {
+                                    <span class="text-xs text-red-500 font-bold">18+</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-center text-secondary">Продвигающиеся книги не найдены в этом разделе.</p>
+            }
+        </section>
+
+        <!-- Секция Книги по жанрам -->
+        <section class="mb-12 p-6">
             <h2 class="text-3xl font-semibold mb-6 section-title text-center">Книги по жанрам</h2>
             <div class="flex items-center justify-center mb-6">
                 <label for="genreSelect" class="mr-4 text-lg font-medium text-secondary">Выберите жанр:</label>
@@ -129,24 +192,32 @@
             </div>
         </section>
 
+
         <!-- Секция советы (появляется только для зарегистрированных пользователей) -->
         @if (Model.IsUserLoggedIn)
         {
-            <section class="mb-12">
+            <section class="mb-12 p-6">
                 <h2 class="text-3xl font-semibold mb-6 section-title text-center">Рекомендации для вас</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    @foreach (var book in Model.RecommendedBooks)
-                    {
-                        <div class="card p-4 rounded-lg border-2 book-item">
-                            <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/D4AF37/FFFFFF?text=Книга';">
-                            <div>
-                                <h3 class="text-xl font-semibold">@book.Title</h3>
-                                <p class="text-sm text-gray-500">Автор: @book.AuthorName</p>
-                                <p class="text-xs text-gray-400">@book.RecommendationReason</p>
+                @if (Model.RecommendedBooks != null && Model.RecommendedBooks.Any())
+                {
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        @foreach (var book in Model.RecommendedBooks)
+                        {
+                            <div class="card p-4 rounded-lg border-2 book-item">
+                                <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/D4AF37/FFFFFF?text=Книга';">
+                                <div>
+                                    <h3 class="text-xl font-semibold">@book.Title</h3>
+                                    <p class="text-sm text-gray-500">Автор: @book.AuthorName</p>
+                                    <p class="text-xs text-gray-400">@book.RecommendationReason</p>
+                                </div>
                             </div>
-                        </div>
-                    }
-                </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="text-center text-secondary">Рекомендации пока не найдены.</p>
+                }
             </section>
         }
     </div>

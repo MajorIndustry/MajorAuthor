@@ -1,0 +1,95 @@
+﻿@model MajorAuthor.Models.LoginViewModel
+@{
+    // Указываем, что это представление использует _Layout.cshtml
+    Layout = "_Layout";
+    ViewData["Title"] = "Вход";
+}
+
+<h1 class="text-4xl font-bold text-center mb-10 section-title">@ViewData["Title"]</h1>
+
+<div class="flex flex-col md:flex-row justify-center items-center gap-8">
+    <div class="md:w-1/2 p-6 rounded-lg border shadow-xl card">
+        <section>
+            {{-- Локальная форма входа --}}
+            <form asp-controller="Account" asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl" method="post">
+                <h2 class="text-2xl font-semibold mb-4 section-title">Войти с помощью аккаунта</h2>
+                <hr />
+                <div asp-validation-summary="All" class="text-red-600 font-bold mb-4" role="alert"></div>
+                <div class="mb-4">
+                    <label asp-for="Email" class="block text-sm font-medium text-themed-label"></label>
+                    <input asp-for="Email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-accent-gold focus:ring-accent-gold dark:bg-gray-700 dark:text-gray-100" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                    <span asp-validation-for="Email" class="text-red-600 text-xs mt-1"></span>
+                </div>
+                <div class="mb-4">
+                    <label asp-for="Password" class="block text-sm font-medium text-themed-label"></label>
+                    <input asp-for="Password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-accent-gold focus:ring-accent-gold dark:bg-gray-700 dark:text-gray-100" autocomplete="current-password" aria-required="true" placeholder="password" />
+                    <span asp-validation-for="Password" class="text-red-600 text-xs mt-1"></span>
+                </div>
+                <div class="mb-4">
+                    <div class="flex items-center">
+                        <input asp-for="RememberMe" class="h-4 w-4 text-accent-gold border-gray-300 rounded focus:ring-accent-gold" />
+                        <label asp-for="RememberMe" class="ml-2 block text-sm text-themed-label"></label>
+                    </div>
+                </div>
+                <div>
+                    <button type="submit" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-accent-gold hover:bg-accent-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-gold transition-colors">Войти</button>
+                </div>
+                <div class="mt-4 text-center">
+                    <p class="text-sm text-themed-label">
+                        <a asp-controller="Account" asp-action="ForgotPassword" class="text-accent-gold hover:underline">Забыли пароль?</a>
+                    </p>
+                    <p class="text-sm text-themed-label">
+                        <a asp-controller="Account" asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl" class="text-accent-gold hover:underline">Зарегистрироваться как новый пользователь</a>
+                    </p>
+                    <p class="text-sm text-themed-label">
+                        <a asp-controller="Account" asp-action="ResendEmailConfirmation" class="text-accent-gold hover:underline">Отправить повторное подтверждение Email</a>
+                    </p>
+                </div>
+            </form>
+        </section>
+    </div>
+    <div class="md:w-1/2 p-6 rounded-lg border shadow-xl card">
+        <section>
+            <h2 class="text-2xl font-semibold mb-4 section-title">Войти с помощью другого сервиса</h2>
+            <hr />
+            @{
+                if ((Model.ExternalLogins?.Count ?? 0) == 0)
+                {
+                    <p class="text-sm text-themed-label">
+                        На данный момент нет настроенных внешних сервисов аутентификации.
+                    </p>
+                }
+                else
+                {
+                    <form asp-controller="Account" asp-action="ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="mt-4">
+                        <div>
+                            <p>
+                                @foreach (var provider in Model.ExternalLogins)
+                                {
+                                    <button type="submit" class="w-full py-2 px-4 mb-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white
+                                    @if (provider.DisplayName == "Google") {
+                            <text>bg-red-500 hover:bg-red-600</text>
+ }
+                                             else if (provider.DisplayName == "Yandex") {
+                            <text>bg-yellow-500 hover:bg-yellow-600</text>
+ }
+                                             else {
+                            <text>bg-gray-500 hover:bg-gray-600</text>
+ }
+                                                 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+                                                        name="provider" value="@provider.Name" title="Войти через @provider.DisplayName">
+                                                    Войти через @provider.DisplayName
+                                                </button>
+                                }
+                            </p>
+                        </div>
+                    </form>
+                }
+            }
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

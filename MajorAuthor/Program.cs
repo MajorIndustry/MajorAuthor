@@ -3,7 +3,9 @@
 
 using MajorAuthor.Data; // Используем наш DbContext
 using Microsoft.EntityFrameworkCore; // Используем Entity Framework Core
-using Microsoft.AspNetCore.Identity; // Если вы будете использовать ASP.NET Core Identity
+using Microsoft.AspNetCore.Identity;
+using MajorAuthor.Models;
+using MajorAuthor.Services; // Если вы будете использовать ASP.NET Core Identity
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,11 +18,36 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<MajorAuthorDbContext>(options =>
     options.UseSqlServer(connectionString)); // Используйте UseSqlite, UseNpgsql и т.д., если используете другую БД
 
-// --- Опционально: Добавление ASP.NET Core Identity ---
-// Если вы планируете использовать систему аутентификации и управления пользователями ASP.NET Core Identity,
-// раскомментируйте следующие строки и настройте ее.
-// builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
 //    .AddEntityFrameworkStores<MajorAuthorDbContext>();
+// Настройка ASP.NET Core Identity
+builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
+    .AddEntityFrameworkStores<MajorAuthorDbContext>(); // Использование MajorAuthorDbContext
+
+// --- Начало изменений для внешних провайдеров ---
+builder.Services.AddAuthentication()
+    .AddGoogle(googleOptions =>
+    {
+        // Получение Client ID и Client Secret из конфигурации
+        // Для разработки используйте User Secrets: dotnet user-secrets set "Authentication:Google:ClientId" "ВАШ_CLIENT_ID"
+        // dotnet user-secrets set "Authentication:Google:ClientSecret" "ВАШ_CLIENT_SECRET"
+        googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"];
+        googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+    })
+    .AddYandex(yandexOptions =>
+    {
+        // Для разработки используйте User Secrets: dotnet user-secrets set "Authentication:Yandex:ClientId" "ВАШ_APP_ID"
+        // dotnet user-secrets set "Authentication:Yandex:ClientSecret" "ВАШ_APP_SECRET"
+        yandexOptions.ClientId = builder.Configuration["Authentication:Yandex:ClientId"];
+        yandexOptions.ClientSecret = builder.Configuration["Authentication:Yandex:ClientSecret"];
+    });
+// --- Конец изменений для внешних провайдеров ---
+
+// === НАСТРОЙКИ И РЕГИСТРАЦИЯ СЛУЖБЫ EMAIL ===
+// Привязываем секцию "EmailSettings" из конфигурации к классу EmailSettings
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+// Регистрируем нашу службу отправки электронной почты
+builder.Services.AddTransient<IEmailSender, EmailSender>(); // Регистрируем как Transient
+// ===========================================
 
 builder.Services.AddControllersWithViews();
 

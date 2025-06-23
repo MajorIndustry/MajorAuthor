@@ -1,19 +1,18 @@
-// Проект: MajorAuthor.Web
+// Проект: MajorAuthor
 // Файл: Controllers/HomeController.cs
 using Microsoft.AspNetCore.Mvc;
-using MajorAuthor.Web.Models; // Используем нашу ViewModel
+using MajorAuthor.Models; // Используем нашу ViewModel
 using MajorAuthor.Data; // Используем наш DbContext
+using MajorAuthor.Data.Entities; // Добавлено для доступа к сущностям PromotionPlan, Promotion, Book, Author, Genre и т.д.
 using Microsoft.EntityFrameworkCore; // Для методов расширения EF Core, таких как Include, ToListAsync
-using System.Collections.Generic;
 using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Security.Claims; // Добавлено для ClaimTypes
-using System.Diagnostics;
-using MajorAuthor.Models; // Для Activity (для ErrorViewModel)
+using System.Threading.Tasks;
+using System.Diagnostics; // Добавлено для Activity (для ErrorViewModel)
 
-
-namespace MajorAuthor.Web.Controllers
+namespace MajorAuthor.Controllers // Пространство имен для контроллеров
 {
     public class HomeController : Controller
     {
@@ -47,9 +46,11 @@ namespace MajorAuthor.Web.Controllers
                 .OrderBy(g => g.Name)
                 .ToListAsync();
 
-            // Популярные книги (например, топ-10 по количеству лайков или прочтений)
+            // Популярные книги (например, топ-10 по количеству лайков и прочтений)
             viewModel.PopularBooks = await _context.Books
-                .OrderByDescending(b => b.LikesCount + b.ReadsCount / 10.0) // Пример комбинированного рейтинга
+                .Include(b => b.BookAuthors) // Включаем BookAuthors для доступа к Author
+                    .ThenInclude(ba => ba.Author) // Включаем Author
+                .OrderByDescending(b => b.LikesCount + (double)b.ReadsCount / 10.0) // Пример комбинированного рейтинга
                 .Take(10)
                 .Select(b => new HomeViewModel.BookDisplayModel
                 {
@@ -57,8 +58,7 @@ namespace MajorAuthor.Web.Controllers
                     Title = b.Title,
                     // Для автора: Если книга может иметь несколько авторов,
                     // можно объединить их имена или выбрать первого/основного.
-                    // Здесь предполагается, что вы хотите отобразить PenName основного автора или просто первого.
-                    // Для упрощения, пока берем PenName первого автора, если он есть.
+                    // Используем Author.PenName (псевдоним)
                     AuthorName = b.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
                     CoverImageUrl = b.CoverImageUrl,
                     ReadsCount = b.ReadsCount,
@@ -69,20 +69,23 @@ namespace MajorAuthor.Web.Controllers
 
             // Популярные авторы (например, топ-10 по общему количеству прочтений их книг)
             viewModel.PopularAuthors = await _context.Authors
-                .OrderByDescending(a => a.BookAuthors.Sum(ba => ba.Book.ReadsCount)) // Суммируем прочтения всех книг автора
-                .Take(10)
                 .Select(a => new HomeViewModel.AuthorDisplayModel
                 {
                     Id = a.Id,
+                    // Используем PenName для отображения имени автора
                     Name = a.PenName,
                     PhotoUrl = a.PhotoUrl,
                     BooksCount = a.BookAuthors.Count(),
                     TotalReadsCount = a.BookAuthors.Sum(ba => ba.Book.ReadsCount)
                 })
+                .OrderByDescending(a => a.TotalReadsCount) // Сортируем по TotalReadsCount, рассчитанному выше
+                .Take(10)
                 .ToListAsync();
 
             // Недавно обновленные книги (за последние 7 дней, упорядоченные по LastUpdateTime)
             viewModel.RecentlyUpdatedBooks = await _context.Books
+                .Include(b => b.BookAuthors) // Включаем BookAuthors для доступа к Author
+                    .ThenInclude(ba => ba.Author) // Включаем Author
                 .Where(b => b.LastUpdateTime >= DateTime.UtcNow.AddDays(-7))
                 .OrderByDescending(b => b.LastUpdateTime)
                 .Take(10)
@@ -92,14 +95,18 @@ namespace MajorAuthor.Web.Controllers
                     Title = b.Title,
                     AuthorName = b.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
                     CoverImageUrl = b.CoverImageUrl,
-                    UpdateInfo = GetRelativeTime(b.LastUpdateTime) // Используем статический метод
+                    UpdateInfo = GetRelativeTime(b.LastUpdateTime), // Используем статический метод
+                    ReadsCount = b.ReadsCount, // Добавлено
+                    LikesCount = b.LikesCount // Добавлено
                 })
                 .ToListAsync();
 
             // Новые популярные книги (опубликованы недавно, но уже набрали много лайков/прочтений)
             viewModel.NewPopularBooks = await _context.Books
+                .Include(b => b.BookAuthors) // Включаем BookAuthors для доступа к Author
+                    .ThenInclude(ba => ba.Author) // Включаем Author
                 .Where(b => b.PublicationDate >= DateTime.UtcNow.AddDays(-30)) // Опубликованы за последний месяц
-                .OrderByDescending(b => b.LikesCount + b.ReadsCount / 5.0) // Высокое соотношение
+                .OrderByDescending(b => b.LikesCount + (double)b.ReadsCount / 5.0) // Высокое соотношение
                 .Take(10)
                 .Select(b => new HomeViewModel.BookDisplayModel
                 {
@@ -115,15 +122,33 @@ namespace MajorAuthor.Web.Controllers
             // Новые популярные авторы (зарегистрировались недавно, но уже набрали много прочтений)
             viewModel.NewPopularAuthors = await _context.Authors
                 .Where(a => a.AuthorProfileCreationDate >= DateTime.UtcNow.AddDays(-90)) // Профиль создан за последние 3 месяца
-                .OrderByDescending(a => a.BookAuthors.Sum(ba => ba.Book.ReadsCount))
-                .Take(10)
                 .Select(a => new HomeViewModel.AuthorDisplayModel
                 {
                     Id = a.Id,
-                    Name = a.PenName,
+                    Name = a.PenName, // Используем PenName
                     PhotoUrl = a.PhotoUrl,
-                    RegistrationInfo = GetRelativeTime(a.AuthorProfileCreationDate), // Используем статический метод
+                    RegistrationInfo = GetRelativeTime(a.AuthorProfileCreationDate), // Используем AuthorProfileCreationDate
                     TotalReadsCount = a.BookAuthors.Sum(ba => ba.Book.ReadsCount)
+                })
+                .OrderByDescending(a => a.TotalReadsCount)
+                .Take(10)
+                .ToListAsync();
+
+            // Продвигающиеся книги (на основе активных продвижений)
+            viewModel.PromotedBooks = await _context.Promotions
+                .Include(p => p.Book)
+                    .ThenInclude(b => b.BookAuthors)
+                        .ThenInclude(ba => ba.Author)
+                .Where(p => p.StartDate <= DateTime.UtcNow && p.EndDate >= DateTime.UtcNow)
+                .Select(p => new HomeViewModel.BookDisplayModel
+                {
+                    Id = p.Book.Id,
+                    Title = p.Book.Title,
+                    AuthorName = p.Book.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
+                    CoverImageUrl = p.Book.CoverImageUrl,
+                    ReadsCount = p.Book.ReadsCount,
+                    LikesCount = p.Book.LikesCount,
+                    IsAdultContent = p.Book.IsAdultContent
                 })
                 .ToListAsync();
 
@@ -131,37 +156,46 @@ namespace MajorAuthor.Web.Controllers
             // Рекомендации для зарегистрированных пользователей
             if (viewModel.IsUserLoggedIn)
             {
-                // В реальном приложении: var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier));
-                // Для демонстрации:
-                var userId = 1; // Замените на реальный UserId авторизованного пользователя
+                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-                // Пример: Рекомендации на основе любимых жанров и тегов
-                var userPreferredGenreIds = await _context.UserPreferredGenres
-                    .Where(upg => upg.UserId == userId)
-                    .Select(upg => upg.GenreId)
-                    .ToListAsync();
+                if (currentUserId != null)
+                {
+                    // Получаем любимые жанры пользователя
+                    var userPreferredGenreIds = await _context.UserPreferredGenres
+                        .Where(upg => upg.UserId == currentUserId)
+                        .Select(upg => upg.GenreId)
+                        .ToListAsync();
 
-                var userPreferredTagIds = await _context.UserPreferredTags
-                    .Where(upt => upt.UserId == userId)
-                    .Select(upt => upt.TagId)
-                    .ToListAsync();
+                    // Получаем любимые теги пользователя
+                    var userPreferredTagIds = await _context.UserPreferredTags
+                        .Where(upt => upt.UserId == currentUserId)
+                        .Select(upt => upt.TagId)
+                        .ToListAsync();
 
-                viewModel.RecommendedBooks = await _context.Books
-                    .Where(b => b.BookGenres.Any(bg => userPreferredGenreIds.Contains(bg.GenreId)) || // Книги по любимым жанрам
-                                b.BookTags.Any(bt => userPreferredTagIds.Contains(bt.TagId)))       // Книги по любимым тегам
-                    .OrderByDescending(b => b.LikesCount + b.ReadsCount) // Простой рейтинг для рекомендаций
-                    .Take(10)
-                    .Select(b => new HomeViewModel.BookDisplayModel
-                    {
-                        Id = b.Id,
-                        Title = b.Title,
-                        AuthorName = b.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
-                        CoverImageUrl = b.CoverImageUrl,
-                        // Пример сложной логики причины рекомендации:
-                        RecommendationReason = (b.BookGenres.Any(bg => userPreferredGenreIds.Contains(bg.GenreId)) ? "Потому что вы любите этот жанр" : "") +
-                                               (b.BookTags.Any(bt => userPreferredTagIds.Contains(bt.TagId)) ? " и этот тег" : "")
-                    })
-                    .ToListAsync();
+                    viewModel.RecommendedBooks = await _context.Books
+                        .Include(b => b.BookAuthors)
+                            .ThenInclude(ba => ba.Author)
+                        .Include(b => b.BookGenres) // Включаем для фильтрации по жанрам
+                        .Include(b => b.BookTags)   // Включаем для фильтрации по тегам
+                        .Where(b => b.BookGenres.Any(bg => userPreferredGenreIds.Contains(bg.GenreId)) || // Книги по любимым жанрам
+                                     b.BookTags.Any(bt => userPreferredTagIds.Contains(bt.TagId)))         // Книги по любимым тегам
+                        .OrderByDescending(b => b.LikesCount + (double)b.ReadsCount) // Простой рейтинг для рекомендаций
+                        .Take(10)
+                        .Select(b => new HomeViewModel.BookDisplayModel
+                        {
+                            Id = b.Id,
+                            Title = b.Title,
+                            AuthorName = b.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
+                            CoverImageUrl = b.CoverImageUrl,
+                            ReadsCount = b.ReadsCount,
+                            LikesCount = b.LikesCount,
+                            IsAdultContent = b.IsAdultContent,
+                            // Пример сложной логики причины рекомендации:
+                            RecommendationReason = (b.BookGenres.Any(bg => userPreferredGenreIds.Contains(bg.GenreId)) ? "Потому что вы любите этот жанр" : "") +
+                                                   (b.BookTags.Any(bt => userPreferredTagIds.Contains(bt.TagId)) ? " и этот тег" : "")
+                        })
+                        .ToListAsync();
+                }
             }
 
             return View(viewModel);
@@ -175,8 +209,10 @@ namespace MajorAuthor.Web.Controllers
         public async Task<IActionResult> GetBooksByGenre(int genreId)
         {
             var books = await _context.Books
+                .Include(b => b.BookAuthors)
+                    .ThenInclude(ba => ba.Author)
                 .Where(b => b.BookGenres.Any(bg => bg.GenreId == genreId))
-                .OrderByDescending(b => b.PublicationDate)
+                .OrderByDescending(b => b.PublicationDate) // Сортируем по дате публикации
                 .Take(10)
                 .Select(b => new HomeViewModel.BookDisplayModel
                 {
@@ -185,7 +221,8 @@ namespace MajorAuthor.Web.Controllers
                     AuthorName = b.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
                     CoverImageUrl = b.CoverImageUrl,
                     ReadsCount = b.ReadsCount,
-                    LikesCount = b.LikesCount
+                    LikesCount = b.LikesCount,
+                    IsAdultContent = b.IsAdultContent // Добавлено
                 })
                 .ToListAsync();
 
@@ -220,6 +257,7 @@ namespace MajorAuthor.Web.Controllers
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
+            // Убедитесь, что ErrorViewModel находится в MajorAuthor.Models (или MajorAuthor.Web.Models, если у вас такой проект)
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }

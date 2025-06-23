@@ -1,11 +1,24 @@
-﻿<!DOCTYPE html>
+﻿@*
+    Проект: MajorAuthor
+    Файл: Views/Shared/_Layout.cshtml
+    Описание: Основной макет для всех представлений сайта.
+*@
+@using MajorAuthor.Data
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+
+<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - MajorAuthor</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/MajorAuthor.Web.styles.css" asp-append-version="true" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         /* Основные CSS переменные для тем */
         :root {
@@ -18,8 +31,10 @@
             --accent-light: #C09A6B; /* Чуть светлее акцент для наведения/активного состояния */
             --border-color: #EAEAEA; /* Светлый, мягкий серый для границ */
             --shadow-color: rgba(0, 0, 0, 0.05); /* Очень легкая тень */
-            --header-bg: #FFFFFF;
+            --header-bg: #F0F0F0; /* Изменено для контраста со светлым bg-secondary */
             --header-text: #2C3E50;
+            --accent-gold-rgb: 167, 136, 95; /* RGB для использования в rgba() */
+            --footer-bg: #F0F0F0; /* Изменено для контраста со светлым bg-secondary */
         }
 
         /* Темная тема */
@@ -32,8 +47,10 @@
             --accent-light: #B8860B; /* Темно-золотой */
             --border-color: #4A5568; /* Темный бордер */
             --shadow-color: rgba(0, 0, 0, 0.5);
-            --header-bg: #2D3748;
+            --header-bg: #1A202C; /* Изменено на bg-primary для контраста с bg-secondary */
             --header-text: #E2E8F0;
+            --accent-gold-rgb: 255, 215, 0; /* RGB для использования в rgba() */
+            --footer-bg: #1A202C; /* Изменено на bg-primary для контраста с bg-secondary */
         }
 
         /* Применение переменных */
@@ -44,51 +61,50 @@
             transition: background-color 0.3s, color 0.3s;
         }
 
-        .container {
+        /* Применяем стили для .container к основному содержимому main */
+        main.container {
             background-color: var(--bg-secondary);
             color: var(--text-primary);
-            border-color: var(--border-color);
-            box-shadow: 0 4px 6px -1px var(--shadow-color), 0 2px 4px -1px var(--shadow-color);
+            border-radius: 0; /* Убраны округлые углы для main контейнера */
+            margin-top: 0; /* Отступ сверху убран */
+            margin-bottom: 0; /* Отступ снизу убран */
         }
 
         .card {
             background-color: var(--bg-secondary);
             border-color: var(--border-color);
             box-shadow: 0 1px 3px 0 var(--shadow-color), 0 1px 2px 0 var(--shadow-color);
+            border-radius: 0.5rem; /* Округлые углы для карточек оставлены */
         }
 
         .section-title {
             color: var(--accent-gold);
         }
 
-        .button-primary {
-            background-color: var(--accent-gold);
-            color: var(--text-primary); /* Или белый, в зависимости от контраста */
-        }
-
-        .button-secondary {
-            background-color: var(--bg-primary);
-            color: var(--accent-gold);
-            border-color: var(--accent-gold);
-        }
-
         /* Хедер */
         .app-header {
             background-color: var(--header-bg);
             color: var(--header-text);
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: none; /* Убрана граница */
             padding: 1rem 2rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 4px var(--shadow-color); /* Используем переменную */
+            border-radius: 0; /* Убраны округлые углы для хедера */
         }
 
         .app-title {
             font-size: 1.8rem;
             font-weight: 700;
             color: var(--accent-gold);
+            text-decoration: none; /* Убираем подчеркивание у ссылки */
+            transition: color 0.2s; /* Плавный переход цвета */
         }
+
+            .app-title:hover {
+                color: var(--accent-light); /* Изменение цвета при наведении */
+            }
 
         .header-icons {
             display: flex;
@@ -100,13 +116,44 @@
             font-size: 1.5rem;
             cursor: pointer;
             transition: color 0.2s;
+            color: var(--header-text); /* Цвет иконок */
         }
 
             .header-icon:hover {
                 color: var(--accent-gold);
             }
 
-        /* Переключатель темы (переместил в хедер для компактности) */
+        /* Кнопки */
+        .btn-primary {
+            background-color: var(--accent-gold);
+            color: var(--header-bg); /* Темный текст на золотом для лучшего контраста */
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s, color 0.2s;
+            border: none; /* Убираем стандартную границу */
+        }
+
+            .btn-primary:hover {
+                background-color: var(--accent-light);
+                color: var(--header-bg);
+            }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--accent-gold);
+            border: 1px solid var(--accent-gold);
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+        }
+
+            .btn-secondary:hover {
+                background-color: var(--accent-gold);
+                color: var(--header-bg); /* Темный текст на золотом при наведении */
+                border-color: var(--accent-gold);
+            }
+
+        /* Переключатель темы */
         .theme-switch-btn {
             background-color: var(--bg-primary);
             color: var(--accent-gold);
@@ -124,42 +171,187 @@
 
         /* НОВЫЙ CSS класс для текста лейбла жанра */
         .text-themed-label {
-            color: var(--text-primary); /* Используем основной цвет текста для светлой темы */
+            color: var(--text-primary);
         }
 
-        body.dark-theme .text-themed-label {
-            color: var(--text-secondary); /* В темной теме используем цвет text-secondary для контраста */
+        /* НОВЫЕ ПРАВИЛА ДЛЯ ЦВЕТА ТЕКСТА ВВОДА В ТЕМНОЙ ТЕМЕ */
+        input[type="email"],
+        input[type="password"],
+        input[type="text"],
+        textarea { /* Добавлено textarea */
+            color: var(--text-primary); /* Цвет текста ввода */
+            background-color: var(--bg-secondary); /* Фон ввода */
+            border-color: var(--border-color); /* Рамка ввода */
+            border-width: 1px; /* Убедимся, что рамка есть */
+            border-radius: 0.25rem; /* Немного округлые углы */
+            padding: 0.5rem 0.75rem; /* Отступы */
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+            input[type="email"]:focus,
+            input[type="password"]:focus,
+            input[type="text"]:focus,
+            textarea:focus {
+                border-color: var(--accent-gold);
+                box-shadow: 0 0 0 3px rgba(var(--accent-gold-rgb), 0.2); /* Предполагается, что у нас есть RGB версия акцента */
+                outline: none;
+            }
+
+            input::placeholder,
+            textarea::placeholder {
+                color: var(--text-secondary); /* Цвет заполнителя */
+                opacity: 1; /* Убедитесь, что заполнитель не прозрачен */
+            }
+
+        /* Dropdown specific styles - адаптированы под переменные */
+        .dropdown-menu {
+            background-color: var(--bg-secondary); /* same as card */
+            border: 1px solid var(--border-color); /* slightly lighter border */
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px var(--shadow-color);
+            z-index: 1000; /* Ensure it's above other content */
+        }
+
+        .dropdown-item {
+            color: var(--text-primary);
+            padding: 0.75rem 1rem;
+            display: block;
+            text-decoration: none;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+            .dropdown-item:hover {
+                background-color: var(--border-color); /* medium gray for hover */
+                color: var(--accent-gold); /* highlight text on hover */
+            }
+
+        /* Footer styles */
+        footer {
+            background-color: var(--footer-bg); /* Фон футера теперь использует переменную */
+            border-top: none; /* Убрана граница */
+            color: var(--text-secondary); /* Цвет текста футера */
+            border-radius: 0; /* Убраны округлые углы для футера */
+        }
+
+            footer a {
+                color: var(--text-secondary);
+                transition: color 0.2s;
+            }
+
+                footer a:hover {
+                    color: var(--accent-gold);
+                }
+
+        /* New styles for profile icons */
+        .profile-icon-circle {
+            width: 2.5rem; /* Equivalent to w-10, slightly larger for visibility */
+            height: 2.5rem; /* Equivalent to h-10 */
+            border-radius: 9999px; /* Makes it perfectly round (rounded-full) */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem; /* Text size (text-xl) */
+            font-weight: 600; /* Medium weight (font-semibold) */
+            transition: background-color 0.2s, color 0.2s;
+            text-decoration: none; /* Убираем подчеркивание у ссылки */
+        }
+
+        .profile-icon-unauth {
+            background-color: var(--text-secondary); /* Нейтральный цвет из темы */
+            color: var(--bg-primary); /* Контрастный текст */
+        }
+
+        .profile-icon-auth {
+            background-color: var(--accent-gold); /* Золотой фон */
+            color: var(--header-bg); /* Цвет текста из фона хедера (черный/белый) */
         }
     </style>
 </head>
 <body class="dark-theme">
     <header class="app-header">
-        <div class="app-title">MajorAuthor</div>
+        <a asp-area="" asp-controller="Home" asp-action="Index" class="app-title">MajorAuthor</a>
         <div class="header-icons">
-            <!-- Иконка поиска -->
             <svg class="header-icon w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                 <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
             </svg>
-            <!-- Иконка закладок -->
             <svg class="header-icon w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                 <path fill-rule="evenodd" d="M14 2H6a2 2 0 00-2 2v14l6-4 6 4V4a2 2 0 00-2-2z" clip-rule="evenodd"></path>
             </svg>
-            <!-- Иконка профиля -->
-            <svg class="header-icon w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
-            </svg>
+
+            @if (SignInManager.IsSignedIn(User))
+            {
+                <div class="relative group">
+                    <button class="profile-icon-circle profile-icon-auth focus:outline-none" aria-haspopup="true" aria-expanded="false" id="profileDropdownToggle">
+                        <span>@UserManager.GetUserName(User).FirstOrDefault().ToString().ToUpper()</span>
+                    </button>
+                    <div id="profileDropdownMenu" class="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 dropdown-menu hidden group-hover:block focus-within:block" role="menu" aria-orientation="vertical" aria-labelledby="profileDropdownToggle">
+                        <a asp-controller="Profile" asp-action="MyProfile" class="dropdown-item" role="menuitem">Мой профиль</a>
+                        <a asp-controller="Account" asp-action="Settings" class="dropdown-item" role="menuitem">Настройки</a>
+                        <a asp-controller="Works" asp-action="MyWorks" class="dropdown-item" role="menuitem">Мои произведения</a>
+                        <a asp-controller="Books" asp-action="Liked" class="dropdown-item" role="menuitem">Понравившиеся</a>
+                        <a asp-controller="Books" asp-action="Bookmarks" class="dropdown-item" role="menuitem">Закладки</a>
+                        <form asp-controller="Account" asp-action="Logout" method="post" class="w-full">
+                            <button type="submit" class="dropdown-item w-full text-left" role="menuitem">Выйти</button>
+                        </form>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <a asp-controller="Account" asp-action="Login" class="profile-icon-circle profile-icon-unauth">
+                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                    </svg>
+                </a>
+            }
             <button id="themeToggle" class="theme-switch-btn">
                 Переключить тему
             </button>
         </div>
     </header>
 
-    <div class="container-body">
+    <main role="main" class="container mx-auto px-0 py-0 flex-grow">
         @RenderBody()
-    </div>
+    </main>
+
+    <footer class="text-center py-4 text-gray-500 mt-auto">
+        <div class="container mx-auto">
+            &copy; @DateTime.Now.Year - MajorAuthor.Web - <a asp-area="" asp-controller="Home" asp-action="Privacy" class="text-gray-400 hover:text-accent-gold">Политика конфиденциальности</a>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        // JavaScript для управления выпадающим меню, если hover не всегда надежен
+        document.addEventListener('DOMContentLoaded', function () {
+            const toggleButton = document.getElementById('profileDropdownToggle');
+            const dropdownMenu = document.getElementById('profileDropdownMenu');
+
+            if (toggleButton && dropdownMenu) {
+                let timeout;
+
+                function showDropdown() {
+                    clearTimeout(timeout);
+                    dropdownMenu.classList.remove('hidden');
+                }
+
+                function hideDropdown() {
+                    timeout = setTimeout(() => {
+                        dropdownMenu.classList.add('hidden');
+                    }, 300); // Небольшая задержка, чтобы позволить курсору перемещаться
+                }
+
+                toggleButton.addEventListener('mouseenter', showDropdown);
+                dropdownMenu.addEventListener('mouseenter', showDropdown); // Удерживать открытым при наведении на само меню
+
+                toggleButton.addEventListener('mouseleave', hideDropdown);
+                dropdownMenu.addEventListener('mouseleave', hideDropdown);
+            }
+
             const themeToggle = document.getElementById('themeToggle');
             const body = document.body;
 
@@ -195,6 +387,5 @@
             });
         });
     </script>
-    @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

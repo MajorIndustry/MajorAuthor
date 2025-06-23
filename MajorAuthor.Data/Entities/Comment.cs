@@ -30,12 +30,12 @@ namespace MajorAuthor.Data.Entities
         /// <summary>
         /// Идентификатор пользователя, оставившего комментарий.
         /// </summary>
-        public int UserId { get; set; }
+        public string UserId { get; set; }
 
         /// <summary>
         /// Навигационное свойство к пользователю.
         /// </summary>
-        public User User { get; set; }
+        public ApplicationUser User { get; set; }
 
         /// <summary>
         /// Текст комментария.

@@ -34,7 +34,7 @@ namespace MajorAuthor.Data.Entities
         /// <summary>
         /// Навигационное свойство к пользователю.
         /// </summary>
-        public User User { get; set; }
+        public ApplicationUser User { get; set; }
 
         /// <summary>
         /// Дата и время, когда был поставлен лайк.

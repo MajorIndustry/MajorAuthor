@@ -15,12 +15,12 @@ namespace MajorAuthor.Data.Entities
         /// Внешний ключ к пользователю.
         /// </summary>
         [Key, Column(Order = 0)]
-        public int UserId { get; set; }
+        public string UserId { get; set; }
 
         /// <summary>
         /// Навигационное свойство к пользователю.
         /// </summary>
-        public User User { get; set; }
+        public ApplicationUser User { get; set; }
 
         /// <summary>
         /// Внешний ключ к книге.

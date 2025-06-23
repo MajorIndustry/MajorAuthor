@@ -19,22 +19,22 @@ namespace MajorAuthor.Data.Entities
         /// <summary>
         /// Идентификатор отправителя сообщения.
         /// </summary>
-        public int SenderId { get; set; }
+        public string SenderId { get; set; }
 
         /// <summary>
         /// Навигационное свойство к отправителю.
         /// </summary>
-        public User Sender { get; set; }
+        public ApplicationUser Sender { get; set; }
 
         /// <summary>
         /// Идентификатор получателя сообщения.
         /// </summary>
-        public int ReceiverId { get; set; }
+        public string ReceiverId { get; set; }
 
         /// <summary>
         /// Навигационное свойство к получателю.
         /// </summary>
-        public User Receiver { get; set; }
+        public ApplicationUser Receiver { get; set; }
 
         /// <summary>
         /// Текст сообщения.
