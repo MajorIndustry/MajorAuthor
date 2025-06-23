@@ -1,8 +1,195 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model MajorAuthor.Web.Models.HomeViewModel
+@{
+    ViewData["Title"] = "Главная";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="min-h-screen flex flex-col items-center py-8 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-6xl w-full mx-auto p-6 rounded-lg border shadow-xl container">
+        <h1 class="text-4xl font-bold text-center mb-10 section-title">Добро пожаловать в MajorAuthor</h1>
+
+        <!-- Секция популярных книг -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Популярные книги</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @foreach (var book in Model.PopularBooks)
+                {
+                    <div class="card p-4 rounded-lg border-2 book-item">
+                        <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/D4AF37/FFFFFF?text=Книга';">
+                        <div>
+                            <h3 class="text-xl font-semibold">@book.Title</h3>
+                            <p class="text-sm text-gray-500">Автор: @book.AuthorName</p>
+                            <p class="text-xs text-gray-400">Прочтений: @(book.ReadsCount.ToString("N0")), Лайков: @(book.LikesCount.ToString("N0"))</p>
+                            @if (book.IsAdultContent)
+                            {
+                                <span class="text-xs text-red-500 font-bold">18+</span>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <!-- Секция популярных авторов -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Популярные авторы</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @foreach (var author in Model.PopularAuthors)
+                {
+                    <div class="card p-4 rounded-lg border-2 author-item">
+                        <img src="@author.PhotoUrl" alt="Аватар автора" class="author-avatar" onerror="this.onerror=null;this.src='https://placehold.co/60x60/D4AF37/FFFFFF?text=А';">
+                        <div>
+                            <h3 class="text-xl font-semibold">@author.Name</h3>
+                            <p class="text-sm text-gray-500">Книг: @author.BooksCount, Прочтений: @(author.TotalReadsCount.ToString("N0"))</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <!-- Секция недавно обновленных книг -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Недавно обновлённые книги</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @foreach (var book in Model.RecentlyUpdatedBooks)
+                {
+                    <div class="card p-4 rounded-lg border-2 book-item">
+                        <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/A79273/FFFFFF?text=Книга';">
+                        <div>
+                            <h3 class="text-xl font-semibold">@book.Title</h3>
+                            <p class="text-sm text-gray-500">Автор: @book.AuthorName</p>
+                            <p class="text-xs text-gray-400">@book.UpdateInfo</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <!-- Секция новые популярные книги -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Новые популярные книги (Топ 10)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @foreach (var book in Model.NewPopularBooks)
+                {
+                    <div class="card p-4 rounded-lg border-2 book-item">
+                        <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/D4AF37/FFFFFF?text=Книга';">
+                        <div>
+                            <h3 class="text-xl font-semibold">@book.Title</h3>
+                            <p class="text-sm text-gray-500">Автор: @book.AuthorName</p>
+                            <p class="text-xs text-gray-400">Прочтений: @book.ReadsCount.ToString("N0"), Лайков: @book.LikesCount.ToString("N0")</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <!-- Секция новые популярные авторы -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Новые популярные авторы (Топ 10)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @foreach (var author in Model.NewPopularAuthors)
+                {
+                    <div class="card p-4 rounded-lg border-2 author-item">
+                        <img src="@author.PhotoUrl" alt="Аватар автора" class="author-avatar" onerror="this.onerror=null;this.src='https://placehold.co/60x60/D4AF37/FFFFFF?text=А';">
+                        <div>
+                            <h3 class="text-xl font-semibold">@author.Name</h3>
+                            <p class="text-sm text-gray-500">@author.RegistrationInfo, Прочтений: @(author.TotalReadsCount.ToString("N0"))</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <!-- НОВАЯ Секция: Популярные по жанрам -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Книги по жанрам</h2>
+            <div class="flex items-center justify-center mb-6">
+                <label for="genreSelect" class="mr-4 text-lg font-medium text-secondary">Выберите жанр:</label>
+                <select id="genreSelect"
+                        class="form-select mt-1 block w-auto pl-3 pr-10 py-2 text-base border-gray-300
+                               focus:outline-none focus:ring-accent-gold focus:border-accent-gold sm:text-sm
+                               rounded-md bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+                    <option value="">Все жанры</option>
+                    @foreach (var genre in Model.AvailableGenres)
+                    {
+                        <option value="@genre.Id">@genre.Name</option>
+                    }
+                </select>
+            </div>
+            <div id="booksByGenreContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                @* Начальный список книг по жанру (если есть SelectedGenreId и BooksBySelectedGenre заполнен)
+                   Или заглушка, которая будет заменена AJAX-ом *@
+                @if (Model.BooksBySelectedGenre != null && Model.BooksBySelectedGenre.Any())
+                {
+                    @Html.Partial("_BookListPartial", Model.BooksBySelectedGenre)
+                }
+                else
+                {
+                    <p class="text-center text-secondary col-span-full">Выберите жанр, чтобы увидеть книги.</p>
+                }
+            </div>
+        </section>
+
+        <!-- Секция советы (появляется только для зарегистрированных пользователей) -->
+        @if (Model.IsUserLoggedIn)
+        {
+            <section class="mb-12">
+                <h2 class="text-3xl font-semibold mb-6 section-title text-center">Рекомендации для вас</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach (var book in Model.RecommendedBooks)
+                    {
+                        <div class="card p-4 rounded-lg border-2 book-item">
+                            <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/D4AF37/FFFFFF?text=Книга';">
+                            <div>
+                                <h3 class="text-xl font-semibold">@book.Title</h3>
+                                <p class="text-sm text-gray-500">Автор: @book.AuthorName</p>
+                                <p class="text-xs text-gray-400">@book.RecommendationReason</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </section>
+        }
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const genreSelect = document.getElementById('genreSelect');
+            const booksByGenreContainer = document.getElementById('booksByGenreContainer');
+
+            // Функция для загрузки книг по жанру через AJAX
+            async function loadBooksByGenre(genreId) {
+                if (!genreId) {
+                    booksByGenreContainer.innerHTML = '<p class="text-center text-secondary col-span-full">Выберите жанр, чтобы увидеть книги.</p>';
+                    return;
+                }
+                booksByGenreContainer.innerHTML = '<p class="text-center text-secondary col-span-full">Загрузка книг...</p>'; // Индикатор загрузки
+
+                try {
+                    const response = await fetch(`/Home/GetBooksByGenre?genreId=${genreId}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    const html = await response.text();
+                    booksByGenreContainer.innerHTML = html;
+                } catch (error) {
+                    console.error("Ошибка при загрузке книг по жанру:", error);
+                    booksByGenreContainer.innerHTML = '<p class="text-center text-red-500 col-span-full">Не удалось загрузить книги. Попробуйте еще раз.</p>';
+                }
+            }
+
+            // Обработчик изменения выбора жанра
+            genreSelect.addEventListener('change', (event) => {
+                const selectedGenreId = event.target.value;
+                loadBooksByGenre(selectedGenreId);
+            });
+
+            // Загрузить книги для выбранного жанра при первой загрузке страницы, если жанр уже выбран (например, из URL)
+            const initialSelectedGenreId = genreSelect.value;
+            if (initialSelectedGenreId) {
+                loadBooksByGenre(initialSelectedGenreId);
+            }
+        });
+    </script>
+}

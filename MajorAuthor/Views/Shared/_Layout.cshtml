@@ -1,50 +1,200 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - MajorAuthor</title>
-    <script type="importmap"></script>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/MajorAuthor.styles.css" asp-append-version="true" />
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Основные CSS переменные для тем */
+        :root {
+            /* Улучшенная Светлая тема */
+            --bg-primary: #FDFDFD; /* Почти белый, очень чистый */
+            --bg-secondary: #FFFFFF; /* Чистый белый для карточек/контейнеров */
+            --text-primary: #2C3E50; /* Темно-сине-серый для основного текста */
+            --text-secondary: #607D8B; /* Средний сине-серый для второстепенного текста */
+            --accent-gold: #A7885F; /* Приглушенный, элегантный латунный золотой */
+            --accent-light: #C09A6B; /* Чуть светлее акцент для наведения/активного состояния */
+            --border-color: #EAEAEA; /* Светлый, мягкий серый для границ */
+            --shadow-color: rgba(0, 0, 0, 0.05); /* Очень легкая тень */
+            --header-bg: #FFFFFF;
+            --header-text: #2C3E50;
+        }
+
+        /* Темная тема */
+        body.dark-theme {
+            --bg-primary: #1A202C; /* Очень темно-синий/серый */
+            --bg-secondary: #2D3748; /* Темно-серый */
+            --text-primary: #E2E8F0; /* Светло-серый */
+            --text-secondary: #A0AEC0; /* Средне-светло-серый */
+            --accent-gold: #FFD700; /* Яркий золотой */
+            --accent-light: #B8860B; /* Темно-золотой */
+            --border-color: #4A5568; /* Темный бордер */
+            --shadow-color: rgba(0, 0, 0, 0.5);
+            --header-bg: #2D3748;
+            --header-text: #E2E8F0;
+        }
+
+        /* Применение переменных */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .container {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            border-color: var(--border-color);
+            box-shadow: 0 4px 6px -1px var(--shadow-color), 0 2px 4px -1px var(--shadow-color);
+        }
+
+        .card {
+            background-color: var(--bg-secondary);
+            border-color: var(--border-color);
+            box-shadow: 0 1px 3px 0 var(--shadow-color), 0 1px 2px 0 var(--shadow-color);
+        }
+
+        .section-title {
+            color: var(--accent-gold);
+        }
+
+        .button-primary {
+            background-color: var(--accent-gold);
+            color: var(--text-primary); /* Или белый, в зависимости от контраста */
+        }
+
+        .button-secondary {
+            background-color: var(--bg-primary);
+            color: var(--accent-gold);
+            border-color: var(--accent-gold);
+        }
+
+        /* Хедер */
+        .app-header {
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .app-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--accent-gold);
+        }
+
+        .header-icons {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .header-icon {
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+            .header-icon:hover {
+                color: var(--accent-gold);
+            }
+
+        /* Переключатель темы (переместил в хедер для компактности) */
+        .theme-switch-btn {
+            background-color: var(--bg-primary);
+            color: var(--accent-gold);
+            border: 1px solid var(--accent-gold);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px; /* rounded-full */
+            font-size: 0.875rem;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+
+            .theme-switch-btn:hover {
+                background-color: var(--accent-gold);
+                color: var(--header-bg); /* Темный текст на золотом фоне */
+            }
+
+        /* НОВЫЙ CSS класс для текста лейбла жанра */
+        .text-themed-label {
+            color: var(--text-primary); /* Используем основной цвет текста для светлой темы */
+        }
+
+        body.dark-theme .text-themed-label {
+            color: var(--text-secondary); /* В темной теме используем цвет text-secondary для контраста */
+        }
+    </style>
 </head>
-<body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">MajorAuthor</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
+<body class="dark-theme">
+    <header class="app-header">
+        <div class="app-title">MajorAuthor</div>
+        <div class="header-icons">
+            <!-- Иконка поиска -->
+            <svg class="header-icon w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
+            </svg>
+            <!-- Иконка закладок -->
+            <svg class="header-icon w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" d="M14 2H6a2 2 0 00-2 2v14l6-4 6 4V4a2 2 0 00-2-2z" clip-rule="evenodd"></path>
+            </svg>
+            <!-- Иконка профиля -->
+            <svg class="header-icon w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+            </svg>
+            <button id="themeToggle" class="theme-switch-btn">
+                Переключить тему
+            </button>
+        </div>
     </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
+
+    <div class="container-body">
+        @RenderBody()
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2025 - MajorAuthor - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const themeToggle = document.getElementById('themeToggle');
+            const body = document.body;
+
+            // Функция для установки темы
+            function setTheme(theme) {
+                if (theme === 'dark') {
+                    body.classList.add('dark-theme');
+                    localStorage.setItem('theme', 'dark');
+                    themeToggle.textContent = 'Светлая тема';
+                } else {
+                    body.classList.remove('dark-theme');
+                    localStorage.setItem('theme', 'light');
+                    themeToggle.textContent = 'Тёмная тема';
+                }
+            }
+
+            // Проверка сохраненной темы при загрузке
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                setTheme(savedTheme);
+            } else {
+                // Установить тему по умолчанию, если не сохранена (например, темная)
+                setTheme('dark');
+            }
+
+            // Переключение темы по клику
+            themeToggle.addEventListener('click', () => {
+                if (body.classList.contains('dark-theme')) {
+                    setTheme('light');
+                } else {
+                    setTheme('dark');
+                }
+            });
+        });
+    </script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

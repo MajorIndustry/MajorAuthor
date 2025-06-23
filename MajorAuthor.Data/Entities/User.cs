@@ -72,5 +72,10 @@ namespace MajorAuthor.Data.Entities
         /// Теги, которые пользователь предпочитает (для рекомендаций).
         /// </summary>
         public ICollection<UserPreferredTag> PreferredTags { get; set; } = new List<UserPreferredTag>();
+
+        /// <summary>
+        /// Коллекция избранных книг пользователя.
+        /// </summary>
+        public ICollection<UserFavoriteBook> FavoriteBooks { get; set; } = new List<UserFavoriteBook>();
     }
 }

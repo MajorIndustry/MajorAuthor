@@ -2,10 +2,7 @@
 // Файл: MajorAuthorDbContext.cs
 using MajorAuthor.Data.Entities;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
 using System.Linq;
-using System.Reflection.Emit;
-using System.Xml.Linq;
 
 namespace MajorAuthor.Data
 {
@@ -34,7 +31,8 @@ namespace MajorAuthor.Data
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<BookTag> BookTags { get; set; }
-        public DbSet<UserPreferredTag> UserPreferredTags { get; set; } // НОВЫЙ DbSet для предпочтительных тегов
+        public DbSet<UserPreferredTag> UserPreferredTags { get; set; }
+        public DbSet<UserFavoriteBook> UserFavoriteBooks { get; set; } // НОВЫЙ DbSet для избранных книг
 
 
         /// <summary>
@@ -89,7 +87,8 @@ namespace MajorAuthor.Data
             modelBuilder.Entity<BookAuthor>()
                 .HasOne(ba => ba.Author)
                 .WithMany(a => a.BookAuthors)
-                .HasForeignKey(ba => ba.AuthorId);
+                .HasForeignKey(ba => ba.AuthorId); // Автор.Id является внешним ключом к User.Id, который используется здесь
+
 
             // Настройка связи один-ко-многим между Book и Chapter
             modelBuilder.Entity<Chapter>()
@@ -108,35 +107,35 @@ namespace MajorAuthor.Data
             // Настройки для сообщений
             modelBuilder.Entity<Message>()
                 .HasOne(m => m.Sender)
-                .WithMany() // У пользователя может быть много отправленных сообщений (нет навигационного свойства в User для отправленных)
+                .WithMany()
                 .HasForeignKey(m => m.SenderId)
-                .OnDelete(DeleteBehavior.Restrict); // Не удалять пользователя при удалении его сообщений
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Message>()
                 .HasOne(m => m.Receiver)
-                .WithMany() // У пользователя может быть много полученных сообщений (нет навигационного свойства в User для полученных)
+                .WithMany()
                 .HasForeignKey(m => m.ReceiverId)
-                .OnDelete(DeleteBehavior.Restrict); // Не удалять пользователя при удалении его сообщений
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Настройки для комментариев
             modelBuilder.Entity<Comment>()
                 .HasOne(c => c.Book)
-                .WithMany() // У книги может быть много комментариев (нет навигационного свойства в Book)
+                .WithMany()
                 .HasForeignKey(c => c.BookId)
-                .OnDelete(DeleteBehavior.Cascade); // При удалении книги удалять все комментарии к ней
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Comment>()
                 .HasOne(c => c.User)
-                .WithMany() // У пользователя может быть много комментариев (нет навигационного свойства в User)
+                .WithMany()
                 .HasForeignKey(c => c.UserId)
-                .OnDelete(DeleteBehavior.Cascade); // При удалении пользователя удалять его комментарии
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Comment>()
                 .HasOne(c => c.ParentComment)
                 .WithMany(c => c.Replies)
                 .HasForeignKey(c => c.ParentCommentId)
-                .IsRequired(false) // ParentCommentId может быть null
-                .OnDelete(DeleteBehavior.Restrict); // Не удалять родительский комментарий при удалении дочерних
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // НАСТРОЙКИ для One-to-One связи между User и Author
             modelBuilder.Entity<User>()
@@ -158,7 +157,7 @@ namespace MajorAuthor.Data
                 .WithMany(t => t.BookTags)
                 .HasForeignKey(bt => bt.TagId);
 
-            // НОВЫЕ НАСТРОЙКИ для UserPreferredTag (многие-ко-многим между User и Tag)
+            // НАСТРОЙКИ для UserPreferredTag (многие-ко-многим между User и Tag)
             modelBuilder.Entity<UserPreferredTag>()
                 .HasKey(upt => new { upt.UserId, upt.TagId });
 
@@ -171,6 +170,22 @@ namespace MajorAuthor.Data
                 .HasOne(upt => upt.Tag)
                 .WithMany(t => t.UserPreferredTags)
                 .HasForeignKey(upt => upt.TagId);
+
+            // НОВЫЕ НАСТРОЙКИ для UserFavoriteBook (многие-ко-многим между User и Book)
+            modelBuilder.Entity<UserFavoriteBook>()
+                .HasKey(ufb => new { ufb.UserId, ufb.BookId });
+
+            modelBuilder.Entity<UserFavoriteBook>()
+                .HasOne(ufb => ufb.User)
+                .WithMany(u => u.FavoriteBooks)
+                .HasForeignKey(ufb => ufb.UserId)
+                .OnDelete(DeleteBehavior.Cascade); // Если пользователь удаляется, удаляем его избранные книги
+
+            modelBuilder.Entity<UserFavoriteBook>()
+                .HasOne(ufb => ufb.Book)
+                .WithMany(b => b.UserFavorites)
+                .HasForeignKey(ufb => ufb.BookId)
+                .OnDelete(DeleteBehavior.Cascade); // Если книга удаляется, удаляем ее из избранных у всех пользователей
 
 
             base.OnModelCreating(modelBuilder);
