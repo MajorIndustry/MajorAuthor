@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MajorAuthor.Data.Migrations
 {
     [DbContext(typeof(MajorAuthorDbContext))]
-    [Migration("20250620224049_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20250706091817_FixAndAddPromotion")]
+    partial class FixAndAddPromotion
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -104,31 +104,154 @@ namespace MajorAuthor.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("ApplicationUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<DateTime>("AuthorProfileCreationDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PenName")
+                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<string>("IdentityUserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("PenName")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.Property<string>("PhotoUrl")
+                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IdentityUserId")
-                        .IsUnique()
-                        .HasFilter("[IdentityUserId] IS NOT NULL");
+                    b.HasIndex("ApplicationUserId")
+                        .IsUnique();
 
                     b.ToTable("Authors");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Blog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthorId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CommentsCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("LikesCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PublicationDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("ViewsCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.ToTable("Blogs");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BlogComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApplicationUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ApplicationUserId1")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("BlogId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CommentDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("ParentCommentId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationUserId");
+
+                    b.HasIndex("ApplicationUserId1");
+
+                    b.HasIndex("BlogId");
+
+                    b.HasIndex("ParentCommentId");
+
+                    b.ToTable("BlogComments");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BlogLike", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApplicationUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ApplicationUserId1")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("BlogId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("LikeDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationUserId");
+
+                    b.HasIndex("ApplicationUserId1");
+
+                    b.HasIndex("BlogId");
+
+                    b.ToTable("BlogLikes");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.Book", b =>
@@ -220,23 +343,21 @@ namespace MajorAuthor.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("ApplicationUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<int>("BookId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("LikeDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UserId1")
-                        .HasColumnType("nvarchar(450)");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("BookId");
+                    b.HasIndex("ApplicationUserId");
 
-                    b.HasIndex("UserId1");
+                    b.HasIndex("BookId");
 
                     b.ToTable("BookLikes");
                 });
@@ -249,6 +370,10 @@ namespace MajorAuthor.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("ApplicationUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<int>("BookId")
                         .HasColumnType("int");
 
@@ -258,17 +383,11 @@ namespace MajorAuthor.Data.Migrations
                     b.Property<int>("ReadingProgress")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("UserId1")
-                        .HasColumnType("nvarchar(450)");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("BookId");
+                    b.HasIndex("ApplicationUserId");
 
-                    b.HasIndex("UserId1");
+                    b.HasIndex("BookId");
 
                     b.ToTable("BookReadings");
                 });
@@ -316,6 +435,33 @@ namespace MajorAuthor.Data.Migrations
                     b.ToTable("Chapters");
                 });
 
+            modelBuilder.Entity("MajorAuthor.Data.Entities.ChapterRead", b =>
+                {
+                    b.Property<string>("ApplicationUserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("ChapterId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("FirstReadDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("LastReadDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("ApplicationUserId", "ChapterId");
+
+                    b.HasIndex("ChapterId");
+
+                    b.ToTable("ChapterReads");
+                });
+
             modelBuilder.Entity("MajorAuthor.Data.Entities.Comment", b =>
                 {
                     b.Property<int>("Id")
@@ -323,6 +469,10 @@ namespace MajorAuthor.Data.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApplicationUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("BookId")
                         .HasColumnType("int");
@@ -338,19 +488,35 @@ namespace MajorAuthor.Data.Migrations
                     b.Property<int?>("ParentCommentId")
                         .HasColumnType("int");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
                     b.HasKey("Id");
+
+                    b.HasIndex("ApplicationUserId");
 
                     b.HasIndex("BookId");
 
                     b.HasIndex("ParentCommentId");
 
-                    b.HasIndex("UserId");
-
                     b.ToTable("Comments");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Follower", b =>
+                {
+                    b.Property<string>("FollowerApplicationUserId")
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnOrder(0);
+
+                    b.Property<int>("AuthorId")
+                        .HasColumnType("int")
+                        .HasColumnOrder(1);
+
+                    b.Property<DateTime>("FollowDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("FollowerApplicationUserId", "AuthorId");
+
+                    b.HasIndex("AuthorId");
+
+                    b.ToTable("Followers");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.Genre", b =>
@@ -407,6 +573,46 @@ namespace MajorAuthor.Data.Migrations
                     b.ToTable("Messages");
                 });
 
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApplicationUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("TargetUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationUserId");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("MajorAuthor.Data.Entities.Page", b =>
                 {
                     b.Property<int>("Id")
@@ -438,6 +644,168 @@ namespace MajorAuthor.Data.Migrations
                     b.ToTable("Pages");
                 });
 
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Poem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthorId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CommentsCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("LikesCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PublicationDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.ToTable("Poems");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.PoemComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApplicationUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ParentCommentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PoemId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationUserId");
+
+                    b.HasIndex("ParentCommentId");
+
+                    b.HasIndex("PoemId");
+
+                    b.ToTable("PoemComments");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.PoemLike", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApplicationUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("LikeDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PoemId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationUserId");
+
+                    b.HasIndex("PoemId");
+
+                    b.ToTable("PoemLikes");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Promotion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BookId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PromotionPlanId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookId");
+
+                    b.HasIndex("PromotionPlanId");
+
+                    b.ToTable("Promotions");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.PromotionPlan", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("DurationInDays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PromotionPlans");
+                });
+
             modelBuilder.Entity("MajorAuthor.Data.Entities.Tag", b =>
                 {
                     b.Property<int>("Id")
@@ -458,7 +826,7 @@ namespace MajorAuthor.Data.Migrations
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.UserFavoriteBook", b =>
                 {
-                    b.Property<string>("UserId")
+                    b.Property<string>("ApplicationUserId")
                         .HasColumnType("nvarchar(450)")
                         .HasColumnOrder(0);
 
@@ -469,7 +837,7 @@ namespace MajorAuthor.Data.Migrations
                     b.Property<DateTime>("AddedDate")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("UserId", "BookId");
+                    b.HasKey("ApplicationUserId", "BookId");
 
                     b.HasIndex("BookId");
 
@@ -478,7 +846,7 @@ namespace MajorAuthor.Data.Migrations
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.UserPreferredGenre", b =>
                 {
-                    b.Property<string>("UserId")
+                    b.Property<string>("ApplicationUserId")
                         .HasColumnType("nvarchar(450)")
                         .HasColumnOrder(0);
 
@@ -489,7 +857,7 @@ namespace MajorAuthor.Data.Migrations
                     b.Property<int>("PreferenceLevel")
                         .HasColumnType("int");
 
-                    b.HasKey("UserId", "GenreId");
+                    b.HasKey("ApplicationUserId", "GenreId");
 
                     b.HasIndex("GenreId");
 
@@ -498,7 +866,7 @@ namespace MajorAuthor.Data.Migrations
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.UserPreferredTag", b =>
                 {
-                    b.Property<string>("UserId")
+                    b.Property<string>("ApplicationUserId")
                         .HasColumnType("nvarchar(450)")
                         .HasColumnOrder(0);
 
@@ -509,7 +877,7 @@ namespace MajorAuthor.Data.Migrations
                     b.Property<int>("PreferenceLevel")
                         .HasColumnType("int");
 
-                    b.HasKey("UserId", "TagId");
+                    b.HasKey("ApplicationUserId", "TagId");
 
                     b.HasIndex("TagId");
 
@@ -655,12 +1023,77 @@ namespace MajorAuthor.Data.Migrations
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.Author", b =>
                 {
-                    b.HasOne("MajorAuthor.Data.ApplicationUser", "User")
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "ApplicationUser")
                         .WithOne("AuthorProfile")
-                        .HasForeignKey("MajorAuthor.Data.Entities.Author", "IdentityUserId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .HasForeignKey("MajorAuthor.Data.Entities.Author", "ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Navigation("User");
+                    b.Navigation("ApplicationUser");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Blog", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.Entities.Author", "Author")
+                        .WithMany("Blogs")
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BlogComment", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "ApplicationUser")
+                        .WithMany()
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", null)
+                        .WithMany("BlogComments")
+                        .HasForeignKey("ApplicationUserId1");
+
+                    b.HasOne("MajorAuthor.Data.Entities.Blog", "Blog")
+                        .WithMany("Comments")
+                        .HasForeignKey("BlogId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MajorAuthor.Data.Entities.BlogComment", "ParentComment")
+                        .WithMany("Replies")
+                        .HasForeignKey("ParentCommentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ApplicationUser");
+
+                    b.Navigation("Blog");
+
+                    b.Navigation("ParentComment");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BlogLike", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "ApplicationUser")
+                        .WithMany()
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", null)
+                        .WithMany("BlogLikes")
+                        .HasForeignKey("ApplicationUserId1");
+
+                    b.HasOne("MajorAuthor.Data.Entities.Blog", "Blog")
+                        .WithMany("Likes")
+                        .HasForeignKey("BlogId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApplicationUser");
+
+                    b.Navigation("Blog");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.BookAuthor", b =>
@@ -703,36 +1136,40 @@ namespace MajorAuthor.Data.Migrations
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.BookLike", b =>
                 {
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "ApplicationUser")
+                        .WithMany("BookLikes")
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("MajorAuthor.Data.Entities.Book", "Book")
                         .WithMany("Likes")
                         .HasForeignKey("BookId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MajorAuthor.Data.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId1");
+                    b.Navigation("ApplicationUser");
 
                     b.Navigation("Book");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.BookReading", b =>
                 {
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "ApplicationUser")
+                        .WithMany("Readings")
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("MajorAuthor.Data.Entities.Book", "Book")
                         .WithMany("Readings")
                         .HasForeignKey("BookId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MajorAuthor.Data.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId1");
+                    b.Navigation("ApplicationUser");
 
                     b.Navigation("Book");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.BookTag", b =>
@@ -765,8 +1202,33 @@ namespace MajorAuthor.Data.Migrations
                     b.Navigation("Book");
                 });
 
+            modelBuilder.Entity("MajorAuthor.Data.Entities.ChapterRead", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "ApplicationUser")
+                        .WithMany("ChaptersRead")
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MajorAuthor.Data.Entities.Chapter", "Chapter")
+                        .WithMany("ChapterReads")
+                        .HasForeignKey("ChapterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApplicationUser");
+
+                    b.Navigation("Chapter");
+                });
+
             modelBuilder.Entity("MajorAuthor.Data.Entities.Comment", b =>
                 {
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "ApplicationUser")
+                        .WithMany("Comments")
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("MajorAuthor.Data.Entities.Book", "Book")
                         .WithMany()
                         .HasForeignKey("BookId")
@@ -778,29 +1240,42 @@ namespace MajorAuthor.Data.Migrations
                         .HasForeignKey("ParentCommentId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("MajorAuthor.Data.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Navigation("ApplicationUser");
 
                     b.Navigation("Book");
 
                     b.Navigation("ParentComment");
+                });
 
-                    b.Navigation("User");
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Follower", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.Entities.Author", "Author")
+                        .WithMany("Followers")
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "FollowerApplicationUser")
+                        .WithMany("Following")
+                        .HasForeignKey("FollowerApplicationUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("FollowerApplicationUser");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.Message", b =>
                 {
                     b.HasOne("MajorAuthor.Data.ApplicationUser", "Receiver")
-                        .WithMany()
+                        .WithMany("ReceivedMessages")
                         .HasForeignKey("ReceiverId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("MajorAuthor.Data.ApplicationUser", "Sender")
-                        .WithMany()
+                        .WithMany("SentMessages")
                         .HasForeignKey("SenderId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -808,6 +1283,17 @@ namespace MajorAuthor.Data.Migrations
                     b.Navigation("Receiver");
 
                     b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Notification", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "ApplicationUser")
+                        .WithMany("Notifications")
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApplicationUser");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.Page", b =>
@@ -821,61 +1307,136 @@ namespace MajorAuthor.Data.Migrations
                     b.Navigation("Chapter");
                 });
 
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Poem", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.Entities.Author", "Author")
+                        .WithMany("Poems")
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.PoemComment", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "ApplicationUser")
+                        .WithMany("PoemComments")
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MajorAuthor.Data.Entities.PoemComment", "ParentComment")
+                        .WithMany("Replies")
+                        .HasForeignKey("ParentCommentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("MajorAuthor.Data.Entities.Poem", "Poem")
+                        .WithMany("Comments")
+                        .HasForeignKey("PoemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApplicationUser");
+
+                    b.Navigation("ParentComment");
+
+                    b.Navigation("Poem");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.PoemLike", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "ApplicationUser")
+                        .WithMany("PoemLikes")
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MajorAuthor.Data.Entities.Poem", "Poem")
+                        .WithMany("Likes")
+                        .HasForeignKey("PoemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApplicationUser");
+
+                    b.Navigation("Poem");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Promotion", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.Entities.Book", "Book")
+                        .WithMany("Promotions")
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MajorAuthor.Data.Entities.PromotionPlan", "PromotionPlan")
+                        .WithMany("Promotions")
+                        .HasForeignKey("PromotionPlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Book");
+
+                    b.Navigation("PromotionPlan");
+                });
+
             modelBuilder.Entity("MajorAuthor.Data.Entities.UserFavoriteBook", b =>
                 {
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "ApplicationUser")
+                        .WithMany("FavoriteBooks")
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("MajorAuthor.Data.Entities.Book", "Book")
                         .WithMany("UserFavorites")
                         .HasForeignKey("BookId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MajorAuthor.Data.ApplicationUser", "User")
-                        .WithMany("FavoriteBooks")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Navigation("ApplicationUser");
 
                     b.Navigation("Book");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.UserPreferredGenre", b =>
                 {
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "ApplicationUser")
+                        .WithMany("PreferredGenres")
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("MajorAuthor.Data.Entities.Genre", "Genre")
                         .WithMany()
                         .HasForeignKey("GenreId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MajorAuthor.Data.ApplicationUser", "User")
-                        .WithMany("PreferredGenres")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Navigation("ApplicationUser");
 
                     b.Navigation("Genre");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.UserPreferredTag", b =>
                 {
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "ApplicationUser")
+                        .WithMany("PreferredTags")
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("MajorAuthor.Data.Entities.Tag", "Tag")
                         .WithMany("UserPreferredTags")
                         .HasForeignKey("TagId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MajorAuthor.Data.ApplicationUser", "User")
-                        .WithMany("PreferredTags")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.Navigation("ApplicationUser");
 
                     b.Navigation("Tag");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -933,16 +1494,58 @@ namespace MajorAuthor.Data.Migrations
                 {
                     b.Navigation("AuthorProfile");
 
+                    b.Navigation("BlogComments");
+
+                    b.Navigation("BlogLikes");
+
+                    b.Navigation("BookLikes");
+
+                    b.Navigation("ChaptersRead");
+
+                    b.Navigation("Comments");
+
                     b.Navigation("FavoriteBooks");
+
+                    b.Navigation("Following");
+
+                    b.Navigation("Notifications");
+
+                    b.Navigation("PoemComments");
+
+                    b.Navigation("PoemLikes");
 
                     b.Navigation("PreferredGenres");
 
                     b.Navigation("PreferredTags");
+
+                    b.Navigation("Readings");
+
+                    b.Navigation("ReceivedMessages");
+
+                    b.Navigation("SentMessages");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.Author", b =>
                 {
+                    b.Navigation("Blogs");
+
                     b.Navigation("BookAuthors");
+
+                    b.Navigation("Followers");
+
+                    b.Navigation("Poems");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Blog", b =>
+                {
+                    b.Navigation("Comments");
+
+                    b.Navigation("Likes");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BlogComment", b =>
+                {
+                    b.Navigation("Replies");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.Book", b =>
@@ -957,6 +1560,8 @@ namespace MajorAuthor.Data.Migrations
 
                     b.Navigation("Likes");
 
+                    b.Navigation("Promotions");
+
                     b.Navigation("Readings");
 
                     b.Navigation("UserFavorites");
@@ -964,6 +1569,8 @@ namespace MajorAuthor.Data.Migrations
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.Chapter", b =>
                 {
+                    b.Navigation("ChapterReads");
+
                     b.Navigation("Pages");
                 });
 
@@ -975,6 +1582,23 @@ namespace MajorAuthor.Data.Migrations
             modelBuilder.Entity("MajorAuthor.Data.Entities.Genre", b =>
                 {
                     b.Navigation("BookGenres");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Poem", b =>
+                {
+                    b.Navigation("Comments");
+
+                    b.Navigation("Likes");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.PoemComment", b =>
+                {
+                    b.Navigation("Replies");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.PromotionPlan", b =>
+                {
+                    b.Navigation("Promotions");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.Tag", b =>

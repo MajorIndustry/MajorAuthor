@@ -1,50 +1,83 @@
 ﻿// Проект: MajorAuthor.Data
 // Файл: Entities/Author.cs
-using System.ComponentModel.DataAnnotations;
+// Обновлен для использования ApplicationUser.Id (string) в качестве внешнего ключа.
+using System;
 using System.Collections.Generic;
-using System; // Для DateTime
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MajorAuthor.Data.Entities
 {
+    /// <summary>
+    /// Представляет профиль автора, связанный с пользователем ApplicationUser.
+    /// Каждый автор обязательно является пользователем.
+    /// </summary>
     public class Author
     {
+        /// <summary>
+        /// Уникальный идентификатор автора (первичный ключ сущности Author).
+        /// </summary>
+        [Key]
         public int Id { get; set; }
 
-        // Новое: Свойство для псевдонима автора
-        [StringLength(100, ErrorMessage = "Псевдоним не может превышать 100 символов.")]
-        [Display(Name = "Псевдоним")]
-        public string? PenName { get; set; } // Добавлено
+        /// <summary>
+        /// Внешний ключ к ApplicationUser.Id (IdentityUser.Id).
+        /// </summary>
+        [Required]
+        public string ApplicationUserId { get; set; }
 
-        [StringLength(255, ErrorMessage = "Полное имя не может превышать 255 символов.")]
-        [Display(Name = "Полное имя (ФИО)")]
-        public string? FullName { get; set; } // Сделали nullable
+        /// <summary>
+        /// Навигационное свойство к связанному объекту ApplicationUser.
+        /// </summary>
+        public ApplicationUser ApplicationUser { get; set; }
 
-        // Новое: Дата создания профиля автора (для "Новые популярные авторы")
-        public DateTime AuthorProfileCreationDate { get; set; } = DateTime.UtcNow; // Добавлено
+        /// <summary>
+        /// Псевдоним автора (может отличаться от имени пользователя).
+        /// </summary>
+        [Required]
+        [MaxLength(255)]
+        public string PenName { get; set; }
 
-        // Новое: URL фотографии автора
+        /// <summary>
+        /// ФИО автора
+        /// </summary>
+        [Required]
+        public string FullName { get; set; }
+
+        /// <summary>
+        /// Дата создания авторского профиля.
+        /// </summary>
+        public DateTime AuthorProfileCreationDate { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Описание автора.
+        /// </summary>
+        public string Description { get; set; }
+
+        /// <summary>
+        /// URL фотографии автора (опционально).
+        /// </summary>
         [MaxLength(500)]
-        public string? PhotoUrl { get; set; } // Добавлено/Убедился в наличии
+        public string PhotoUrl { get; set; }
 
-        // Внешний ключ для связи с ApplicationUser
-        public string? IdentityUserId { get; set; }
-
-        // Новое: Навигационное свойство для связи один-к-одному с ApplicationUser
-        public ApplicationUser? User { get; set; }
-
-
-        // Навигационное свойство для книг, которые написал автор (многие-ко-многим)
+        /// <summary>
+        /// Коллекция связей с книгами, в которых этот автор участвовал (для совместного написания).
+        /// </summary>
         public ICollection<BookAuthor> BookAuthors { get; set; } = new List<BookAuthor>();
 
-        // Метод валидации на уровне сущности (можно использовать в сервисе/контроллере)
-        public bool IsValid()
-        {
-            return !string.IsNullOrWhiteSpace(FullName) || !string.IsNullOrWhiteSpace(PenName);
-        }
+        /// <summary>
+        /// Коллекция стихов, написанных этим автором.
+        /// </summary>
+        public ICollection<Poem> Poems { get; set; } = new List<Poem>();
 
-        // Вы можете добавить этот метод, чтобы получить отображаемое имя автора
-        public string DisplayName =>
-            !string.IsNullOrWhiteSpace(PenName) ? PenName :
-            !string.IsNullOrWhiteSpace(FullName) ? FullName : "Неизвестный автор";
+        /// <summary>
+        /// Коллекция пользователей, которые подписаны на этого автора.
+        /// </summary>
+        public ICollection<Follower> Followers { get; set; } = new List<Follower>();
+
+        /// <summary>
+        /// Навигационное свойство к блогу автора (если есть).
+        /// </summary>
+        public ICollection<Blog> Blogs { get; set; } = new List<Blog>();
     }
 }

@@ -1,15 +1,16 @@
 ﻿// Проект: MajorAuthor.Data
 // Файл: MajorAuthorDbContext.cs
+// Обновлен для использования IdentityDbContext<ApplicationUser> и настройки всех новых связей.
 using MajorAuthor.Data.Entities;
 using Microsoft.EntityFrameworkCore;
-using System.Linq;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity; // Для IdentityUser, хотя теперь используем ApplicationUser
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore; // Для IdentityDbContext
+using Microsoft.AspNetCore.Identity; // Для IdentityUser
 
 namespace MajorAuthor.Data
 {
     /// <summary>
-    /// Контекст базы данных для MajorAuthor, теперь наследуется от IdentityDbContext<ApplicationUser>.
+    /// Контекст базы данных для MajorAuthor.
+    /// Наследуется от IdentityDbContext для интеграции с ASP.NET Core Identity.
     /// </summary>
     public class MajorAuthorDbContext : IdentityDbContext<ApplicationUser> // Изменено на ApplicationUser
     {
@@ -17,11 +18,9 @@ namespace MajorAuthor.Data
         {
         }
 
-        // DbSets для ваших пользовательских сущностей
+        // DbSets для ваших сущностей
         public DbSet<Author> Authors { get; set; }
         public DbSet<Book> Books { get; set; }
-        // Удален DbSet<User> Users - убедитесь, что MajorAuthor.Data.Entities.User.cs либо удален, либо переименован/перепрофилирован.
-
         public DbSet<BookReading> BookReadings { get; set; }
         public DbSet<BookLike> BookLikes { get; set; }
         public DbSet<Genre> Genres { get; set; }
@@ -32,31 +31,35 @@ namespace MajorAuthor.Data
         public DbSet<Page> Pages { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<Comment> Comments { get; set; }
-        public DbSet<Tag> Tags { get; set; } // Добавлено
-        public DbSet<BookTag> BookTags { get; set; } // Добавлено
-        public DbSet<UserPreferredTag> UserPreferredTags { get; set; } // Добавлено
-        public DbSet<UserFavoriteBook> UserFavoriteBooks { get; set; } // Добавлено
-        public DbSet<PromotionPlan> PromotionPlans { get; set; }
+        public DbSet<Follower> Followers { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<Blog> Blogs { get; set; } // Теперь Blog представляет записи блога
+        // public DbSet<BlogPost> BlogPosts { get; set; } // Удалено, так как BlogPost не существует
+        public DbSet<Tag> Tags { get; set; }
+        public DbSet<BookTag> BookTags { get; set; }
+        public DbSet<UserPreferredTag> UserPreferredTags { get; set; }
+        public DbSet<UserFavoriteBook> UserFavoriteBooks { get; set; }
+
+        // DbSets для стихов, лайков на стихи, комментариев на стихи и прочитанных глав
+        public DbSet<Poem> Poems { get; set; }
+        public DbSet<PoemLike> PoemLikes { get; set; }
+        public DbSet<PoemComment> PoemComments { get; set; }
+        public DbSet<ChapterRead> ChapterReads { get; set; }
+
+        // Новые DbSets для BlogComment, Promotion, PromotionPlan, BlogLike
+        public DbSet<BlogComment> BlogComments { get; set; }
         public DbSet<Promotion> Promotions { get; set; }
+        public DbSet<PromotionPlan> PromotionPlans { get; set; }
+        public DbSet<BlogLike> BlogLikes { get; set; }
+
+
         /// <summary>
         /// Метод для настройки модели базы данных.
         /// </summary>
         /// <param name="modelBuilder">Построитель модели.</param>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Важно: Сначала вызовите базовую реализацию OnModelCreating из IdentityDbContext.
-            // Это гарантирует, что сущности Identity (ApplicationUser, IdentityRole, IdentityUserLogin и т.д.)
-            // будут корректно добавлены в модель.
-            base.OnModelCreating(modelBuilder);
-
-            // Настройка связи один-к-одному между ApplicationUser и Author
-            modelBuilder.Entity<ApplicationUser>()
-                .HasOne(u => u.AuthorProfile) // ApplicationUser имеет один AuthorProfile
-                .WithOne(a => a.User) // Один Author связан с одним ApplicationUser
-                .HasForeignKey<Author>(a => a.IdentityUserId) // Внешний ключ находится в сущности Author
-                .IsRequired(false) // IdentityUserId может быть NULL (автор может быть не привязан к пользователю)
-                .OnDelete(DeleteBehavior.SetNull); // При удалении ApplicationUser, IdentityUserId в Author становится NULL
-
+            base.OnModelCreating(modelBuilder); // Важно вызвать базовый метод для настройки Identity
 
             // Настройка составного первичного ключа для BookGenre
             modelBuilder.Entity<BookGenre>()
@@ -73,21 +76,21 @@ namespace MajorAuthor.Data
                 .HasForeignKey(bg => bg.GenreId);
 
             // Настройка составного первичного ключа для UserPreferredGenre
-            // UserPreferredGenre.UserId должен ссылаться на ApplicationUser.Id (string)
             modelBuilder.Entity<UserPreferredGenre>()
-                .HasKey(upg => new { upg.UserId, upg.GenreId });
+                .HasKey(upg => new { upg.ApplicationUserId, upg.GenreId });
 
-            // UserPreferredGenre.UserId теперь ссылается на Id из ApplicationUser
             modelBuilder.Entity<UserPreferredGenre>()
-                .HasOne(upg => upg.User) // Связываем с ApplicationUser через навигационное свойство User
-                .WithMany(u => u.PreferredGenres) // У ApplicationUser может быть много UserPreferredGenre
-                .HasForeignKey(upg => upg.UserId)
-                .IsRequired(); // UserId должен быть обязательным
+                .HasOne(upg => upg.ApplicationUser)
+                .WithMany(u => u.PreferredGenres)
+                .HasForeignKey(upg => upg.ApplicationUserId);
 
             modelBuilder.Entity<UserPreferredGenre>()
                 .HasOne(upg => upg.Genre)
-                .WithMany()
+                .WithMany() // Предполагаем, что это корректная связь
                 .HasForeignKey(upg => upg.GenreId);
+
+
+            // Настройки для совместного написания и медиа
 
             // Настройка составного первичного ключа для BookAuthor
             modelBuilder.Entity<BookAuthor>()
@@ -119,18 +122,18 @@ namespace MajorAuthor.Data
 
             // Настройки для сообщений
             modelBuilder.Entity<Message>()
-                .HasOne(m => m.Sender) // Связываем с ApplicationUser через навигационное свойство Sender
-                .WithMany()
+                .HasOne(m => m.Sender)
+                .WithMany(u => u.SentMessages)
                 .HasForeignKey(m => m.SenderId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Message>()
-                .HasOne(m => m.Receiver) // Связываем с ApplicationUser через навигационное свойство Receiver
-                .WithMany()
+                .HasOne(m => m.Receiver)
+                .WithMany(u => u.ReceivedMessages)
                 .HasForeignKey(m => m.ReceiverId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Настройки для комментариев
+            // Настройки для комментариев к книгам
             modelBuilder.Entity<Comment>()
                 .HasOne(c => c.Book)
                 .WithMany()
@@ -138,9 +141,9 @@ namespace MajorAuthor.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Comment>()
-                .HasOne(c => c.User) // Связываем с ApplicationUser через навигационное свойство User
-                .WithMany()
-                .HasForeignKey(c => c.UserId)
+                .HasOne(c => c.ApplicationUser)
+                .WithMany(u => u.Comments)
+                .HasForeignKey(c => c.ApplicationUserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Comment>()
@@ -150,7 +153,37 @@ namespace MajorAuthor.Data
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // НАСТРОЙКИ для BookTag (многие-ко-многим между Book и Tag)
+            // Настройки для сущности Follower (подписки)
+            modelBuilder.Entity<Follower>()
+                .HasKey(f => new { f.FollowerApplicationUserId, f.AuthorId });
+
+            modelBuilder.Entity<Follower>()
+                .HasOne(f => f.FollowerApplicationUser)
+                .WithMany(u => u.Following)
+                .HasForeignKey(f => f.FollowerApplicationUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Follower>()
+                .HasOne(f => f.Author)
+                .WithMany(a => a.Followers)
+                .HasForeignKey(f => f.AuthorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Настройки для сущности Notification
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.ApplicationUser)
+                .WithMany(u => u.Notifications)
+                .HasForeignKey(n => n.ApplicationUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Настройки для сущностей Blog
+            modelBuilder.Entity<Blog>()
+                .HasOne(b => b.Author)
+                .WithMany(a => a.Blogs)
+                .HasForeignKey(b => b.AuthorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Настройка составного первичного ключа для BookTag
             modelBuilder.Entity<BookTag>()
                 .HasKey(bt => new { bt.BookId, bt.TagId });
 
@@ -164,48 +197,138 @@ namespace MajorAuthor.Data
                 .WithMany(t => t.BookTags)
                 .HasForeignKey(bt => bt.TagId);
 
-            // НАСТРОЙКИ для UserPreferredTag (многие-ко-многим между ApplicationUser и Tag)
+            // Настройка составного первичного ключа для UserPreferredTag
             modelBuilder.Entity<UserPreferredTag>()
-                .HasKey(upt => new { upt.UserId, upt.TagId });
+                .HasKey(upt => new { upt.ApplicationUserId, upt.TagId });
 
             modelBuilder.Entity<UserPreferredTag>()
-                .HasOne(upt => upt.User) // Связываем с ApplicationUser через навигационное свойство User
-                .WithMany(u => u.PreferredTags) // У ApplicationUser может быть много UserPreferredTag
-                .HasForeignKey(upt => upt.UserId);
+                .HasOne(upt => upt.ApplicationUser)
+                .WithMany(u => u.PreferredTags)
+                .HasForeignKey(upt => upt.ApplicationUserId);
 
             modelBuilder.Entity<UserPreferredTag>()
                 .HasOne(upt => upt.Tag)
                 .WithMany(t => t.UserPreferredTags)
                 .HasForeignKey(upt => upt.TagId);
 
-            // НОВЫЕ НАСТРОЙКИ для UserFavoriteBook (многие-ко-многим между ApplicationUser и Book)
+            // Настройка составного первичного ключа для UserFavoriteBook
             modelBuilder.Entity<UserFavoriteBook>()
-                .HasKey(ufb => new { ufb.UserId, ufb.BookId });
+                .HasKey(ufb => new { ufb.ApplicationUserId, ufb.BookId });
 
             modelBuilder.Entity<UserFavoriteBook>()
-                .HasOne(ufb => ufb.User) // Связываем с ApplicationUser через навигационное свойство User
-                .WithMany(u => u.FavoriteBooks) // У ApplicationUser может быть много UserFavoriteBook
-                .HasForeignKey(ufb => ufb.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasOne(ufb => ufb.ApplicationUser)
+                .WithMany(u => u.FavoriteBooks)
+                .HasForeignKey(ufb => ufb.ApplicationUserId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<UserFavoriteBook>()
                 .HasOne(ufb => ufb.Book)
-                .WithMany(b => b.UserFavorites) // У книги может быть много UserFavoriteBook
+                .WithMany(b => b.UserFavorites)
                 .HasForeignKey(ufb => ufb.BookId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // НОВЫЕ НАСТРОЙКИ для продвижения
+
+            // Настройки для стихов
+            modelBuilder.Entity<Poem>()
+                .HasOne(p => p.Author)
+                .WithMany(a => a.Poems)
+                .HasForeignKey(p => p.AuthorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Настройки для лайков стихов
+            modelBuilder.Entity<PoemLike>()
+                .HasOne(pl => pl.Poem)
+                .WithMany(p => p.Likes)
+                .HasForeignKey(pl => pl.PoemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PoemLike>()
+                .HasOne(pl => pl.ApplicationUser)
+                .WithMany(u => u.PoemLikes)
+                .HasForeignKey(pl => pl.ApplicationUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Настройки для комментариев стихов
+            modelBuilder.Entity<PoemComment>()
+                .HasOne(pc => pc.Poem)
+                .WithMany(p => p.Comments)
+                .HasForeignKey(pc => pc.PoemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PoemComment>()
+                .HasOne(pc => pc.ApplicationUser)
+                .WithMany(u => u.PoemComments)
+                .HasForeignKey(pc => pc.ApplicationUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PoemComment>()
+                .HasOne(pc => pc.ParentComment)
+                .WithMany(pc => pc.Replies)
+                .HasForeignKey(pc => pc.ParentCommentId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Настройки для прочитанных глав
+            modelBuilder.Entity<ChapterRead>()
+                .HasKey(cr => new { cr.ApplicationUserId, cr.ChapterId });
+
+            modelBuilder.Entity<ChapterRead>()
+                .HasOne(cr => cr.ApplicationUser)
+                .WithMany(au => au.ChaptersRead)
+                .HasForeignKey(cr => cr.ApplicationUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ChapterRead>()
+                .HasOne(cr => cr.Chapter)
+                .WithMany(c => c.ChapterReads)
+                .HasForeignKey(cr => cr.ChapterId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Настройки для BlogComment
+            modelBuilder.Entity<BlogComment>()
+                .HasOne(bc => bc.Blog) // Изменено с BlogPost на Blog
+                .WithMany(b => b.Comments) // Изменено с bp.Comments на b.Comments
+                .HasForeignKey(bc => bc.BlogId) // Изменено с BlogPostId на BlogId
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<BlogComment>()
+                .HasOne(bc => bc.ApplicationUser)
+                .WithMany()
+                .HasForeignKey(bc => bc.ApplicationUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<BlogComment>()
+                .HasOne(bc => bc.ParentComment)
+                .WithMany(bc => bc.Replies)
+                .HasForeignKey(bc => bc.ParentCommentId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Настройки для Promotion
             modelBuilder.Entity<Promotion>()
                 .HasOne(p => p.Book)
-                .WithMany() // У книги может быть много продвижений (нет прямого навигационного свойства в Book)
+                .WithMany(b => b.Promotions)
                 .HasForeignKey(p => p.BookId)
-                .OnDelete(DeleteBehavior.Restrict); // Не удалять книгу при удалении продвижения
+                .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<Promotion>()
                 .HasOne(p => p.PromotionPlan)
                 .WithMany(pp => pp.Promotions)
                 .HasForeignKey(p => p.PromotionPlanId)
-                .OnDelete(DeleteBehavior.Restrict); // Не удалять план продвижения при удалении продвижения
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Настройки для BlogLike
+            modelBuilder.Entity<BlogLike>()
+                .HasOne(bl => bl.Blog) // Изменено с BlogPost на Blog
+                .WithMany(b => b.Likes) // Изменено с bp.Likes на b.Likes
+                .HasForeignKey(bl => bl.BlogId) // Изменено с BlogPostId на BlogId
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<BlogLike>()
+                .HasOne(bl => bl.ApplicationUser)
+                .WithMany()
+                .HasForeignKey(bl => bl.ApplicationUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

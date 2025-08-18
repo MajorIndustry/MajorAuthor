@@ -162,13 +162,13 @@ namespace MajorAuthor.Controllers // Пространство имен для контроллеров
                 {
                     // Получаем любимые жанры пользователя
                     var userPreferredGenreIds = await _context.UserPreferredGenres
-                        .Where(upg => upg.UserId == currentUserId)
+                        .Where(upg => upg.ApplicationUserId == currentUserId)
                         .Select(upg => upg.GenreId)
                         .ToListAsync();
 
                     // Получаем любимые теги пользователя
                     var userPreferredTagIds = await _context.UserPreferredTags
-                        .Where(upt => upt.UserId == currentUserId)
+                        .Where(upt => upt.ApplicationUserId == currentUserId)
                         .Select(upt => upt.TagId)
                         .ToListAsync();
 

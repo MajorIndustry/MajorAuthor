@@ -1,5 +1,6 @@
 ﻿// Проект: MajorAuthor.Data
 // Файл: Entities/BookReading.cs
+// Обновлен для использования ApplicationUser.Id (string) в качестве внешнего ключа.
 using System;
 using System.ComponentModel.DataAnnotations;
 
@@ -27,14 +28,15 @@ namespace MajorAuthor.Data.Entities
         public Book Book { get; set; }
 
         /// <summary>
-        /// Внешний ключ к пользователю.
+        /// Внешний ключ к пользователю (ApplicationUser.Id).
         /// </summary>
-        public int UserId { get; set; }
+        [Required]
+        public string ApplicationUserId { get; set; }
 
         /// <summary>
         /// Навигационное свойство к пользователю.
         /// </summary>
-        public ApplicationUser User { get; set; }
+        public ApplicationUser ApplicationUser { get; set; }
 
         /// <summary>
         /// Дата и время начала прочтения.

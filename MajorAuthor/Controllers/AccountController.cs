@@ -11,6 +11,7 @@ using MajorAuthor.Data; // Added for ApplicationUser
 using Microsoft.AspNetCore.Authentication.Google; // Added for GoogleDefaults.AuthenticationScheme
 using MajorAuthor.Services; // Добавлено для IEmailSender
 using System.Text.Encodings.Web; // Добавлено для HtmlEncoder
+// using AspNet.Security.OAuth.Yandex; // Можно закомментировать, если YandexDefaults все равно не находится
 
 namespace MajorAuthor.Controllers
 {
@@ -196,11 +197,12 @@ namespace MajorAuthor.Controllers
                 // or if you want to explicitly add any other parameters.
                 properties.SetParameter("prompt", "select_account");
             }
-            // For Yandex, if you need similar behavior, you'd add:
-            // else if (provider == YandexDefaults.AuthenticationScheme)
-            // {
-            //     properties.SetParameter("force_confirm", "true"); // Example, check Yandex docs for exact parameter
-            // }
+            // Добавлено для Яндекса, чтобы принудительно показывать выбор аккаунта
+            else if (provider == "Yandex") // Используем строковый литерал "Yandex"
+            {
+                // Параметр 'prompt=select_account' обычно работает и для Яндекса
+                properties.SetParameter("prompt", "select_account");
+            }
 
             return new ChallengeResult(provider, properties);
         }
@@ -220,7 +222,7 @@ namespace MajorAuthor.Controllers
             }
 
             // 1. Attempt to sign in if the external login is already associated with an existing user.
-            var result = await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: true); // Changed info.ProviderKey to info.Id
+            var result = await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false);
 
             if (result.Succeeded)
             {
@@ -231,6 +233,7 @@ namespace MajorAuthor.Controllers
             {
                 return RedirectToAction("Lockout", "Account");
             }
+            // Если вход не удался (например, NotAllowed, RequiresTwoFactor, Failed)
             else
             {
                 // Get Email from external provider's claims (if available).
@@ -247,7 +250,13 @@ namespace MajorAuthor.Controllers
                         var addLoginResult = await _userManager.AddLoginAsync(user, info);
                         if (addLoginResult.Succeeded)
                         {
-                            // Successfully linked external login to existing account.
+                            // Успешно привязали внешний логин к существующему аккаунту.
+                            // Так как email подтвержден внешним провайдером, помечаем его как подтвержденный в нашей системе.
+                            if (!await _userManager.IsEmailConfirmedAsync(user))
+                            {
+                                user.EmailConfirmed = true;
+                                await _userManager.UpdateAsync(user);
+                            }
                             await _signInManager.SignInAsync(user, isPersistent: false);
                             return LocalRedirect(returnUrl ?? Url.Content("~/"));
                         }
@@ -312,8 +321,38 @@ namespace MajorAuthor.Controllers
                     // User with this email not found, create a new one.
                     user = new ApplicationUser { UserName = email, Email = email };
                     var createResult = await _userManager.CreateAsync(user);
-                    if (!createResult.Succeeded)
+                    if (createResult.Succeeded)
                     {
+                        // Пользователь успешно создан.
+                        // Так как email подтвержден внешним провайдером, помечаем его как подтвержденный в нашей системе.
+                        user.EmailConfirmed = true;
+                        await _userManager.UpdateAsync(user); // Сохраняем изменение EmailConfirmed
+
+                        // Теперь привязываем внешний логин
+                        var addLoginResult = await _userManager.AddLoginAsync(user, info);
+                        if (addLoginResult.Succeeded)
+                        {
+                            await _signInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
+                            return LocalRedirect(returnUrl);
+                        }
+                        else
+                        {
+                            // Если привязка логина не удалась после создания пользователя,
+                            // это серьезная проблема, возможно, стоит удалить созданного пользователя.
+                            // Но для простоты сейчас просто добавим ошибки.
+                            foreach (var error in addLoginResult.Errors)
+                            {
+                                ModelState.AddModelError(string.Empty, error.Description);
+                            }
+                            // Можно добавить логирование здесь
+                            ViewData["ReturnUrl"] = returnUrl;
+                            ViewData["LoginProvider"] = info.LoginProvider;
+                            return View(model);
+                        }
+                    }
+                    else
+                    {
+                        // Ошибка при создании пользователя
                         foreach (var error in createResult.Errors)
                         {
                             ModelState.AddModelError(string.Empty, error.Description);
@@ -323,26 +362,36 @@ namespace MajorAuthor.Controllers
                         return View(model);
                     }
                 }
-                // User found or just created. Now link the external login.
-                var addLoginResult = await _userManager.AddLoginAsync(user, info);
-                if (addLoginResult.Succeeded)
-                {
-                    await _signInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
-                    return LocalRedirect(returnUrl);
-                }
                 else
                 {
-                    foreach (var error in addLoginResult.Errors)
+                    // User found. Now link the external login.
+                    var addLoginResult = await _userManager.AddLoginAsync(user, info);
+                    if (addLoginResult.Succeeded)
                     {
-                        ModelState.AddModelError(string.Empty, error.Description);
-                        if (error.Code == "LoginAlreadyAssociated")
+                        // Успешно привязали внешний логин к существующему аккаунту.
+                        // Так как email подтвержден внешним провайдером, помечаем его как подтвержденный в нашей системе.
+                        if (!await _userManager.IsEmailConfirmedAsync(user))
                         {
-                            ModelState.AddModelError(string.Empty, $"Внешний логин уже привязан к другому аккаунту. Пожалуйста, войдите с привязанным аккаунтом.");
+                            user.EmailConfirmed = true;
+                            await _userManager.UpdateAsync(user);
                         }
+                        await _signInManager.SignInAsync(user, isPersistent: false, info.LoginProvider);
+                        return LocalRedirect(returnUrl);
                     }
-                    ViewData["ReturnUrl"] = returnUrl;
-                    ViewData["LoginProvider"] = info.LoginProvider;
-                    return View(model);
+                    else
+                    {
+                        foreach (var error in addLoginResult.Errors)
+                        {
+                            ModelState.AddModelError(string.Empty, error.Description);
+                            if (error.Code == "LoginAlreadyAssociated")
+                            {
+                                ModelState.AddModelError(string.Empty, $"Внешний логин уже привязан к другому аккаунту. Пожалуйста, войдите с привязанным аккаунтом.");
+                            }
+                        }
+                        ViewData["ReturnUrl"] = returnUrl;
+                        ViewData["LoginProvider"] = info.LoginProvider;
+                        return View(model);
+                    }
                 }
             }
 
@@ -426,6 +475,7 @@ namespace MajorAuthor.Controllers
             if (user == null)
             {
                 // Для предотвращения перечисления пользователей, всегда возвращаем общее сообщение об успехе.
+                // Не разглашаем, существует ли пользователь или подтвержден ли его Email.
                 ViewBag.StatusMessage = "Если ваш Email зарегистрирован, вам будет отправлено письмо для подтверждения.";
                 ViewBag.StatusMessageType = "success";
                 return View(model);

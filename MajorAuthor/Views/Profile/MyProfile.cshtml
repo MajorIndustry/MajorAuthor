@@ -1,0 +1,240 @@
+﻿@model MajorAuthor.Models.MyProfileViewModel
+@{
+    ViewData["Title"] = "Мой профиль";
+}
+
+<div class="container mx-auto px-6 py-8">
+    <h1 class="text-4xl font-bold mb-8 text-center text-primary-dark">
+        Мой профиль
+    </h1>
+
+    <div class="bg-secondary p-8 rounded-lg shadow-lg flex flex-col md:flex-row items-center md:items-start gap-8 mb-12">
+        <div class="flex-shrink-0">
+            <img src="@Model.PhotoUrl" alt="Фото профиля" class="w-32 h-32 rounded-full object-cover border-4 border-accent-gold shadow-md" onerror="this.onerror=null;this.src='https://placehold.co/128x128/ccc/333?text=AV';">
+        </div>
+        <div class="text-center md:text-left flex-grow">
+            @if (Model.IsAuthor)
+            {
+                <h2 class="text-3xl font-semibold mb-2 text-primary">@Model.DisplayName <span class="text-accent-gold">(Автор)</span></h2>
+                @if (!string.IsNullOrEmpty(Model.FullName))
+                {
+                    <p class="text-lg text-secondary-text mb-1">ФИО: @Model.FullName</p>
+                }
+                <p class="text-lg text-secondary-text mb-1">Количество подписчиков: <span class="font-bold text-primary">@Model.FollowerCount</span></p>
+            }
+            else
+            {
+                <h2 class="text-3xl font-semibold mb-2 text-primary">@Model.DisplayName </h2>
+            }
+@*             <p class="text-md text-secondary-text">Имя пользователя: @Model.UserName</p> *@
+        </div>
+    </div>
+
+    @if (Model.IsAuthor)
+    {
+        <!-- Секция написанных книг (для авторов) -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Мои книги</h2>
+            @if (Model.AuthoredBooks != null && Model.AuthoredBooks.Any())
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach (var book in Model.AuthoredBooks)
+                    {
+                        <div class="card p-4 rounded-lg border-2 book-item flex items-center space-x-4">
+                            <img src="@book.CoverImageUrl" alt="Обложка книги" class="w-20 h-28 object-cover rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/80x112/D4AF37/FFFFFF?text=Книга';">
+                            <div>
+                                <h3 class="text-xl font-semibold text-primary">@book.Title</h3>
+                                <p class="text-sm text-secondary-text">Прочтений: @(book.ReadsCount.ToString("N0"))</p>
+                                <p class="text-sm text-secondary-text">Лайков: @(book.LikesCount.ToString("N0"))</p>
+                                @if (book.IsAdultContent)
+                                {
+                                    <span class="text-xs text-red-500 font-bold">18+</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-center text-secondary-text">У вас пока нет написанных книг.</p>
+            }
+        </section>
+
+        <!-- Секция написанных блогов (для авторов) -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Мои блоги</h2>
+            @if (Model.AuthoredBlogs != null && Model.AuthoredBlogs.Any())
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach (var blog in Model.AuthoredBlogs)
+                    {
+                        <div class="card p-4 rounded-lg border-2 blog-item flex flex-col space-y-3">
+                            @if (!string.IsNullOrEmpty(blog.ImageUrl))
+                            {
+                                <img src="@blog.ImageUrl" alt="Изображение блога" class="w-full h-40 object-cover rounded-md mb-2" onerror="this.onerror=null;this.src='https://placehold.co/400x160/A79273/FFFFFF?text=Блог+Изображение';">
+                            }
+                            <div>
+                                <h3 class="text-xl font-semibold text-primary">@blog.Title</h3>
+                                <p class="text-sm text-secondary-text">Дата публикации: @blog.PublicationDate.ToShortDateString()</p>
+                                <p class="text-sm text-secondary-text">Просмотров: @(blog.ViewsCount.ToString("N0"))</p>
+                                <p class="text-sm text-secondary-text">Лайков: @(blog.LikesCount.ToString("N0"))</p>
+                                <p class="text-sm text-secondary-text">Комментариев: @(blog.CommentsCount.ToString("N0"))</p>
+                                <p class="text-md text-secondary-text mt-2">@blog.ContentSnippet</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-center text-secondary-text">У вас пока нет написанных блогов.</p>
+            }
+        </section>
+
+        <!-- Секция списка подписчиков (для авторов) -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Мои подписчики</h2>
+            @if (Model.FollowersList != null && Model.FollowersList.Any())
+            {
+                <ul class="list-disc list-inside text-secondary-text text-center">
+                    @foreach (var follower in Model.FollowersList)
+                    {
+                        <li>@follower.UserName (@follower.UserId)</li>
+                    }
+                </ul>
+            }
+            else
+            {
+                <p class="text-center text-secondary-text">У вас пока нет подписчиков.</p>
+            }
+        </section>
+    }
+    else
+    {
+        <!-- Секция прочитанных книг (для обычных пользователей) -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Прочитанные книги</h2>
+            @if (Model.ReadBooks != null && Model.ReadBooks.Any())
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach (var book in Model.ReadBooks)
+                    {
+                        <div class="card p-4 rounded-lg border-2 book-item flex items-center space-x-4">
+                            <img src="@book.CoverImageUrl" alt="Обложка книги" class="w-20 h-28 object-cover rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/80x112/D4AF37/FFFFFF?text=Книга';">
+                            <div>
+                                <h3 class="text-xl font-semibold text-primary">@book.Title</h3>
+                                <p class="text-sm text-secondary-text">Автор: @book.AuthorName</p>
+                                <p class="text-xs text-secondary-text">Прочтений: @(book.ReadsCount.ToString("N0"))</p>
+                                <p class="text-xs text-secondary-text">Лайков: @(book.LikesCount.ToString("N0"))</p>
+                                @if (book.IsAdultContent)
+                                {
+                                    <span class="text-xs text-red-500 font-bold">18+</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-center text-secondary-text">Вы еще не читали книги.</p>
+            }
+        </section>
+
+        <!-- Секция книг в закладках (для обычных пользователей) -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Книги в закладках</h2>
+            @if (Model.FavoriteBooks != null && Model.FavoriteBooks.Any())
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach (var book in Model.FavoriteBooks)
+                    {
+                        <div class="card p-4 rounded-lg border-2 book-item flex items-center space-x-4">
+                            <img src="@book.CoverImageUrl" alt="Обложка книги" class="w-20 h-28 object-cover rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/80x112/A79273/FFFFFF?text=Книга';">
+                            <div>
+                                <h3 class="text-xl font-semibold text-primary">@book.Title</h3>
+                                <p class="text-sm text-secondary-text">Автор: @book.AuthorName</p>
+                                <p class="text-xs text-secondary-text">Прочтений: @(book.ReadsCount.ToString("N0"))</p>
+                                <p class="text-xs text-secondary-text">Лайков: @(book.LikesCount.ToString("N0"))</p>
+                                @if (book.IsAdultContent)
+                                {
+                                    <span class="text-xs text-red-500 font-bold">18+</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-center text-secondary-text">У вас нет книг в закладках.</p>
+            }
+        </section>
+
+        <!-- Секция понравившихся книг (для обычных пользователей) -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Понравившиеся книги</h2>
+            @if (Model.LikedBooks != null && Model.LikedBooks.Any())
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach (var book in Model.LikedBooks)
+                    {
+                        <div class="card p-4 rounded-lg border-2 book-item flex items-center space-x-4">
+                            <img src="@book.CoverImageUrl" alt="Обложка книги" class="w-20 h-28 object-cover rounded-md" onerror="this.onerror=null;this.src='https://placehold.co/80x112/D4AF37/FFFFFF?text=Книга';">
+                            <div>
+                                <h3 class="text-xl font-semibold text-primary">@book.Title</h3>
+                                <p class="text-sm text-secondary-text">Автор: @book.AuthorName</p>
+                                <p class="text-xs text-secondary-text">Прочтений: @(book.ReadsCount.ToString("N0"))</p>
+                                <p class="text-xs text-secondary-text">Лайков: @(book.LikesCount.ToString("N0"))</p>
+                                @if (book.IsAdultContent)
+                                {
+                                    <span class="text-xs text-red-500 font-bold">18+</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-center text-secondary-text">Вам еще не понравились книги.</p>
+            }
+        </section>
+
+        <!-- Секция понравившихся блогов (для обычных пользователей) -->
+        <section class="mb-12">
+            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Понравившиеся блоги</h2>
+            @if (Model.LikedBlogs != null && Model.LikedBlogs.Any())
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach (var blog in Model.LikedBlogs)
+                    {
+                        <div class="card p-4 rounded-lg border-2 blog-item flex flex-col space-y-3">
+                            @if (!string.IsNullOrEmpty(blog.ImageUrl))
+                            {
+                                <img src="@blog.ImageUrl" alt="Изображение блога" class="w-full h-40 object-cover rounded-md mb-2" onerror="this.onerror=null;this.src='https://placehold.co/400x160/A79273/FFFFFF?text=Блог+Изображение';">
+                            }
+                            <div>
+                                <h3 class="text-xl font-semibold text-primary">@blog.Title</h3>
+                                <p class="text-sm text-secondary-text">Автор: @blog.AuthorName</p>
+                                <p class="text-sm text-secondary-text">Дата публикации: @blog.PublicationDate.ToShortDateString()</p>
+                                <p class="text-sm text-secondary-text">Просмотров: @(blog.ViewsCount.ToString("N0"))</p>
+                                <p class="text-sm text-secondary-text">Лайков: @(blog.LikesCount.ToString("N0"))</p>
+                                <p class="text-sm text-secondary-text">Комментариев: @(blog.CommentsCount.ToString("N0"))</p>
+                                <p class="text-md text-secondary-text mt-2">@blog.ContentSnippet</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-center text-secondary-text">Вам еще не понравились блоги.</p>
+            }
+        </section>
+    }
+</div>
+
+@section Scripts {
+}

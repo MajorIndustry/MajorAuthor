@@ -281,10 +281,17 @@
             @if (SignInManager.IsSignedIn(User))
             {
                 <div class="relative group">
-                    <button class="profile-icon-circle profile-icon-auth focus:outline-none" aria-haspopup="true" aria-expanded="false" id="profileDropdownToggle">
+                    <button class="profile-icon-circle profile-icon-auth focus:outline-none"
+                            aria-haspopup="true"
+                            aria-expanded="false"
+                            id="profileDropdownToggle">
                         <span>@UserManager.GetUserName(User).FirstOrDefault().ToString().ToUpper()</span>
                     </button>
-                    <div id="profileDropdownMenu" class="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 dropdown-menu hidden group-hover:block focus-within:block" role="menu" aria-orientation="vertical" aria-labelledby="profileDropdownToggle">
+                    <div id="profileDropdownMenu"
+                         class="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 dropdown-menu hidden group-hover:block focus-within:block"
+                         role="menu"
+                         aria-orientation="vertical"
+                         aria-labelledby="profileDropdownToggle">
                         <a asp-controller="Profile" asp-action="MyProfile" class="dropdown-item" role="menuitem">Мой профиль</a>
                         <a asp-controller="Account" asp-action="Settings" class="dropdown-item" role="menuitem">Настройки</a>
                         <a asp-controller="Works" asp-action="MyWorks" class="dropdown-item" role="menuitem">Мои произведения</a>
@@ -326,7 +333,7 @@
     @await RenderSectionAsync("Scripts", required: false)
 
     <script>
-        // JavaScript для управления выпадающим меню, если hover не всегда надежен
+        // JavaScript для управления выпадающим меню профиля
         document.addEventListener('DOMContentLoaded', function () {
             const toggleButton = document.getElementById('profileDropdownToggle');
             const dropdownMenu = document.getElementById('profileDropdownMenu');
@@ -334,22 +341,49 @@
             if (toggleButton && dropdownMenu) {
                 let timeout;
 
+                // Функция для показа выпадающего меню
                 function showDropdown() {
-                    clearTimeout(timeout);
-                    dropdownMenu.classList.remove('hidden');
+                    clearTimeout(timeout); // Отменяем любое запланированное скрытие
+                    dropdownMenu.classList.remove('hidden'); // Показываем меню
+                    toggleButton.setAttribute('aria-expanded', 'true'); // Обновляем атрибут доступности
                 }
 
+                // Функция для скрытия выпадающего меню с задержкой
                 function hideDropdown() {
                     timeout = setTimeout(() => {
-                        dropdownMenu.classList.add('hidden');
-                    }, 300); // Небольшая задержка, чтобы позволить курсору перемещаться
+                        // Проверяем, находится ли курсор внутри кнопки или меню перед скрытием
+                        if (!dropdownMenu.contains(document.activeElement) && !toggleButton.contains(document.activeElement)) {
+                            dropdownMenu.classList.add('hidden'); // Скрываем меню
+                            toggleButton.setAttribute('aria-expanded', 'false'); // Обновляем атрибут доступности
+                        }
+                    }, 200); // Небольшая задержка, чтобы позволить курсору перемещаться
                 }
 
+                // Обработчик клика для переключения меню (добавлен для доступности и мобильных устройств)
+                toggleButton.addEventListener('click', function(event) {
+                    // Предотвращаем срабатывание document click listener сразу
+                    event.stopPropagation();
+                    if (dropdownMenu.classList.contains('hidden')) {
+                        showDropdown();
+                    } else {
+                        hideDropdown();
+                    }
+                });
+
+                // Обработчики наведения мыши для кнопки и меню (для десктопов)
                 toggleButton.addEventListener('mouseenter', showDropdown);
                 dropdownMenu.addEventListener('mouseenter', showDropdown); // Удерживать открытым при наведении на само меню
 
                 toggleButton.addEventListener('mouseleave', hideDropdown);
                 dropdownMenu.addEventListener('mouseleave', hideDropdown);
+
+                // Закрывать меню при клике вне его
+                document.addEventListener('click', function(event) {
+                    if (!toggleButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                        dropdownMenu.classList.add('hidden');
+                        toggleButton.setAttribute('aria-expanded', 'false');
+                    }
+                });
             }
 
             const themeToggle = document.getElementById('themeToggle');

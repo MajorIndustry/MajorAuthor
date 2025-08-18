@@ -91,7 +91,7 @@ using (var scope = app.Services.CreateScope())
 // --------------------------------------------------------------------------------------
 
 // app.UseAuthentication(); // Если используете ASP.NET Core Identity (раскомментируйте после настройки)
-// app.UseAuthorization();  // Если используете ASP.NET Core Identity (раскомментируйте после настройки)
+ app.UseAuthorization();  // Если используете ASP.NET Core Identity (раскомментируйте после настройки)
 
 app.MapControllerRoute(
     name: "default",

@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MajorAuthor.Data.Migrations
 {
     [DbContext(typeof(MajorAuthorDbContext))]
-    [Migration("20250622131051_AddPromotions")]
-    partial class AddPromotions
+    [Migration("20250623115414_AddBlogSystemAndUpdatedUserRelationships")]
+    partial class AddBlogSystemAndUpdatedUserRelationships
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -129,6 +129,114 @@ namespace MajorAuthor.Data.Migrations
                         .HasFilter("[IdentityUserId] IS NOT NULL");
 
                     b.ToTable("Authors");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Blog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthorId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CommentsCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("LikesCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PublicationDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("ViewsCount")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.ToTable("Blogs");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BlogComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BlogId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ParentCommentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BlogId");
+
+                    b.HasIndex("ParentCommentId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("BlogComments");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BlogLike", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BlogId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("LikeDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BlogId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("BlogLikes");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.Book", b =>
@@ -342,6 +450,10 @@ namespace MajorAuthor.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<string>("UserId1")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BookId");
@@ -350,7 +462,29 @@ namespace MajorAuthor.Data.Migrations
 
                     b.HasIndex("UserId");
 
+                    b.HasIndex("UserId1");
+
                     b.ToTable("Comments");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Follower", b =>
+                {
+                    b.Property<string>("FollowerId")
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnOrder(0);
+
+                    b.Property<int>("AuthorId")
+                        .HasColumnType("int")
+                        .HasColumnOrder(1);
+
+                    b.Property<DateTime>("FollowDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("FollowerId", "AuthorId");
+
+                    b.HasIndex("AuthorId");
+
+                    b.ToTable("Followers");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.Genre", b =>
@@ -405,6 +539,46 @@ namespace MajorAuthor.Data.Migrations
                     b.HasIndex("SenderId");
 
                     b.ToTable("Messages");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LinkUrl")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.Page", b =>
@@ -526,9 +700,15 @@ namespace MajorAuthor.Data.Migrations
                     b.Property<DateTime>("AddedDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("UserId1")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("UserId", "BookId");
 
                     b.HasIndex("BookId");
+
+                    b.HasIndex("UserId1");
 
                     b.ToTable("UserFavoriteBooks");
                 });
@@ -546,9 +726,15 @@ namespace MajorAuthor.Data.Migrations
                     b.Property<int>("PreferenceLevel")
                         .HasColumnType("int");
 
+                    b.Property<string>("UserId1")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("UserId", "GenreId");
 
                     b.HasIndex("GenreId");
+
+                    b.HasIndex("UserId1");
 
                     b.ToTable("UserPreferredGenres");
                 });
@@ -566,9 +752,15 @@ namespace MajorAuthor.Data.Migrations
                     b.Property<int>("PreferenceLevel")
                         .HasColumnType("int");
 
+                    b.Property<string>("UserId1")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
                     b.HasKey("UserId", "TagId");
 
                     b.HasIndex("TagId");
+
+                    b.HasIndex("UserId1");
 
                     b.ToTable("UserPreferredTags");
                 });
@@ -720,6 +912,58 @@ namespace MajorAuthor.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Blog", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.Entities.Author", "Author")
+                        .WithMany("Blogs")
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BlogComment", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.Entities.Blog", "Blog")
+                        .WithMany("Comments")
+                        .HasForeignKey("BlogId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MajorAuthor.Data.Entities.BlogComment", "ParentComment")
+                        .WithMany("Replies")
+                        .HasForeignKey("ParentCommentId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", null)
+                        .WithMany("BlogComments")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Blog");
+
+                    b.Navigation("ParentComment");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BlogLike", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.Entities.Blog", "Blog")
+                        .WithMany("Likes")
+                        .HasForeignKey("BlogId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", null)
+                        .WithMany("BlogLikes")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Blog");
+                });
+
             modelBuilder.Entity("MajorAuthor.Data.Entities.BookAuthor", b =>
                 {
                     b.HasOne("MajorAuthor.Data.Entities.Author", "Author")
@@ -767,7 +1011,7 @@ namespace MajorAuthor.Data.Migrations
                         .IsRequired();
 
                     b.HasOne("MajorAuthor.Data.ApplicationUser", "User")
-                        .WithMany()
+                        .WithMany("Likes")
                         .HasForeignKey("UserId1");
 
                     b.Navigation("Book");
@@ -784,7 +1028,7 @@ namespace MajorAuthor.Data.Migrations
                         .IsRequired();
 
                     b.HasOne("MajorAuthor.Data.ApplicationUser", "User")
-                        .WithMany()
+                        .WithMany("Readings")
                         .HasForeignKey("UserId1");
 
                     b.Navigation("Book");
@@ -833,11 +1077,17 @@ namespace MajorAuthor.Data.Migrations
                     b.HasOne("MajorAuthor.Data.Entities.Comment", "ParentComment")
                         .WithMany("Replies")
                         .HasForeignKey("ParentCommentId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", null)
+                        .WithMany("Comments")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
 
                     b.HasOne("MajorAuthor.Data.ApplicationUser", "User")
                         .WithMany()
-                        .HasForeignKey("UserId")
+                        .HasForeignKey("UserId1")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -848,23 +1098,45 @@ namespace MajorAuthor.Data.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Follower", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.Entities.Author", "Author")
+                        .WithMany("Followers")
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", null)
+                        .WithMany("Following")
+                        .HasForeignKey("FollowerId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+                });
+
             modelBuilder.Entity("MajorAuthor.Data.Entities.Message", b =>
                 {
-                    b.HasOne("MajorAuthor.Data.ApplicationUser", "Receiver")
-                        .WithMany()
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", null)
+                        .WithMany("ReceivedMessages")
                         .HasForeignKey("ReceiverId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.HasOne("MajorAuthor.Data.ApplicationUser", "Sender")
-                        .WithMany()
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", null)
+                        .WithMany("SentMessages")
                         .HasForeignKey("SenderId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
+                });
 
-                    b.Navigation("Receiver");
-
-                    b.Navigation("Sender");
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Notification", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", null)
+                        .WithMany("Notifications")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.Page", b =>
@@ -905,9 +1177,15 @@ namespace MajorAuthor.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MajorAuthor.Data.ApplicationUser", "User")
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", null)
                         .WithMany("FavoriteBooks")
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId1")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -924,9 +1202,15 @@ namespace MajorAuthor.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MajorAuthor.Data.ApplicationUser", "User")
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", null)
                         .WithMany("PreferredGenres")
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId1")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -943,9 +1227,15 @@ namespace MajorAuthor.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MajorAuthor.Data.ApplicationUser", "User")
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", null)
                         .WithMany("PreferredTags")
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId1")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1009,16 +1299,50 @@ namespace MajorAuthor.Data.Migrations
                 {
                     b.Navigation("AuthorProfile");
 
+                    b.Navigation("BlogComments");
+
+                    b.Navigation("BlogLikes");
+
+                    b.Navigation("Comments");
+
                     b.Navigation("FavoriteBooks");
+
+                    b.Navigation("Following");
+
+                    b.Navigation("Likes");
+
+                    b.Navigation("Notifications");
 
                     b.Navigation("PreferredGenres");
 
                     b.Navigation("PreferredTags");
+
+                    b.Navigation("Readings");
+
+                    b.Navigation("ReceivedMessages");
+
+                    b.Navigation("SentMessages");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.Author", b =>
                 {
+                    b.Navigation("Blogs");
+
                     b.Navigation("BookAuthors");
+
+                    b.Navigation("Followers");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Blog", b =>
+                {
+                    b.Navigation("Comments");
+
+                    b.Navigation("Likes");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BlogComment", b =>
+                {
+                    b.Navigation("Replies");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.Book", b =>

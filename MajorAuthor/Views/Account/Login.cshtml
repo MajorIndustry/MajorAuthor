@@ -10,7 +10,6 @@
 <div class="flex flex-col md:flex-row justify-center items-center gap-8">
     <div class="md:w-1/2 p-6 rounded-lg border shadow-xl card">
         <section>
-            {{-- Локальная форма входа --}}
             <form asp-controller="Account" asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl" method="post">
                 <h2 class="text-2xl font-semibold mb-4 section-title">Войти с помощью аккаунта</h2>
                 <hr />

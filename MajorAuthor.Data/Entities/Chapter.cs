@@ -1,5 +1,6 @@
 ﻿// Проект: MajorAuthor.Data
 // Файл: Entities/Chapter.cs
+// Обновлен для включения коллекции ChapterRead.
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -43,5 +44,10 @@ namespace MajorAuthor.Data.Entities
         /// Коллекция страниц, входящих в эту главу.
         /// </summary>
         public ICollection<Page> Pages { get; set; } = new List<Page>();
+
+        /// <summary>
+        /// Коллекция записей о прочтении этой главы пользователями.
+        /// </summary>
+        public ICollection<ChapterRead> ChapterReads { get; set; } = new List<ChapterRead>();
     }
 }
