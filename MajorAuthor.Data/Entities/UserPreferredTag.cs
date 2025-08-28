@@ -1,5 +1,6 @@
 ﻿// Проект: MajorAuthor.Data
 // Файл: Entities/UserPreferredTag.cs
+// Обновлен для использования ApplicationUser.Id (string) в качестве внешнего ключа.
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -11,15 +12,15 @@ namespace MajorAuthor.Data.Entities
     public class UserPreferredTag
     {
         /// <summary>
-        /// Внешний ключ к пользователю.
+        /// Внешний ключ к пользователю (ApplicationUser.Id).
         /// </summary>
         [Key, Column(Order = 0)]
-        public int UserId { get; set; }
+        public string ApplicationUserId { get; set; }
 
         /// <summary>
         /// Навигационное свойство к пользователю.
         /// </summary>
-        public User User { get; set; }
+        public ApplicationUser ApplicationUser { get; set; }
 
         /// <summary>
         /// Внешний ключ к тегу.

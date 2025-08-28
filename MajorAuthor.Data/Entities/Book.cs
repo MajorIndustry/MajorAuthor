@@ -94,5 +94,9 @@ namespace MajorAuthor.Data.Entities
         /// Коллекция пользователей, добавивших эту книгу в избранное.
         /// </summary>
         public ICollection<UserFavoriteBook> UserFavorites { get; set; } = new List<UserFavoriteBook>();
+        /// <summary>
+        /// Коллекция продвежения книг.
+        /// </summary>
+        public ICollection<Promotion> Promotions { get; set; } = new List<Promotion>();
     }
 }

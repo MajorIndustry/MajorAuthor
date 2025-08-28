@@ -1,5 +1,6 @@
 ﻿// Проект: MajorAuthor.Data
 // Файл: Entities/Message.cs
+// Обновлен для использования ApplicationUser.Id (string) в качестве внешних ключей.
 using System;
 using System.ComponentModel.DataAnnotations;
 
@@ -17,27 +18,29 @@ namespace MajorAuthor.Data.Entities
         public int Id { get; set; }
 
         /// <summary>
-        /// Идентификатор отправителя сообщения.
+        /// Идентификатор отправителя сообщения (ApplicationUser.Id).
         /// </summary>
-        public int SenderId { get; set; }
+        [Required]
+        public string SenderId { get; set; }
 
         /// <summary>
         /// Навигационное свойство к отправителю.
         /// </summary>
-        public User Sender { get; set; }
+        public ApplicationUser Sender { get; set; }
 
         /// <summary>
-        /// Идентификатор получателя сообщения.
+        /// Идентификатор получателя сообщения (ApplicationUser.Id).
         /// </summary>
-        public int ReceiverId { get; set; }
+        [Required]
+        public string ReceiverId { get; set; }
 
         /// <summary>
         /// Навигационное свойство к получателю.
         /// </summary>
-        public User Receiver { get; set; }
+        public ApplicationUser Receiver { get; set; }
 
         /// <summary>
-        /// Текст сообщения.
+        /// Содержимое сообщения.
         /// </summary>
         [Required]
         [MaxLength(1000)] // Ограничение на длину сообщения

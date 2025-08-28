@@ -1,5 +1,5 @@
 ﻿// Проект: MajorAuthor.Data
-// Файл: Entities/Comment.cs
+// Файл: Entities/PoemComment.cs
 // Обновлен для использования ApplicationUser.Id (string) в качестве внешнего ключа.
 using System;
 using System.Collections.Generic;
@@ -8,9 +8,9 @@ using System.ComponentModel.DataAnnotations;
 namespace MajorAuthor.Data.Entities
 {
     /// <summary>
-    /// Представляет комментарий к книге.
+    /// Представляет комментарий к стиху.
     /// </summary>
-    public class Comment
+    public class PoemComment
     {
         /// <summary>
         /// Уникальный идентификатор комментария.
@@ -19,17 +19,17 @@ namespace MajorAuthor.Data.Entities
         public int Id { get; set; }
 
         /// <summary>
-        /// Идентификатор книги, к которой оставлен комментарий.
+        /// Внешний ключ к стиху, к которому оставлен комментарий.
         /// </summary>
-        public int BookId { get; set; }
+        public int PoemId { get; set; }
 
         /// <summary>
-        /// Навигационное свойство к книге.
+        /// Навигационное свойство к стиху.
         /// </summary>
-        public Book Book { get; set; }
+        public Poem Poem { get; set; }
 
         /// <summary>
-        /// Идентификатор пользователя, оставившего комментарий (ApplicationUser.Id).
+        /// Внешний ключ к пользователю (ApplicationUser.Id).
         /// </summary>
         [Required]
         public string ApplicationUserId { get; set; }
@@ -60,11 +60,11 @@ namespace MajorAuthor.Data.Entities
         /// <summary>
         /// Навигационное свойство к родительскому комментарию.
         /// </summary>
-        public Comment ParentComment { get; set; }
+        public PoemComment ParentComment { get; set; }
 
         /// <summary>
         /// Коллекция дочерних комментариев (ответов на этот комментарий).
         /// </summary>
-        public ICollection<Comment> Replies { get; set; } = new List<Comment>();
+        public ICollection<PoemComment> Replies { get; set; } = new List<PoemComment>();
     }
 }

@@ -1,0 +1,82 @@
+﻿@model MajorAuthor.Models.RegisterViewModel
+@{
+    Layout = "_Layout"; // Указываем, что это представление использует _Layout.cshtml
+    ViewData["Title"] = "Регистрация";
+}
+
+<h1 class="text-4xl font-bold text-center mb-10 section-title">@ViewData["Title"]</h1>
+
+<div class="flex flex-col md:flex-row justify-center items-center gap-8">
+    <div class="md:w-1/2 p-6 rounded-lg border shadow-xl card">
+        <form asp-controller="Account" asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl" method="post">
+            <h2 class="text-2xl font-semibold mb-4 section-title">Создать новый аккаунт</h2>
+            <hr />
+            <div asp-validation-summary="All" class="text-red-600 font-bold mb-4" role="alert"></div>
+            <div class="mb-4">
+                <label asp-for="Email" class="block text-sm font-medium text-themed-label"></label>
+                <input asp-for="Email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-accent-gold focus:ring-accent-gold dark:bg-gray-700 dark:text-gray-100" autocomplete="username" aria-required="true" placeholder="name@example.com" />
+                <span asp-validation-for="Email" class="text-red-600 text-xs mt-1"></span>
+            </div>
+            <div class="mb-4">
+                <label asp-for="Password" class="block text-sm font-medium text-themed-label"></label>
+                <input asp-for="Password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-accent-gold focus:ring-accent-gold dark:bg-gray-700 dark:text-gray-100" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <span asp-validation-for="Password" class="text-red-600 text-xs mt-1"></span>
+            </div>
+            <div class="mb-4">
+                <label asp-for="ConfirmPassword" class="block text-sm font-medium text-themed-label"></label>
+                <input asp-for="ConfirmPassword" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-accent-gold focus:ring-accent-gold dark:bg-gray-700 dark:text-gray-100" autocomplete="new-password" aria-required="true" placeholder="password" />
+                <span asp-validation-for="ConfirmPassword" class="text-red-600 text-xs mt-1"></span>
+            </div>
+            <button type="submit" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-accent-gold hover:bg-accent-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-gold transition-colors">Зарегистрироваться</button>
+            <div class="mt-4 text-center">
+                <p class="text-sm text-themed-label">
+                    Уже есть аккаунт? <a asp-controller="Account" asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl" class="text-accent-gold hover:underline">Войти</a>
+                </p>
+            </div>
+        </form>
+    </div>
+    <div class="md:w-1/2 p-6 rounded-lg border shadow-xl card">
+        <section>
+            <h2 class="text-2xl font-semibold mb-4 section-title">Зарегистрироваться с помощью другого сервиса</h2>
+            <hr />
+            @{
+                if ((Model.ExternalLogins?.Count ?? 0) == 0)
+                {
+                    <p class="text-sm text-themed-label">
+                        На данный момент нет настроенных внешних сервисов аутентификации.
+                    </p>
+                }
+                else
+                {
+                    <form asp-controller="Account" asp-action="ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="mt-4">
+                        <div>
+                            <p>
+                                @foreach (var provider in Model.ExternalLogins)
+                                {
+                                    <button type="submit" class="w-full py-2 px-4 mb-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white
+                                    @if (provider.DisplayName == "Google") {
+                            <text>bg-red-500 hover:bg-red-600</text>
+ }
+                                             else if (provider.DisplayName == "Yandex") {
+                            <text>bg-yellow-500 hover:bg-yellow-600</text>
+ }
+                                             else {
+                            <text>bg-gray-500 hover:bg-gray-600</text>
+ }
+                                                 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
+                                                        name="provider" value="@provider.Name" title="Зарегистрироваться через @provider.DisplayName">
+                                                    Зарегистрироваться через @provider.DisplayName
+                                                </button>
+                                }
+                            </p>
+                        </div>
+                    </form>
+                }
+            }
+        </section>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

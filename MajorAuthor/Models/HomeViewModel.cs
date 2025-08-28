@@ -1,8 +1,8 @@
-﻿// Проект: MajorAuthor.Web
+﻿// Проект: MajorAuthor
 // Файл: Models/HomeViewModel.cs
 using System.Collections.Generic;
 
-namespace MajorAuthor.Web.Models
+namespace MajorAuthor.Models // Изменено на MajorAuthor.Models
 {
     /// <summary>
     /// ViewModel для главной страницы, содержащая данные для различных секций.
@@ -14,13 +14,16 @@ namespace MajorAuthor.Web.Models
         public List<BookDisplayModel> RecentlyUpdatedBooks { get; set; } = new List<BookDisplayModel>();
         public List<BookDisplayModel> NewPopularBooks { get; set; } = new List<BookDisplayModel>();
         public List<AuthorDisplayModel> NewPopularAuthors { get; set; } = new List<AuthorDisplayModel>();
+        public List<BookDisplayModel> PromotedBooks { get; set; } = new List<BookDisplayModel>(); // НОВАЯ секция: Продвигающиеся книги
         public List<BookDisplayModel> RecommendedBooks { get; set; } = new List<BookDisplayModel>(); // Для советов
 
         public bool IsUserLoggedIn { get; set; } // Флаг, указывающий, вошел ли пользователь
 
-        public List<GenreDisplayModel> AvailableGenres { get; set; } = new List<GenreDisplayModel>(); // Добавлено: Список всех доступных жанров для выбора
-        public int? SelectedGenreId { get; set; } // Добавлено: ID выбранного жанра (для фильтрации)
-        public List<BookDisplayModel> BooksBySelectedGenre { get; set; } = new List<BookDisplayModel>(); // Добавлено: Книги по выбранному жанру
+        public List<GenreDisplayModel> AvailableGenres { get; set; } = new List<GenreDisplayModel>(); // Доступные жанры для фильтрации
+        public int? SelectedGenreId { get; set; } // Выбранный жанр
+        public List<BookDisplayModel> BooksBySelectedGenre { get; set; } = new List<BookDisplayModel>(); // Книги по выбранному жанру
+
+        // Вложенные классы для отображения данных
 
         /// <summary>
         /// Модель для отображения информации о книге на главной странице.
@@ -52,7 +55,7 @@ namespace MajorAuthor.Web.Models
         }
 
         /// <summary>
-        /// Модель для отображения информации о жанре.
+        /// Модель для отображения жанра.
         /// </summary>
         public class GenreDisplayModel
         {

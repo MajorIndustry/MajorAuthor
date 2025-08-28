@@ -1,0 +1,32 @@
+﻿@*
+    Проект: MajorAuthor
+    Файл: Views/Account/RegisterConfirmation.cshtml
+    Описание: Представление для подтверждения регистрации после отправки Email.
+*@
+@{
+    // Указываем, что это представление использует _Layout.cshtml
+    Layout = "_Layout";
+    ViewData["Title"] = "Подтверждение регистрации";
+    var email = ViewBag.Email as string; // Получаем Email из ViewBag
+}
+
+<h1 class="text-4xl font-bold text-center mb-10 section-title">@ViewData["Title"]</h1>
+
+<div class="max-w-md mx-auto p-6 rounded-lg border shadow-xl card text-center">
+    <p class="text-lg text-themed-label mb-4">
+        Для завершения регистрации, пожалуйста, подтвердите свой адрес электронной почты.
+    </p>
+    <p class="text-lg text-themed-label mb-6">
+        Мы отправили письмо с подтверждением на адрес: <strong class="text-accent-gold">@email</strong>.
+    </p>
+    <p class="text-sm text-themed-label">
+        Пожалуйста, проверьте свою электронную почту (включая папку со спамом), чтобы активировать ваш аккаунт.
+        Если письмо не пришло в течение нескольких минут, вы можете
+        <a asp-controller="Account" asp-action="ResendEmailConfirmation" asp-route-email="@email" class="text-accent-gold hover:underline font-semibold">отправить его повторно</a>.
+    </p>
+    <div class="mt-8">
+        <a asp-controller="Home" asp-action="Index" class="py-2 px-6 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-accent-gold hover:bg-accent-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-gold transition-colors">
+            Вернуться на главную
+        </a>
+    </div>
+</div>

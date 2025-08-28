@@ -1,5 +1,5 @@
 ﻿// Проект: MajorAuthor.Data
-// Файл: Entities/BookLike.cs
+// Файл: Entities/PoemLike.cs
 // Обновлен для использования ApplicationUser.Id (string) в качестве внешнего ключа.
 using System;
 using System.ComponentModel.DataAnnotations;
@@ -7,25 +7,25 @@ using System.ComponentModel.DataAnnotations;
 namespace MajorAuthor.Data.Entities
 {
     /// <summary>
-    /// Представляет запись о лайке книги пользователем.
+    /// Представляет лайк, поставленный пользователем к стиху.
     /// </summary>
-    public class BookLike
+    public class PoemLike
     {
         /// <summary>
-        /// Уникальный идентификатор записи.
+        /// Уникальный идентификатор лайка.
         /// </summary>
         [Key]
         public int Id { get; set; }
 
         /// <summary>
-        /// Внешний ключ к книге.
+        /// Внешний ключ к стиху, который получил лайк.
         /// </summary>
-        public int BookId { get; set; }
+        public int PoemId { get; set; }
 
         /// <summary>
-        /// Навигационное свойство к книге.
+        /// Навигационное свойство к стиху.
         /// </summary>
-        public Book Book { get; set; }
+        public Poem Poem { get; set; }
 
         /// <summary>
         /// Внешний ключ к пользователю (ApplicationUser.Id).
