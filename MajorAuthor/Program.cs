@@ -2,10 +2,10 @@
 // Файл: Program.cs
 
 using MajorAuthor.Data; // Используем наш DbContext
-using Microsoft.EntityFrameworkCore; // Используем Entity Framework Core
-using Microsoft.AspNetCore.Identity;
 using MajorAuthor.Models;
 using MajorAuthor.Services; // Если вы будете использовать ASP.NET Core Identity
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore; // Используем Entity Framework Core
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,8 +15,10 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
 // Регистрация MajorAuthorDbContext
-builder.Services.AddDbContext<MajorAuthorDbContext>(options =>
-    options.UseSqlServer(connectionString)); // Используйте UseSqlite, UseNpgsql и т.д., если используете другую БД
+//builder.Services.AddDbContext<MajorAuthorDbContext>(options =>
+//    options.UseSqlServer(connectionString)); // Используйте UseSqlite, UseNpgsql и т.д., если используете другую БД
+builder.Services.AddDbContextFactory<MajorAuthorDbContext>(options =>
+    options.UseSqlServer(connectionString));
 
 //    .AddEntityFrameworkStores<MajorAuthorDbContext>();
 // Настройка ASP.NET Core Identity
@@ -47,6 +49,10 @@ builder.Services.AddAuthentication()
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 // Регистрируем нашу службу отправки электронной почты
 builder.Services.AddTransient<IEmailSender, EmailSender>(); // Регистрируем как Transient
+builder.Services.AddScoped<IAccountService, AccountService>();
+
+builder.Services.AddScoped<IHomeService, HomeServiceWithFactory>();
+builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 // ===========================================
 
 builder.Services.AddControllersWithViews();
