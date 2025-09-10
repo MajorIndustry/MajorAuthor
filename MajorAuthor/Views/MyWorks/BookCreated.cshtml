@@ -1,0 +1,74 @@
+﻿@model MajorAuthor.Data.Entities.Book
+
+@{
+    ViewData["Title"] = "Книга успешно создана";
+}
+
+<style>
+    body {
+        background-color: #000;
+        color: #D4AF37;
+        font-family: 'Inter', sans-serif;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .btn-primary {
+        background-color: #D4AF37;
+        border-color: #D4AF37;
+        color: #000;
+        border-radius: 5px;
+    }
+
+        .btn-primary:hover {
+            background-color: #ffc400;
+            border-color: #ffc400;
+            color: #000;
+        }
+
+    .btn-success {
+        background-color: #38b000;
+        border-color: #38b000;
+        color: #fff;
+        border-radius: 5px;
+    }
+
+        .btn-success:hover {
+            background-color: #2b8000;
+            border-color: #2b8000;
+        }
+
+    hr {
+        border-top: 1px solid #D4AF37;
+    }
+
+    h2, h4 {
+        color: #D4AF37;
+    }
+
+</style>
+
+<div class="text-center">
+    <h2>Поздравляем!</h2>
+    <p>Книга "@Model.Title" успешно создана.</p>
+
+    @if (ViewBag.InvitationSent != null && ViewBag.InvitationSent)
+    {
+        <hr />
+        <h4>Приглашение отправлено</h4>
+        <p class="text-success">Письмо с приглашением было отправлено соавтору на указанный вами email.</p>
+
+    }
+    else if (ViewBag.InvitationSent != null && !ViewBag.InvitationSent)
+    {
+        <hr />
+        <h4>Ошибка при отправке приглашения</h4>
+        <p class="text-danger">Не удалось отправить письмо-приглашение. Пожалуйста, попробуйте позже.</p>
+    }
+
+    <hr />
+    <a asp-action="Index" class="btn btn-primary mt-3">Вернуться к моим работам</a>
+    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-success mt-3">Редактировать книгу</a>
+
+</div>

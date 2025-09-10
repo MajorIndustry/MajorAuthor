@@ -38,17 +38,17 @@ namespace MajorAuthor.Data.Entities
         /// URL обложки книги (опционально).
         /// </summary>
         [MaxLength(500)]
-        public string CoverImageUrl { get; set; }
+        public string? CoverImageUrl { get; set; }
 
         /// <summary>
         /// Количество лайков книги.
         /// </summary>
-        public int LikesCount { get; set; }
+        public int LikesCount { get; set; }= 0;
 
         /// <summary>
         /// Количество прочтений книги.
         /// </summary>
-        public int ReadsCount { get; set; }
+        public int ReadsCount { get; set; } = 0;
 
         /// <summary>
         /// Дата последнего обновления книги. Используется для "Недавно обновленных книг".
@@ -98,5 +98,6 @@ namespace MajorAuthor.Data.Entities
         /// Коллекция продвежения книг.
         /// </summary>
         public ICollection<Promotion> Promotions { get; set; } = new List<Promotion>();
+        public ICollection<BookInvitation> BookInvitations { get; set; } = new List<BookInvitation>();
     }
 }

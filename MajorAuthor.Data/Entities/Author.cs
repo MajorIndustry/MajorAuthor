@@ -36,7 +36,7 @@ namespace MajorAuthor.Data.Entities
         /// </summary>
         [Required]
         [MaxLength(255)]
-        public string PenName { get; set; }
+        public string? PenName { get; set; }
 
         /// <summary>
         /// ФИО автора
@@ -58,7 +58,7 @@ namespace MajorAuthor.Data.Entities
         /// URL фотографии автора (опционально).
         /// </summary>
         [MaxLength(500)]
-        public string PhotoUrl { get; set; }
+        public string? PhotoUrl { get; set; }
 
         /// <summary>
         /// Коллекция связей с книгами, в которых этот автор участвовал (для совместного написания).

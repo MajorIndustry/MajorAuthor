@@ -1,0 +1,34 @@
+﻿@model MajorAuthor.Models.CreatePoemModel
+
+@{
+    ViewData["Title"] = "Создать стихотворение";
+}
+
+<div class="text-3xl font-semibold mb-6 section-title text-center">
+    <h1 class="app-title">Создать стихотворение</h1>
+
+    <div class="w-full max-w-3xl bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+        <form asp-action="CreatePoem" asp-controller="MyWorks" method="post">
+            <div class="mb-6">
+                <label for="title" class="block text-gray-700 text-sm font-bold mb-2">Название</label>
+                <input asp-for="Title" class="shadow appearance-none border rounded w-full py-3 px-4 text-gray-800 leading-tight focus:outline-none focus:shadow-outline focus:ring-2 focus:ring-purple-500" id="title" placeholder="Название вашего стихотворения">
+                <span asp-validation-for="Title" class="text-red-500 text-xs italic mt-1"></span>
+            </div>
+
+            <div class="mb-6">
+                <label for="content" class="block text-gray-700 text-sm font-bold mb-2">Текст стихотворения</label>
+                <textarea asp-for="Content" class="shadow appearance-none border rounded w-full py-3 px-4 text-white-800 leading-tight focus:outline-none focus:shadow-outline h-96 resize-y focus:ring-2 focus:ring-purple-500" id="content" placeholder="Начните писать здесь..."></textarea>
+                <span asp-validation-for="Content" class="text-red-500 text-xs italic mt-1"></span>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-8 rounded-full transition duration-300 ease-in-out transform hover:scale-105 shadow-lg">
+                    Сохранить
+                </button>
+                <a asp-action="AddWork" class="inline-block align-baseline font-bold text-sm text-purple-500 hover:text-purple-800 transition duration-300">
+                    Отмена
+                </a>
+            </div>
+        </form>
+    </div>
+</div>

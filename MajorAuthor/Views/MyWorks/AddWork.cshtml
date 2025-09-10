@@ -1,0 +1,33 @@
+﻿@{
+    ViewData["Title"] = "Создать новое произведение";
+}
+
+<div class="container mx-auto p-4 flex flex-col items-center justify-center min-h-[calc(100vh-100px)]">
+    <h1 class="text-3xl font-bold text-center mb-12">Выберите, что вы хотите создать</h1>
+
+    <div class="flex flex-col sm:flex-row space-y-6 sm:space-y-0 sm:space-x-8">
+        <!-- Кнопка для книги -->
+        <a href="#" class="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-6 px-10 rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-center flex-1 min-w-[200px]">
+            <div class="text-4xl mb-2">📚</div>
+            Книга
+        </a>
+
+        <!-- Кнопка для стихотворения -->
+        <a href="@Url.Action("CreatePoem", "MyWorks")" class="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-bold py-6 px-10 rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-center flex-1 min-w-[200px]">
+            <div class="text-4xl mb-2">✍️</div>
+            Стихотворение
+        </a>
+
+        <!-- Кнопка для блога -->
+        <a href="@Url.Action("CreateBlog", "MyWorks")" class="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-6 px-10 rounded-xl shadow-lg transition duration-300 ease-in-out transform hover:scale-105 text-center flex-1 min-w-[200px]">
+            <div class="text-4xl mb-2">📝</div>
+            Блог
+        </a>
+    </div>
+
+    <div class="mt-8">
+        <a href="@Url.Action("Index", "MyWorks")" class="text-blue-500 hover:text-blue-700 transition duration-300 ease-in-out">
+            &larr; Вернуться к моим произведениям
+        </a>
+    </div>
+</div>

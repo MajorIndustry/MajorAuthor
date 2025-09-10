@@ -51,7 +51,7 @@ namespace MajorAuthor.Data
         public DbSet<Promotion> Promotions { get; set; }
         public DbSet<PromotionPlan> PromotionPlans { get; set; }
         public DbSet<BlogLike> BlogLikes { get; set; }
-
+        public DbSet<BookInvitation> BookInvitations { get; set; }
 
         /// <summary>
         /// Метод для настройки модели базы данных.
@@ -329,6 +329,16 @@ namespace MajorAuthor.Data
                 .WithMany()
                 .HasForeignKey(bl => bl.ApplicationUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // Настройки для BookInvitation
+            modelBuilder.Entity<BookInvitation>()
+                .HasKey(bi => bi.Id);
+
+            modelBuilder.Entity<BookInvitation>()
+                .HasOne(bi => bi.Book)
+                .WithMany(b => b.BookInvitations)
+                .HasForeignKey(bi => bi.BookId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }
