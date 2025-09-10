@@ -277,6 +277,12 @@
             <svg class="header-icon w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
                 <path fill-rule="evenodd" d="M14 2H6a2 2 0 00-2 2v14l6-4 6 4V4a2 2 0 00-2-2z" clip-rule="evenodd"></path>
             </svg>
+            <a asp-controller="MyWorks" asp-action="AddWork" class="header-icon">
+                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+            </a>
+
 
             @if (SignInManager.IsSignedIn(User))
             {
@@ -294,7 +300,7 @@
                          aria-labelledby="profileDropdownToggle">
                         <a asp-controller="Profile" asp-action="MyProfile" class="dropdown-item" role="menuitem">Мой профиль</a>
                         <a asp-controller="Account" asp-action="Settings" class="dropdown-item" role="menuitem">Настройки</a>
-                        <a asp-controller="Works" asp-action="MyWorks" class="dropdown-item" role="menuitem">Мои произведения</a>
+                        <a asp-controller="MyWorks" asp-action="Index" class="dropdown-item" role="menuitem">Мои произведения</a>
                         <a asp-controller="Books" asp-action="Liked" class="dropdown-item" role="menuitem">Понравившиеся</a>
                         <a asp-controller="Books" asp-action="Bookmarks" class="dropdown-item" role="menuitem">Закладки</a>
                         <form asp-controller="Account" asp-action="Logout" method="post" class="w-full">

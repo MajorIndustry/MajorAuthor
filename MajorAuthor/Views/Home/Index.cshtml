@@ -35,6 +35,81 @@
             }
         </section>
 
+        <!-- НОВАЯ Секция: Популярные стихи -->
+        <section class="mb-12 p-6">
+            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Популярные стихи</h2>
+            @if (Model.PopularPoems != null && Model.PopularPoems.Any())
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach (var poem in Model.PopularPoems)
+                    {
+                        <div class="card p-4 rounded-lg border-2 poem-item">
+                            <div>
+                                <h3 class="text-xl font-semibold">@poem.Title</h3>
+                                <p class="text-sm text-gray-500">Автор: @poem.AuthorName</p>
+                                <p class="text-xs text-gray-400">Прочтений: @(poem.ReadsCount.ToString("N0")), Лайков: @(poem.LikesCount.ToString("N0")), Комментариев: @(poem.CommentsCount.ToString("N0"))</p>
+                                <p class="text-sm text-gray-600 mt-2 italic">@poem.ContentSnippet...</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-center text-secondary">Стихи не найдены в этом разделе.</p>
+            }
+        </section>
+
+        <!-- НОВАЯ Секция: Новые стихи (которым меньше дня) -->
+        <section class="mb-12 p-6">
+            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Новые стихи</h2>
+            @if (Model.NewPoems != null && Model.NewPoems.Any())
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach (var poem in Model.NewPoems)
+                    {
+                        <div class="card p-4 rounded-lg border-2 poem-item">
+                            <div>
+                                <h3 class="text-xl font-semibold">@poem.Title</h3>
+                                <p class="text-sm text-gray-500">Автор: @poem.AuthorName</p>
+                                <p class="text-xs text-gray-400">Опубликовано: @poem.CreationInfo</p>
+                                <p class="text-sm text-gray-600 mt-2 italic">@poem.ContentSnippet...</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-center text-secondary">Новые стихи не найдены.</p>
+            }
+        </section>
+
+        <!-- НОВАЯ Секция: Обсуждают сегодня (Топ 10 самых популярных блогов) -->
+        <section class="mb-12 p-6">
+            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Обсуждают сегодня</h2>
+            @if (Model.PopularBlogs != null && Model.PopularBlogs.Any())
+            {
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @foreach (var blog in Model.PopularBlogs)
+                    {
+                        <div class="card p-4 rounded-lg border-2 blog-item">
+                            <div>
+                                <h3 class="text-xl font-semibold">@blog.Title</h3>
+                                <p class="text-sm text-gray-500">Автор: @blog.AuthorName</p>
+                                <p class="text-xs text-gray-400">Комментариев: @(blog.CommentsCount.ToString("N0"))</p>
+                                <p class="text-sm text-gray-600 mt-2 italic">@blog.ContentSnippet...</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <p class="text-center text-secondary">Блоги не найдены в этом разделе.</p>
+            }
+        </section>
+
         <!-- Секция популярных авторов -->
         <section class="mb-12 p-6">
             <h2 class="text-3xl font-semibold mb-6 section-title text-center">Популярные авторы</h2>
@@ -180,7 +255,7 @@
             </div>
             <div id="booksByGenreContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @* Начальный список книг по жанру (если есть SelectedGenreId и BooksBySelectedGenre заполнен)
-                   Или заглушка, которая будет заменена AJAX-ом *@
+                    Или заглушка, которая будет заменена AJAX-ом *@
                 @if (Model.BooksBySelectedGenre != null && Model.BooksBySelectedGenre.Any())
                 {
                     @Html.Partial("_BookListPartial", Model.BooksBySelectedGenre)

@@ -122,7 +122,6 @@ namespace MajorAuthor.Data.Migrations
                         .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("PhotoUrl")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
@@ -153,7 +152,6 @@ namespace MajorAuthor.Data.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("ImageUrl")
-                        .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
@@ -260,7 +258,6 @@ namespace MajorAuthor.Data.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("CoverImageUrl")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
@@ -330,6 +327,38 @@ namespace MajorAuthor.Data.Migrations
                     b.HasIndex("GenreId");
 
                     b.ToTable("BookGenres");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BookInvitation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BookId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("InvitationToken")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("InviteeEmail")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsAccepted")
+                        .HasColumnType("bit");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookId");
+
+                    b.ToTable("BookInvitations");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.BookLike", b =>
@@ -674,6 +703,9 @@ namespace MajorAuthor.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("ViewsCount")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -1131,6 +1163,17 @@ namespace MajorAuthor.Data.Migrations
                     b.Navigation("Genre");
                 });
 
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BookInvitation", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.Entities.Book", "Book")
+                        .WithMany("BookInvitations")
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Book");
+                });
+
             modelBuilder.Entity("MajorAuthor.Data.Entities.BookLike", b =>
                 {
                     b.HasOne("MajorAuthor.Data.ApplicationUser", "ApplicationUser")
@@ -1550,6 +1593,8 @@ namespace MajorAuthor.Data.Migrations
                     b.Navigation("BookAuthors");
 
                     b.Navigation("BookGenres");
+
+                    b.Navigation("BookInvitations");
 
                     b.Navigation("BookTags");
 

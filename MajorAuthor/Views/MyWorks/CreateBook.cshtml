@@ -1,0 +1,239 @@
+﻿@model MajorAuthor.Models.CreateBookViewModel
+
+@{
+    ViewData["Title"] = "Добавить книгу";
+    Layout = "_Layout";
+}
+
+<style>
+    body {
+        background-color: #000;
+        color: #D4AF37;
+        font-family: 'Inter', sans-serif;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .content-container {
+        flex-grow: 1;
+    }
+
+    .form-control,
+    .form-select {
+        background-color: #1a1a1a;
+        color: #D4AF37;
+        border: 1px solid #D4AF37;
+        border-radius: 5px;
+        transition: all 0.3s ease;
+    }
+
+        .form-control:focus,
+        .form-select:focus {
+            background-color: #2b2b2b;
+            color: #D4AF37;
+            border-color: #ffc400;
+            box-shadow: 0 0 5px #ffc400;
+        }
+
+    .form-label {
+        color: #D4AF37;
+        font-weight: 500;
+    }
+
+    .btn-primary {
+        background-color: #D4AF37;
+        border-color: #D4AF37;
+        color: #000;
+        border-radius: 5px;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+        .btn-primary:hover {
+            background-color: #ffc400;
+            border-color: #ffc400;
+            color: #000;
+        }
+
+    .btn-secondary {
+        background-color: #4a4a4a;
+        border-color: #4a4a4a;
+        color: #fff;
+        border-radius: 5px;
+        transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+        .btn-secondary:hover {
+            background-color: #6a6a6a;
+            border-color: #6a6a6a;
+            color: #fff;
+        }
+
+    hr {
+        border-top: 1px solid #D4AF37;
+    }
+
+    .text-danger {
+        color: #ff4d4d !important;
+    }
+
+    h2, h4 {
+        color: #D4AF37;
+    }
+
+    .autocomplete-container {
+        position: relative;
+    }
+
+    .autocomplete-list {
+        position: absolute;
+        width: 100%;
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #D4AF37;
+        background-color: #1a1a1a;
+        z-index: 1000;
+        margin-top: -1px;
+        border-radius: 0 0 5px 5px;
+        list-style-type: none;
+        padding: 0;
+        display: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+        .autocomplete-list li {
+            padding: 10px;
+            cursor: pointer;
+            color: #D4AF37;
+            border-bottom: 1px solid #2b2b2b;
+        }
+
+            .autocomplete-list li:last-child {
+                border-bottom: none;
+            }
+
+            .autocomplete-list li:hover {
+                background-color: #2b2b2b;
+            }
+
+            .autocomplete-list li.highlighted {
+                background-color: #2b2b2b;
+            }
+</style>
+
+<div class="row d-flex justify-content-center content-container">
+    <div class="col-12 col-md-8">
+        <h2>Добавить новую книгу</h2>
+        <hr />
+        <form asp-action="CreateBook" method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Title" class="form-label">Название книги</label>
+                <input asp-for="Title" class="form-control rounded" />
+                <span asp-validation-for="Title" class="text-danger"></span>
+            </div>
+            <div class="form-group mb-3">
+                <label asp-for="Description" class="form-label">Описание</label>
+                <textarea asp-for="Description" class="form-control rounded" rows="5"></textarea>
+                <span asp-validation-for="Description" class="text-danger"></span>
+            </div>
+            <div class="form-group mb-3">
+                <label asp-for="CoverImage" class="form-label">Обложка книги (необязательно)</label>
+                <input asp-for="CoverImage" class="form-control rounded" type="file" accept="image/*" />
+            </div>
+            <div class="form-group form-check mb-3">
+                <input asp-for="IsAdultContent" class="form-check-input" type="checkbox" />
+                <label asp-for="IsAdultContent" class="form-check-label">18+</label>
+            </div>
+            <hr />
+            <h4 class="mt-4">Добавить соавтора (необязательно)</h4>
+            <p class="text-muted">Если вы хотите работать над книгой вместе, вы можете пригласить другого пользователя по его email.</p>
+            <div class="form-group mb-3 autocomplete-container">
+                <label asp-for="CoAuthorEmail" class="form-label">Email соавтора</label>
+                <input asp-for="CoAuthorEmail" id="coAuthorEmailInput" class="form-control rounded" type="email" autocomplete="off" />
+                <ul id="emailSuggestions" class="autocomplete-list rounded"></ul>
+            </div>
+            <div class="form-group mb-3 d-flex justify-content-between">
+                <button type="submit" class="btn btn-primary">Создать книгу и отправить приглашение</button>
+                <a asp-action="Index" class="btn btn-secondary">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const emailInput = document.getElementById('coAuthorEmailInput');
+            const suggestionsList = document.getElementById('emailSuggestions');
+            let debounceTimeout;
+
+            // Живой поиск
+            emailInput.addEventListener('input', function () {
+                clearTimeout(debounceTimeout);
+                const query = this.value;
+                debounceTimeout = setTimeout(() => fetchEmails(query), 300);
+            });
+
+            // Отображение первых трех авторов при фокусе
+            emailInput.addEventListener('focus', function () {
+                const query = this.value;
+                fetchEmails(query);
+            });
+
+            // Обработка клика по предложению
+            suggestionsList.addEventListener('mousedown', function (e) {
+                if (e.target.tagName === 'LI') {
+                    emailInput.value = e.target.getAttribute('data-email');
+                    suggestionsList.style.display = 'none';
+                }
+            });
+
+            // Скрытие списка, когда поле ввода теряет фокус
+            emailInput.addEventListener('blur', function() {
+                setTimeout(() => {
+                    suggestionsList.style.display = 'none';
+                }, 150);
+            });
+
+            // Функция для получения и отображения email-адресов
+            async function fetchEmails(query) {
+                try {
+                    const response = await fetch(`/api/authors/search?email=${encodeURIComponent(query)}`);
+                    if (!response.ok) {
+                        console.error('Ошибка при поиске авторов:', response.statusText);
+                        suggestionsList.innerHTML = '<li style="cursor: default; color: #ff4d4d;">Не удалось загрузить авторов.</li>';
+                        suggestionsList.style.display = 'block';
+                        return;
+                    }
+                    const authors = await response.json();
+                    displaySuggestions(authors);
+                } catch (error) {
+                    console.error('Ошибка при запросе:', error);
+                    suggestionsList.innerHTML = '<li style="cursor: default; color: #ff4d4d;">Ошибка сети. Попробуйте еще раз.</li>';
+                    suggestionsList.style.display = 'block';
+                }
+            }
+
+            // Функция для отображения предложений
+            function displaySuggestions(authors) {
+                suggestionsList.innerHTML = '';
+                if (authors && authors.length > 0) {
+                    authors.forEach(author => {
+                        const li = document.createElement('li');
+                        li.textContent = `${author.penName} (${author.email})`;
+                        li.setAttribute('data-email', author.email);
+                        suggestionsList.appendChild(li);
+                    });
+                    suggestionsList.style.display = 'block';
+                } else {
+                    suggestionsList.style.display = 'none';
+                }
+            }
+        });
+    </script>
+}

@@ -46,7 +46,7 @@ namespace MajorAuthor.Data.Entities
         /// URL изображения, связанного с записью блога (опционально).
         /// </summary>
         [MaxLength(1000)]
-        public string ImageUrl { get; set; }
+        public string? ImageUrl { get; set; }
 
         /// <summary>
         /// Дата и время публикации записи.

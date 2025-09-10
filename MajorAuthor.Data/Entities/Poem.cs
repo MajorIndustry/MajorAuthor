@@ -72,5 +72,9 @@ namespace MajorAuthor.Data.Entities
         /// Коллекция комментариев к этому стиху.
         /// </summary>
         public ICollection<PoemComment> Comments { get; set; } = new List<PoemComment>();
+        /// <summary>
+        /// Количество просмотров записи.
+        /// </summary>
+        public int ViewsCount { get; set; } = 0;
     }
 }

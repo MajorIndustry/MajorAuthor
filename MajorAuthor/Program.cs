@@ -2,6 +2,7 @@
 // Файл: Program.cs
 
 using MajorAuthor.Data; // Используем наш DbContext
+using MajorAuthor.Data.Entities;
 using MajorAuthor.Models;
 using MajorAuthor.Services; // Если вы будете использовать ASP.NET Core Identity
 using Microsoft.AspNetCore.Identity;
@@ -53,6 +54,11 @@ builder.Services.AddScoped<IAccountService, AccountService>();
 
 builder.Services.AddScoped<IHomeService, HomeServiceWithFactory>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+builder.Services.AddScoped<IBookService, BookService>();
+builder.Services.AddScoped<IWorkService<Poem>, PoemService>();
+builder.Services.AddScoped<IWorkService<Blog>, BlogService>();
+builder.Services.AddScoped<IAuthorService, AuthorService>();
+builder.Services.AddScoped<IBookInvitationService, BookInvitationService>();
 // ===========================================
 
 builder.Services.AddControllersWithViews();
