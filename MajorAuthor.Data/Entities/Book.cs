@@ -99,5 +99,6 @@ namespace MajorAuthor.Data.Entities
         /// </summary>
         public ICollection<Promotion> Promotions { get; set; } = new List<Promotion>();
         public ICollection<BookInvitation> BookInvitations { get; set; } = new List<BookInvitation>();
+        public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     }
 }

@@ -3,6 +3,7 @@ using MajorAuthor.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace MajorAuthor.Services
@@ -44,6 +45,29 @@ namespace MajorAuthor.Services
         {
             _context.Blogs.Remove(blog);
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<Blog> GetByIdWithCommentsAndLikesAsync(int id)
+        {
+            // Используем SingleOrDefaultAsync для получения одного элемента
+            // и включаем (Include) связанные коллекции Comments и Likes
+            // в одном запросе, чтобы избежать N+1 проблемы.
+            var blog = await _context.Blogs
+                .Include(p => p.Comments)
+                .Include(p => p.Likes)
+                .SingleOrDefaultAsync(p => p.Id == id);
+
+            return blog;
+        }
+
+        public async Task<List<Blog>> GetAllAsync()
+        {
+            return await _context.Blogs.ToListAsync(); ;
+        }
+
+        public async Task<List<Blog>> GetAsync(Expression<Func<Blog, bool>> predicate)
+        {
+            return await _context.Blogs.Where(predicate).ToListAsync();
         }
     }
 }

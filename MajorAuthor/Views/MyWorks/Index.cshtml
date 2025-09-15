@@ -52,7 +52,7 @@
                     <ul class="space-y-3">
                         @foreach (var work in Model.Works.Where(w => w.Type == "Книга"))
                         {
-                            <li class="bg-white rounded-lg p-3 shadow-sm flex justify-between items-center border border-gray-200" data-work-id="@work.Id" data-work-type="@work.Type">
+                            <li data-work-id="@work.Id" data-work-type="@work.Type" ondblclick="window.location.href = '@Url.Action("ReadBook", "Read", new { id = work.Id })'" class="bg-white rounded-lg p-3 shadow-sm flex justify-between items-center border border-gray-200 cursor-pointer">
                                 <span class="text-lg font-medium text-gray-800">@work.Title</span>
                                 <div class="space-x-2">
                                     <a href="@Url.Action("EditWork", "MyWorks", new { id = work.Id })" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-1 px-3 rounded-full text-sm">Редактировать</a>
@@ -81,7 +81,7 @@
                     <ul class="space-y-3">
                         @foreach (var work in Model.Works.Where(w => w.Type == "Стих"))
                         {
-                            <li class="bg-white rounded-lg p-3 shadow-sm flex justify-between items-center border border-gray-200" data-work-id="@work.Id" data-work-type="@work.Type">
+                            <li data-work-id="@work.Id" data-work-type="@work.Type" ondblclick="window.location.href = '@Url.Action("ReadPoem", "Read", new { id = work.Id })'" class="bg-white rounded-lg p-3 shadow-sm flex justify-between items-center border border-gray-200 cursor-pointer">
                                 <span class="text-lg font-medium text-gray-800">@work.Title</span>
                                 <div class="space-x-2">
                                     <a href="@Url.Action("EditWork", "MyWorks", new { id = work.Id })" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-1 px-3 rounded-full text-sm">Редактировать</a>
@@ -110,7 +110,7 @@
                     <ul class="space-y-3">
                         @foreach (var work in Model.Works.Where(w => w.Type == "Блог"))
                         {
-                            <li class="bg-white rounded-lg p-3 shadow-sm flex justify-between items-center border border-gray-200" data-work-id="@work.Id" data-work-type="@work.Type">
+                            <li data-work-id="@work.Id" data-work-type="@work.Type" ondblclick="window.location.href = '@Url.Action("ReadBlog", "Read", new { id = work.Id })'" class="bg-white rounded-lg p-3 shadow-sm flex justify-between items-center border border-gray-200 cursor-pointer">
                                 <span class="text-lg font-medium text-gray-800">@work.Title</span>
                                 <div class="space-x-2">
                                     <a href="@Url.Action("EditWork", "MyWorks", new { id = work.Id })" class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-1 px-3 rounded-full text-sm">Редактировать</a>
@@ -300,12 +300,12 @@
             if (!workToDelete) return;
 
             try {
-                   const response = await fetch(`/MyWorks/DeleteWork?id=${workToDelete.id}&type=${workToDelete.type}`, {
-        method: 'DELETE',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    });
+                const response = await fetch(`/MyWorks/DeleteWork?id=${workToDelete.id}&type=${workToDelete.type}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
                 if (response.ok) {
                     // Remove the element from the DOM
                     workToDelete.element.remove();
@@ -322,6 +322,7 @@
                 workToDelete = null;
             }
         });
+
     });
 
 </script>

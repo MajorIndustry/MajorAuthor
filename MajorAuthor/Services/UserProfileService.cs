@@ -181,5 +181,13 @@ namespace MajorAuthor.Services
                 })
                 .ToList();
         }
+
+        public async Task<string> GetUsserIdByAuthorIdAsync(int id)
+        {
+            var user = await _userManager.Users
+               .AsNoTracking() // Отключаем отслеживание для ускорения запроса, так как мы только читаем
+               .Include(u => u.AuthorProfile).FirstOrDefaultAsync(u => u.AuthorProfile!=null && u.AuthorProfile.Id == id);
+            return user.Id; 
+        }
     }
 }

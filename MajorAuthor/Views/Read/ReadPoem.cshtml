@@ -1,0 +1,296 @@
+﻿@using System.Security.Claims
+@model MajorAuthor.Data.Entities.Poem
+
+@{
+    ViewData["Title"] = Model.Title;
+    var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+}
+
+<style>
+
+    /* CSS для всплывающих сообщений */
+        .message-box {
+                opacity: 0;
+                transition: opacity 0.5s ease-in-out;
+
+    }
+
+        .message-box.show {
+                opacity: 1;
+
+    }
+
+
+    /* Сохраняет переносы строк в тексте поэмы */
+        .line-break {
+                white-space: pre-wrap;
+
+    }
+</style>
+
+<div class="container mx-auto p-4 max-w-4xl">
+
+    <!-- Всплывающее окно для сообщений -->
+    <div id="messageBox" class="message-box bg-blue-100 border border-blue-400 text-blue-700 px-4 py-3 rounded-lg relative text-center mb-6" role="alert">
+        <span id="messageText" class="block sm:inline"></span>
+    </div>
+
+    <!-- Раздел с содержанием стиха -->
+    <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+        <h1 class="text-4xl font-extrabold text-gray-900 mb-4 text-center">@Model.Title</h1>
+        <div class="text-center text-gray-500 mb-6">
+            <span class="text-sm">Опубликовано: @Model.PublicationDate.ToShortDateString()</span> |
+            <span class="text-sm">Просмотры: @Model.ViewsCount</span>
+        </div>
+
+        <p class="text-gray-700 text-lg leading-relaxed line-break">@Model.Content</p>
+    </div>
+
+    <!-- Раздел с кнопкой "Нравится" -->
+    <div class="flex justify-center items-center space-x-4 mb-8">
+        <button id="likeButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-full transition duration-300 transform hover:scale-105 shadow-md flex items-center space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
+            <span id="likesCount">@Model.LikesCount</span>
+        </button>
+    </div>
+
+    <!-- Раздел комментариев -->
+    <div class="bg-white rounded-xl shadow-lg p-8">
+        <h2 id="commentsCountTitle" class="text-2xl font-bold text-gray-800 mb-6">Комментарии (@Model.CommentsCount)</h2>
+
+        <!-- Форма для добавления комментария -->
+        <div class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-4">Написать комментарий</h3>
+            <textarea id="commentText" class="w-full h-24 p-4 rounded-lg border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 transition duration-200" placeholder="Ваш комментарий..."></textarea>
+            <div class="text-right mt-4">
+                <button id="submitCommentBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-full transition duration-300 transform hover:scale-105 shadow-md">
+                    Отправить
+                </button>
+            </div>
+        </div>
+
+        <!-- Список комментариев -->
+        <div id="commentsContainer">
+            @if (Model.Comments.Any())
+            {
+                <div id="latestComments">
+                    @foreach (var comment in Model.Comments.OrderByDescending(c => c.CreatedDate).Take(10))
+                    {
+                        <div class="bg-gray-50 p-4 rounded-lg mb-3 border border-gray-200" data-comment-id="@comment.Id">
+                            <div class="flex items-center justify-between mb-1">
+                                <p class="text-sm text-gray-500 mb-1">
+                                    <span class="font-semibold text-gray-800">Пользователь:</span> @comment.ApplicationUserId.Substring(0, 8)... |
+                                    <span class="text-xs">@comment.CreatedDate.ToShortDateString() @comment.CreatedDate.ToShortTimeString()</span>
+                                </p>
+                                @if (comment.ApplicationUserId == currentUserId)
+                                {
+                                    <button class="delete-comment-btn text-red-500 hover:text-red-700 transition duration-300">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 01-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd" />
+                                        </svg>
+                                    </button>
+                                }
+                            </div>
+                            <p class="text-gray-700">@comment.Content</p>
+                        </div>
+                    }
+                </div>
+
+                @if (Model.Comments.Count > 10)
+                {
+                    <div class="text-center mt-4">
+                        <button id="showAllCommentsBtn" class="text-blue-600 hover:text-blue-800 font-semibold transition duration-300">
+                            Показать все комментарии
+                        </button>
+                    </div>
+                }
+            }
+            else
+            {
+                <p id="noCommentsText" class="text-gray-500 italic text-center">Пока нет комментариев. Будьте первым!</p>
+            }
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const likeButton = document.getElementById('likeButton');
+        const likesCount = document.getElementById('likesCount');
+        const submitCommentBtn = document.getElementById('submitCommentBtn');
+        const commentTextarea = document.getElementById('commentText');
+        const commentsContainer = document.getElementById('commentsContainer');
+        const showAllCommentsBtn = document.getElementById('showAllCommentsBtn');
+        const latestCommentsDiv = document.getElementById('latestComments');
+        const noCommentsText = document.getElementById('noCommentsText');
+        const commentsCountTitle = document.getElementById('commentsCountTitle');
+
+        function showMessage(text, isError = false) {
+            const messageBox = document.getElementById('messageBox');
+            const messageText = document.getElementById('messageText');
+            messageText.textContent = text;
+            messageBox.classList.remove("bg-blue-100", "bg-red-100");
+            messageBox.classList.remove("border-blue-400", "border-red-400");
+            messageBox.classList.remove("text-blue-700", "text-red-700");
+
+            if (isError) {
+                messageBox.classList.add("bg-red-100", "border-red-400", "text-red-700");
+            } else {
+                messageBox.classList.add("bg-blue-100", "border-blue-400", "text-blue-700");
+            }
+            messageBox.classList.add("show");
+            setTimeout(() => {
+                messageBox.classList.remove("show");
+            }, 5000);
+        }
+
+        // Обработчик кнопки "Нравится"
+        likeButton.addEventListener('click', async () => {
+            try {
+                const response = await fetch(`/Read/LikeWork?id=@Model.Id&type=Стих`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                if (result.success) {
+                    likesCount.textContent = result.likesCount;
+                    showMessage('Вам нравится этот стих!');
+                } else {
+                    showMessage('Вы уже поставили лайк.', false);
+                }
+            } catch (error) {
+                console.error('Ошибка при лайке:', error);
+                showMessage('Произошла ошибка при попытке поставить лайк.', true);
+            }
+        });
+
+        // Обработчик отправки комментария
+        submitCommentBtn.addEventListener('click', async () => {
+            const commentContent = commentTextarea.value.trim();
+            if (!commentContent) {
+                showMessage('Пожалуйста, напишите комментарий перед отправкой.', true);
+                return;
+            }
+
+            try {
+                const response = await fetch(`/Read/AddComment?id=@Model.Id&type=Стих&commentText=${encodeURIComponent(commentContent)}`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    const newComment = result.comment;
+
+                    if (noCommentsText) {
+                        noCommentsText.remove();
+                    }
+
+                    const parentContainer = latestCommentsDiv || commentsContainer;
+
+                    const newCommentElement = document.createElement('div');
+                    newCommentElement.classList.add('bg-gray-50', 'p-4', 'rounded-lg', 'mb-3', 'border', 'border-gray-200');
+                    newCommentElement.dataset.commentId = newComment.id;
+
+                    const commentDate = new Date(newComment.timestamp);
+                    const formattedDate = commentDate.toLocaleDateString();
+                    const formattedTime = commentDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    const deleteButtonHtml = newComment.userId === '@currentUserId' ?
+                        `<button class="delete-comment-btn text-red-500 hover:text-red-700 transition duration-300">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm6 0a1 1 0 01-2 0v6a1 1 0 112 0V8z" clip-rule="evenodd" />
+                            </svg>
+                        </button>` : '';
+
+                    newCommentElement.innerHTML = `
+                        <div class="flex items-center justify-between mb-1">
+                            <p class="text-sm text-gray-500 mb-1">
+                                <span class="font-semibold text-gray-800">Пользователь:</span> ${newComment.userId.substring(0, 8)}... |
+                                <span class="text-xs">${formattedDate} ${formattedTime}</span>
+                            </p>
+                            ${deleteButtonHtml}
+                        </div>
+                        <p class="text-gray-700">${newComment.content}</p>
+                    `;
+
+                    parentContainer.insertAdjacentElement('afterbegin', newCommentElement);
+
+                    const currentCountMatch = commentsCountTitle.textContent.match(/\((\d+)\)/);
+                    if (currentCountMatch) {
+                        const currentCount = parseInt(currentCountMatch[1]);
+                        commentsCountTitle.textContent = `Комментарии (${currentCount + 1})`;
+                    }
+
+                    commentTextarea.value = '';
+                    showMessage('Комментарий успешно добавлен!');
+                } else {
+                    showMessage('Ошибка при добавлении комментария.', true);
+                }
+            } catch (error) {
+                console.error('Ошибка при отправке комментария:', error);
+                showMessage('Произошла ошибка при отправке комментария.', true);
+            }
+        });
+
+        // Обработчик кнопки "Показать все"
+        if (showAllCommentsBtn) {
+            showAllCommentsBtn.addEventListener('click', () => {
+                const isHidden = allCommentsDiv.classList.contains('hidden');
+                if (isHidden) {
+                    latestCommentsDiv.classList.add('hidden');
+                    allCommentsDiv.classList.remove('hidden');
+                    showAllCommentsBtn.textContent = 'Свернуть комментарии';
+                } else {
+                    latestCommentsDiv.classList.remove('hidden');
+                    allCommentsDiv.classList.add('hidden');
+                    showAllCommentsBtn.textContent = 'Показать все комментарии';
+                }
+            });
+        }
+
+        // Новый обработчик для кнопок удаления
+        commentsContainer.addEventListener('click', async (event) => {
+            const deleteButton = event.target.closest('.delete-comment-btn');
+            if (deleteButton) {
+                const commentElement = deleteButton.closest('[data-comment-id]');
+                const commentId = commentElement.dataset.commentId;
+                if (!commentId) {
+                    showMessage('Ошибка: ID комментария не найден.', true);
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/Read/DeleteComment?commentId=${commentId}&type=Стих`, {
+                        method: 'DELETE'
+                    });
+
+                    if (response.ok) {
+                        commentElement.remove();
+                        showMessage('Комментарий успешно удален!');
+
+                        const currentCountMatch = commentsCountTitle.textContent.match(/\((\d+)\)/);
+                        if (currentCountMatch) {
+                            const currentCount = parseInt(currentCountMatch[1]);
+                            commentsCountTitle.textContent = `Комментарии (${currentCount - 1})`;
+                        }
+
+                        if (commentsContainer.querySelectorAll('[data-comment-id]').length === 0) {
+                            const newNoCommentsText = document.createElement('p');
+                            newNoCommentsText.id = 'noCommentsText';
+                            newNoCommentsText.classList.add('text-gray-500', 'italic', 'text-center');
+                            newNoCommentsText.textContent = 'Пока нет комментариев. Будьте первым!';
+                            commentsContainer.appendChild(newNoCommentsText);
+                        }
+                    } else {
+                        const errorResult = await response.json();
+                        showMessage(errorResult.message || 'Ошибка при удалении комментария.', true);
+                    }
+                } catch (error) {
+                    console.error('Ошибка при удалении комментария:', error);
+                    showMessage('Произошла ошибка при удалении комментария.', true);
+                }
+            }
+        });
+    });
+</script>

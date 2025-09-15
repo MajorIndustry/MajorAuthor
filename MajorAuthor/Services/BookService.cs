@@ -3,6 +3,7 @@ using MajorAuthor.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 namespace MajorAuthor.Services
@@ -67,5 +68,29 @@ namespace MajorAuthor.Services
         {
             return await _context.BookAuthors.AnyAsync(ba => ba.BookId == bookId && ba.AuthorId == authorId);
         }
+
+        public async Task<Book> GetByIdWithCommentsAndLikesAsync(int id)
+        {
+            // Используем SingleOrDefaultAsync для получения одного элемента
+            // и включаем (Include) связанные коллекции Comments и Likes
+            // в одном запросе, чтобы избежать N+1 проблемы.
+            var book = await _context.Books
+                .Include(p => p.Comments)
+                .Include(p => p.Likes)
+                .SingleOrDefaultAsync(p => p.Id == id);
+
+            return book;
+        }
+
+        public async Task<List<Book>> GetAllAsync()
+        {
+            return await _context.Books.ToListAsync(); ;
+        }
+
+        public async Task<List<Book>> GetAsync(Expression<Func<Book, bool>> predicate)
+        {
+            return await _context.Books.Where(predicate).ToListAsync();
+        }
+
     }
 }

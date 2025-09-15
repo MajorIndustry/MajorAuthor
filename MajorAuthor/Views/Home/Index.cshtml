@@ -43,7 +43,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     @foreach (var poem in Model.PopularPoems)
                     {
-                        <div class="card p-4 rounded-lg border-2 poem-item">
+                        <div ondblclick="window.location.href = '@Url.Action("ReadPoem", "Read", new { id = poem.Id })'" class="card p-4 rounded-lg border-2 poem-item">
                             <div>
                                 <h3 class="text-xl font-semibold">@poem.Title</h3>
                                 <p class="text-sm text-gray-500">Автор: @poem.AuthorName</p>
@@ -68,7 +68,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     @foreach (var poem in Model.NewPoems)
                     {
-                        <div class="card p-4 rounded-lg border-2 poem-item">
+                        <div ondblclick="window.location.href = '@Url.Action("ReadPoem", "Read", new { id = poem.Id })'" class="card p-4 rounded-lg border-2 poem-item">
                             <div>
                                 <h3 class="text-xl font-semibold">@poem.Title</h3>
                                 <p class="text-sm text-gray-500">Автор: @poem.AuthorName</p>
@@ -93,7 +93,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     @foreach (var blog in Model.PopularBlogs)
                     {
-                        <div class="card p-4 rounded-lg border-2 blog-item">
+                        <div ondblclick="window.location.href = '@Url.Action("ReadBlog", "Read", new { id = blog.Id})'" class="card p-4 rounded-lg border-2 blog-item">
                             <div>
                                 <h3 class="text-xl font-semibold">@blog.Title</h3>
                                 <p class="text-sm text-gray-500">Автор: @blog.AuthorName</p>
@@ -118,7 +118,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     @foreach (var author in Model.PopularAuthors)
                     {
-                        <div class="card p-4 rounded-lg border-2 author-item">
+                        <div ondblclick="window.location.href = '@Url.Action("UserProfile", "Profile", new { id = author.Id})'" class="card p-4 rounded-lg border-2 author-item">
                             <img src="@author.PhotoUrl" alt="Аватар автора" class="author-avatar" onerror="this.onerror=null;this.src='https://placehold.co/60x60/D4AF37/FFFFFF?text=А';">
                             <div>
                                 <h3 class="text-xl font-semibold">@author.Name</h3>
@@ -142,7 +142,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     @foreach (var book in Model.RecentlyUpdatedBooks)
                     {
-                        <div class="card p-4 rounded-lg border-2 book-item">
+                        <div ondblclick="window.location.href = '@Url.Action("ReadBook", "Read", new { id = book.Id })'" class="card p-4 rounded-lg border-2 book-item">
                             <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/A79273/FFFFFF?text=Книга';">
                             <div>
                                 <h3 class="text-xl font-semibold">@book.Title</h3>
@@ -167,7 +167,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     @foreach (var book in Model.NewPopularBooks)
                     {
-                        <div class="card p-4 rounded-lg border-2 book-item">
+                        <div ondblclick="window.location.href = '@Url.Action("ReadBook", "Read", new { id = book.Id })'" class="card p-4 rounded-lg border-2 book-item">
                             <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/D4AF37/FFFFFF?text=Книга';">
                             <div>
                                 <h3 class="text-xl font-semibold">@book.Title</h3>
