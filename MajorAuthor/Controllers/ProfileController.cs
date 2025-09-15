@@ -42,5 +42,20 @@ namespace MajorAuthor.Controllers
 
             return View(viewModel);
         }
+
+        [HttpGet]
+        public async Task<IActionResult> UserProfile(int id)
+        {
+            var userId = await _userProfileService.GetUsserIdByAuthorIdAsync(id);
+            // Вся сложная логика инкапсулирована в сервисе
+            var viewModel = await _userProfileService.GetUserProfileViewModelAsync(userId);
+
+            if (viewModel == null)
+            {
+                return NotFound($"Не удалось загрузить данные профиля для ID '{userId}'.");
+            }
+
+            return View("MyProfile", viewModel);
+        }
     }
 }
