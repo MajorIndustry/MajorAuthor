@@ -59,6 +59,9 @@ builder.Services.AddScoped<IWorkService<Poem>, PoemService>();
 builder.Services.AddScoped<IWorkService<Blog>, BlogService>();
 builder.Services.AddScoped<IAuthorService, AuthorService>();
 builder.Services.AddScoped<IBookInvitationService, BookInvitationService>();
+builder.Services.AddScoped<IWorkFacade, WorkFacade>();
+builder.Services.AddScoped<ILikeService, LikeService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
 // ===========================================
 
 builder.Services.AddControllersWithViews();

@@ -15,5 +15,6 @@ namespace MajorAuthor.Services
         /// <param name="userId">Идентификатор пользователя.</param>
         /// <returns>Модель представления MyProfileViewModel, или null, если пользователь не найден.</returns>
         Task<MyProfileViewModel> GetUserProfileViewModelAsync(string userId);
+        Task<string> GetUsserIdByAuthorIdAsync(int authorId);
     }
 }
