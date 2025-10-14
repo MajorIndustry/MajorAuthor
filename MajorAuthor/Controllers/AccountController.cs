@@ -101,7 +101,7 @@ namespace MajorAuthor.Controllers
             var callbackUrl = Url.Action(
                 nameof(ConfirmEmail),
                 "Account",
-                values: new { userId = "REPLACE_USER_ID", code = "REPLACE_CODE", returnUrl = model.ReturnUrl },
+                values: new { userId = (string)null, code = (string)null, returnUrl = model.ReturnUrl },
                 protocol: Request.Scheme);
 
             var (result, user) = await _accountService.RegisterAndSendConfirmationAsync(model, callbackUrl);
@@ -248,7 +248,7 @@ namespace MajorAuthor.Controllers
             var callbackUrl = Url.Action(
                 nameof(ConfirmEmail),
                 "Account",
-                values: new { userId = "REPLACE_USER_ID", code = "REPLACE_CODE", returnUrl = Url.Content("~/") },
+                values: new { userId = (string)null, code = (string)null, returnUrl = Url.Content("~/") },
                 protocol: Request.Scheme);
 
             var success = await _accountService.ResendEmailConfirmationAsync(model, callbackUrl);
@@ -277,7 +277,7 @@ namespace MajorAuthor.Controllers
             var callbackUrl = Url.Action(
                 nameof(ResetPassword),
                 "Account",
-                values: new { email = "REPLACE_EMAIL", code = "REPLACE_CODE" },
+                values: new { email = (string)null, code = (string)null },
                 protocol: Request.Scheme);
 
             var success = await _accountService.ForgotPasswordAsync(model, callbackUrl);
