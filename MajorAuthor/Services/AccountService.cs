@@ -3,10 +3,11 @@
 using MajorAuthor.Data;
 using MajorAuthor.Models;
 using Microsoft.AspNetCore.Identity;
-using System.Threading.Tasks;
-using System.Text.Encodings.Web;
-using System.Security.Claims;
+using Microsoft.AspNetCore.WebUtilities;
 using System.Linq;
+using System.Security.Claims;
+using System.Text.Encodings.Web;
+using System.Threading.Tasks;
 
 namespace MajorAuthor.Services
 {
@@ -106,7 +107,18 @@ namespace MajorAuthor.Services
             if (result.Succeeded)
             {
                 var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-                callbackUrl = callbackUrl.Replace("REPLACE_USER_ID", user.Id).Replace("REPLACE_CODE", code);
+                var uri = new Uri(callbackUrl);
+                var queryParams = QueryHelpers.ParseQuery(uri.Query);
+                string? returnUrl = queryParams.ContainsKey("returnUrl") ? queryParams["returnUrl"].FirstOrDefault() : null;
+
+                // ИСПРАВЛЕНИЕ: Используем QueryHelpers.AddQueryString для правильного добавления параметров
+                callbackUrl = QueryHelpers.AddQueryString(callbackUrl, new Dictionary<string, string?>
+                {
+                    { "userId", user.Id },
+                    { "code", code },
+                    { "returnUrl", returnUrl }
+                });
+
                 var emailSubject = "Подтверждение Email";
                 var emailMessage = $"Пожалуйста, подтвердите ваш Email, перейдя по <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>этой ссылке</a>.";
                 await _emailSender.SendEmailAsync(model.Email, emailSubject, emailMessage);
@@ -141,7 +153,17 @@ namespace MajorAuthor.Services
             }
 
             var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-            callbackUrl = callbackUrl.Replace("REPLACE_USER_ID", user.Id).Replace("REPLACE_CODE", code);
+            var uri = new Uri(callbackUrl);
+            var queryParams = QueryHelpers.ParseQuery(uri.Query);
+            string? returnUrl = queryParams.ContainsKey("returnUrl") ? queryParams["returnUrl"].FirstOrDefault() : null;
+            // ИСПРАВЛЕНИЕ: Используем QueryHelpers.AddQueryString для правильного добавления параметров
+            callbackUrl = QueryHelpers.AddQueryString(callbackUrl, new Dictionary<string, string?>
+            {
+                { "userId", user.Id },
+                { "code", code },
+                { "returnUrl", returnUrl } // Предполагая, что returnUrl всегда "~/ " для Resend
+            });
+
             var emailSubject = "Повторное письмо для подтверждения Email";
             var emailMessage = $"Пожалуйста, подтвердите ваш Email, перейдя по <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>этой ссылке</a>.";
             await _emailSender.SendEmailAsync(model.Email, emailSubject, emailMessage);
@@ -157,7 +179,14 @@ namespace MajorAuthor.Services
             }
 
             var code = await _userManager.GeneratePasswordResetTokenAsync(user);
-            callbackUrl = callbackUrl.Replace("REPLACE_CODE", code).Replace("REPLACE_EMAIL", user.Email);
+
+            // ИСПРАВЛЕНИЕ: Используем QueryHelpers.AddQueryString для правильного добавления параметров
+            callbackUrl = QueryHelpers.AddQueryString(callbackUrl, new Dictionary<string, string?>
+            {
+                { "email", user.Email },
+                { "code", code }
+            });
+
             var emailSubject = "Сброс пароля";
             var emailMessage = $"Пожалуйста, сбросьте ваш пароль, нажав на <a href='{HtmlEncoder.Default.Encode(callbackUrl)}'>эту ссылку</a>.";
             await _emailSender.SendEmailAsync(model.Email, emailSubject, emailMessage);
