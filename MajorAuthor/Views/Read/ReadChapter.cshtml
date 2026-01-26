@@ -1,0 +1,1613 @@
+﻿@model MajorAuthor.Models.ChapterReadViewModel
+@using MajorAuthor.Data
+@using Microsoft.AspNetCore.Identity
+@inject SignInManager<ApplicationUser> SignInManager
+@{
+    ViewData["Title"] = $"{Model.CurrentChapter.Title} - {Model.Book.Title}";
+    var isAuthenticated = User.Identity?.IsAuthenticated ?? false;
+    var nextChapterId = Model.NextChapter?.Id;
+}
+
+<style>
+    /* Кнопка переключения панели (ПЕРЕМЕЩЕНА ВПРАВО) */
+    .toggle-toolbar-btn {
+        position: fixed;
+        top: 50%;
+        right: 1rem;
+        transform: translateY(-50%);
+        background: var(--accent-gold);
+        color: var(--header-bg);
+        border: none;
+        width: 3rem;
+        height: 3rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        z-index: 950;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+        .toggle-toolbar-btn:hover {
+            transform: translateY(-50%) scale(1.1);
+            box-shadow: 0 6px 16px rgba(var(--accent-gold-rgb), 0.4);
+        }
+
+    /* Панель инструментов чтения (УВЕЛИЧЕН ОТСТУП ОТ ХЕДЕРА) */
+    .reading-toolbar {
+        position: fixed;
+        top: 100px; /* Увеличено с 70px */
+        left: 0;
+        right: 0;
+        z-index: 900;
+        background: var(--header-bg);
+        padding: 1rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px var(--shadow-color);
+    }
+
+    .toolbar-content {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .toolbar-hidden {
+        display: none !important;
+    }
+
+    /* Контейнер для контента (УВЕЛИЧЕН ОТСТУП) */
+    .content-container {
+        margin-top: 170px; /* Увеличено с 140px */
+        padding-top: 1rem;
+        transition: margin-top 0.3s ease;
+    }
+
+    .content-container-toolbar-hidden {
+        margin-top: 100px !important; /* Увеличено с 70px */
+    }
+
+    /* Кнопка следующей страницы/главы */
+    .next-page-button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 2rem auto;
+        padding: 0.75rem 1.5rem;
+        background: linear-gradient(135deg, var(--accent-gold), var(--accent-light));
+        color: var(--header-bg);
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        max-width: 300px;
+        box-shadow: 0 4px 12px rgba(var(--accent-gold-rgb), 0.3);
+    }
+
+        .next-page-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(var(--accent-gold-rgb), 0.4);
+        }
+
+        .next-page-button i {
+            margin-left: 0.5rem;
+            font-size: 1.2rem;
+        }
+
+    .next-page-button-end {
+        margin-top: 3rem;
+        margin-bottom: 3rem;
+    }
+
+    /* Стили для защиты от копирования */
+    .protected-content {
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+    }
+
+    /* Стили для затемнения при попытке скриншота */
+    .screenshot-protection {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        z-index: 10000;
+        pointer-events: none;
+    }
+
+    /* Стили для режима чтения */
+    .reading-content {
+        font-family: 'Georgia', 'Times New Roman', serif;
+        line-height: 1.6;
+        color: var(--text-primary);
+        transition: font-size 0.3s ease;
+        word-spacing: normal;
+        letter-spacing: normal;
+    }
+
+        /* Стили для абзацев - выравнивание по ширине и красная строка */
+        .reading-content p {
+            text-align: justify;
+            text-indent: 1.5em;
+            line-height: 1.6;
+            margin-bottom: 1.2em;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+        }
+
+    .page-mode {
+        background: var(--bg-secondary);
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px var(--shadow-color);
+        margin-bottom: 2rem;
+        min-height: 70vh;
+        position: relative;
+    }
+
+    .continuous-mode {
+        background: var(--bg-secondary);
+        padding: 2rem 3rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px var(--shadow-color);
+        margin-bottom: 2rem;
+        position: relative;
+        max-height: 70vh;
+        overflow-y: auto;
+        padding-right: 10px;
+    }
+
+        /* Стиль для полосы прокрутки в сплошном режиме */
+        .continuous-mode::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .continuous-mode::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+            border-radius: 4px;
+        }
+
+        .continuous-mode::-webkit-scrollbar-thumb {
+            background: var(--accent-gold);
+            border-radius: 4px;
+        }
+
+            .continuous-mode::-webkit-scrollbar-thumb:hover {
+                background: var(--accent-light);
+            }
+
+    .page-navigation {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background: var(--auth-block-bg);
+        border-radius: 12px;
+        margin: 1rem 0;
+    }
+
+    .page-indicator {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .chapter-image {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin: 1rem auto;
+        display: block;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    /* Стили для TTS контролов */
+    .tts-controls {
+        background: linear-gradient(135deg, var(--accent-gold), var(--accent-light));
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        margin: 1rem 0;
+    }
+
+    /* Кнопка TTS - улучшенные стили */
+    .tts-btn {
+        background: var(--header-bg);
+        color: var(--header-text);
+        border: none;
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        cursor: pointer;
+        margin: 0 0.25rem;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        min-width: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+        .tts-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(var(--accent-gold-rgb), 0.4);
+            background: var(--accent-gold);
+            color: var(--header-bg);
+        }
+
+    .tts-active {
+        background: var(--accent-gold) !important;
+        color: var(--header-bg) !important;
+        box-shadow: 0 4px 12px rgba(var(--accent-gold-rgb), 0.4) !important;
+    }
+
+    /* Переключатель режимов */
+    .mode-toggle {
+        display: flex;
+        gap: 0.5rem;
+        background: var(--bg-secondary);
+        padding: 0.25rem;
+        border-radius: 8px;
+        margin: 0 1rem;
+    }
+
+    .mode-btn {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+        .mode-btn.active {
+            background: var(--accent-gold);
+            color: var(--header-bg);
+        }
+
+    /* Контролы шрифта */
+    .font-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: var(--bg-secondary);
+        padding: 0.25rem;
+        border-radius: 8px;
+        margin: 0 1rem;
+    }
+
+    .font-btn {
+        width: 2rem;
+        height: 2rem;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--text-primary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
+    }
+
+        .font-btn:hover {
+            background: var(--border-color);
+        }
+
+    .current-font-size {
+        min-width: 2rem;
+        text-align: center;
+        font-weight: 600;
+        color: var(--accent-gold);
+    }
+
+    /* Стили для TTS слов */
+    .tts-word {
+        cursor: pointer;
+        transition: all 0.1s ease; /* Быстрый переход */
+        border-radius: 2px;
+        padding: 1px 0;
+        position: relative;
+        display: inline;
+        white-space: pre-wrap;
+    }
+
+        .tts-word:hover {
+            background-color: rgba(var(--accent-gold-rgb), 0.2);
+        }
+
+    .tts-word-current {
+        background-color: rgba(var(--accent-gold-rgb), 0.8);
+        color: var(--header-bg);
+        font-weight: bold;
+        padding: 1px 4px;
+        border-radius: 4px;
+        box-shadow: 0 0 8px rgba(var(--accent-gold-rgb), 0.6);
+    }
+
+    /* Индикатор прогресса главы */
+    .chapter-progress-bar {
+        height: 4px;
+        background: var(--border-color);
+        border-radius: 2px;
+        overflow: hidden;
+        margin: 0.25rem 0;
+        width: 150px;
+    }
+
+    .chapter-progress-fill {
+        height: 100%;
+        background: var(--accent-gold);
+        transition: width 0.3s ease;
+    }
+
+    /* Картинки без нумерации - ЦЕНТРИРОВАНИЕ */
+    .image-page {
+        margin: 2rem auto;
+        text-align: center;
+        background: var(--bg-secondary);
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        max-width: 800px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .image-page img {
+            max-width: 100%;
+            max-height: 600px;
+            height: auto;
+            border-radius: 4px;
+            display: block;
+            margin: 0 auto;
+        }
+
+    /* УБИРАЕМ ПОДПИСЬ С НОМЕРОМ ДЛЯ ИЗОБРАЖЕНИЙ */
+    .image-caption {
+        display: none; /* Скрываем подпись с номером */
+    }
+
+    /* TTS прогресс бар */
+    .tts-progress-bar {
+        width: 100px;
+        height: 4px;
+        background: var(--border-color);
+        border-radius: 2px;
+        overflow: hidden;
+        margin: 0 0.5rem;
+    }
+
+    .tts-progress-fill {
+        height: 100%;
+        background: var(--header-bg);
+        transition: width 0.1s linear;
+    }
+
+    /* Контролы скорости TTS */
+    .tts-speed-control {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(var(--header-bg-rgb), 0.2);
+        padding: 0.25rem 0.5rem;
+        border-radius: 6px;
+    }
+
+    .tts-speed-btn {
+        background: var(--header-bg);
+        color: var(--header-text);
+        border: none;
+        width: 1.8rem;
+        height: 1.8rem;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+        .tts-speed-btn:hover {
+            background: var(--accent-gold);
+            color: var(--header-bg);
+        }
+
+    .tts-speed-value {
+        min-width: 2.5rem;
+        text-align: center;
+        font-weight: 600;
+        color: var(--header-bg);
+        font-size: 0.9rem;
+    }
+
+    /* Адаптивность */
+    @@media (max-width: 768px) {
+        .toggle-toolbar-btn {
+            top: 90px;
+            right: 0.5rem;
+            width: 2.5rem;
+            height: 2.5rem;
+        }
+
+        .reading-toolbar {
+            top: 80px;
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 0.75rem;
+        }
+
+        .toolbar-content {
+            justify-content: center;
+            width: 100%;
+        }
+
+        .mode-toggle, .font-controls {
+            margin: 0;
+        }
+
+        .content-container {
+            margin-top: 150px;
+        }
+
+        .content-container-toolbar-hidden {
+            margin-top: 80px !important;
+        }
+
+        .page-mode, .continuous-mode {
+            padding: 1rem;
+            margin: 0 -0.5rem 1rem -0.5rem;
+            border-radius: 0;
+        }
+
+        .continuous-mode {
+            max-height: 60vh;
+        }
+
+        .tts-progress-bar {
+            width: 80px;
+        }
+
+        .tts-controls {
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .tts-speed-control {
+            order: 1;
+            width: 100%;
+            justify-content: center;
+            margin-top: 0.5rem;
+        }
+
+        .next-page-button {
+            padding: 0.6rem 1.2rem;
+            font-size: 0.9rem;
+            max-width: 250px;
+        }
+
+        .chapter-progress-bar {
+            width: 120px;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .toggle-toolbar-btn {
+            top: 85px;
+            right: 0.25rem;
+            width: 2.25rem;
+            height: 2.25rem;
+        }
+
+        .content-container {
+            margin-top: 140px;
+        }
+
+        .content-container-toolbar-hidden {
+            margin-top: 85px !important;
+        }
+
+        .tts-progress-bar {
+            width: 60px;
+        }
+
+        .image-page {
+            margin: 1rem auto;
+            padding: 0.75rem;
+        }
+
+            .image-page img {
+                max-height: 400px;
+            }
+
+        .next-page-button {
+            padding: 0.5rem 1rem;
+            font-size: 0.85rem;
+            max-width: 200px;
+        }
+
+        .chapter-progress-bar {
+            width: 100px;
+        }
+    }
+</style>
+
+<div id="screenshotProtection" class="screenshot-protection"></div>
+
+<button class="toggle-toolbar-btn" id="toggleToolbarBtn" onclick="toggleToolbar()" title="Скрыть/показать панель">
+    <i class="fas fa-eye-slash" id="toolbarIcon"></i>
+</button>
+
+<div class="reading-toolbar" id="readingToolbar">
+    <div class="toolbar-content">
+        <div class="flex items-center gap-2" id="toolbarNav" style="@(Model.ReadMode == "pages" ? "" : "display: none;")">
+            <button class="auth-btn-secondary text-sm" onclick="prevPage()" id="prevPageBtn">
+                <i class="fas fa-chevron-left"></i> Назад
+            </button>
+            <div class="text-sm text-theme-aware">
+                Страница <span id="currentPageNum">1</span> из <span id="totalPages">1</span>
+            </div>
+            <button class="auth-btn-secondary text-sm" onclick="nextPage()" id="nextPageBtn">
+                Вперед <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+
+        <div class="flex flex-col items-center gap-1">
+            <div class="text-xs text-theme-aware opacity-75">Прогресс главы:</div>
+            <div class="chapter-progress-bar">
+                <div class="chapter-progress-fill" id="chapterProgressFill" style="width: 0%"></div>
+            </div>
+            <div class="text-xs font-semibold text-theme-aware" id="chapterProgressText">0%</div>
+        </div>
+
+        <div class="mode-toggle">
+            <button class="mode-btn @(Model.ReadMode == "pages" ? "active" : "")"
+                    data-mode="pages" onclick="changeReadMode('pages')">
+                <i class="fas fa-file-alt"></i>
+                <span class="hidden md:inline">Страницы</span>
+            </button>
+            <button class="mode-btn @(Model.ReadMode == "continuous" ? "active" : "")"
+                    data-mode="continuous" onclick="changeReadMode('continuous')">
+                <i class="fas fa-align-justify"></i>
+                <span class="hidden md:inline">Текст</span>
+            </button>
+        </div>
+
+        <div class="font-controls">
+            <button class="font-btn" onclick="changeFontSize(-1)" title="Уменьшить шрифт">
+                <i class="fas fa-minus"></i>
+            </button>
+            <span class="current-font-size" id="currentFontSize">@Model.FontSize</span>
+            <button class="font-btn" onclick="changeFontSize(1)" title="Увеличить шрифт">
+                <i class="fas fa-plus"></i>
+            </button>
+        </div>
+
+        @if (Model.EnableTTS)
+        {
+            <div class="flex items-center gap-2 bg-gradient-to-r from-[var(--accent-gold)] to-[var(--accent-light)] p-2 rounded-lg tts-controls">
+                <button class="tts-btn" id="ttsPlayPauseBtn" onclick="toggleTTS()" title="Пауза/Продолжить">
+                    <i class="fas fa-play" id="ttsPlayPauseIcon"></i>
+                </button>
+
+                <button class="tts-btn" onclick="stopTTS()" title="Остановить и сбросить">
+                    <i class="fas fa-stop"></i>
+                </button>
+
+                <div class="tts-progress-bar">
+                    <div class="tts-progress-fill" id="ttsProgressFill" style="width: 0%"></div>
+                </div>
+
+                <select class="bg-transparent text-[var(--header-bg)] border-none text-sm" id="ttsVoice" title="Выбор голоса">
+                    <option value="">Загрузка голосов...</option>
+                </select>
+
+                <div class="tts-speed-control">
+                    <button class="tts-speed-btn" onclick="changeTtsSpeed(-0.25)" title="Уменьшить скорость">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                    <span class="tts-speed-value" id="ttsSpeedValue">1.0x</span>
+                    <button class="tts-speed-btn" onclick="changeTtsSpeed(0.25)" title="Увеличить скорость">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </div>
+        }
+
+        @if (!Model.IsAuthor && isAuthenticated)
+        {
+            <div class="flex items-center gap-2">
+                <button onclick="toggleLike(@Model.Book.Id)"
+                        class="header-icon @(Model.HasLiked ? "text-red-500" : "")"
+                        title="@(Model.HasLiked ? "Убрать лайк" : "Поставить лайк")">
+                    <i class="fas fa-heart"></i>
+                    <span id="likesCount">@Model.Book.LikesCount</span>
+                </button>
+
+                <button onclick="toggleFavorite(@Model.Book.Id)"
+                        class="header-icon @(Model.IsInFavorites ? "text-yellow-500" : "")"
+                        title="@(Model.IsInFavorites ? "Удалить из закладок" : "Добавить в закладок")">
+                    <i class="fas fa-bookmark"></i>
+                </button>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="container mx-auto px-4 content-container" id="contentContainer">
+    <div class="protected-content" id="readingContent">
+        <div class="page-mode" id="pageMode" style="@(Model.ReadMode == "pages" ? "" : "display: none;")">
+            <div id="currentPageContent" class="reading-content" style="font-size: @(Model.FontSize)px;">
+            </div>
+            <!-- Кнопка следующей страницы для режима страниц -->
+            <div id="pageNextButtonContainer"></div>
+        </div>
+
+        <div class="continuous-mode" id="continuousMode" style="@(Model.ReadMode == "continuous" ? "" : "display: none;")">
+            <div class="reading-content" style="font-size: @(Model.FontSize)px;" id="continuousContent">
+                @Html.Raw(FormatChapterContent(Model.ChapterPages))
+            </div>
+            <!-- Кнопка следующей главы для режима сплошного текста -->
+            <div id="continuousNextButtonContainer"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- Глобальные переменные ---
+    let currentPage = 1;
+    let totalPages = 1;
+    let allPages = [];
+
+    // Данные из модели
+    let ttsEnabled = @Json.Serialize(Model.EnableTTS);
+    let bookId = @Model.Book.Id;
+    let currentChapterId = @Model.CurrentChapter.Id;
+    let nextChapterId = @(Model.NextChapter?.Id.ToString() ?? "null");
+    let readMode = '@Model.ReadMode';
+    let currentFontSize = @Model.FontSize;
+
+    // TTS переменные
+    let speechSynthesis = window.speechSynthesis;
+    let currentSpeech = null;
+    let isTTSPlaying = false;
+    let isTTSPaused = false;
+    let ttsSpeed = 1.0;
+
+    // Карта слов и текущий текст
+    let ttsWordMap = [];
+    let currentFullText = ""; // Хранит полный текст текущей страницы/главы
+    let currentTextOffset = 0; // Смещение для корректной подсветки при клике (jump)
+    let isContinuousModePrepared = false; // Флаг подготовки непрерывного режима для TTS
+
+    // --- Объявляем глобальные функции для навигации по главам ---
+    window.bookId = bookId;
+
+    window.goToChapter = function(chapterId) {
+        window.location.href = `/Read/ReadChapter?bookId=${bookId}&chapterId=${chapterId}`;
+    }
+
+    window.goToSelectedChapter = function() {
+        const select = document.getElementById('chapterSelect');
+        if (select && select.value) {
+            goToChapter(select.value);
+        }
+    }
+
+    // --- Инициализация ---
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Инициализация страницы чтения...');
+
+        initToolbar();
+        initContinuousScroll(); // Инициализация отслеживания скролла
+
+        if (readMode === 'pages') initPagesMode();
+        else initContinuousMode();
+
+        if (ttsEnabled && speechSynthesis) {
+            initTTS();
+
+            const savedSpeed = localStorage.getItem('ttsSpeed');
+            if (savedSpeed) {
+                ttsSpeed = parseFloat(savedSpeed);
+                const speedVal = document.getElementById('ttsSpeedValue');
+                if(speedVal) speedVal.textContent = ttsSpeed.toFixed(1) + 'x';
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('autoplay') && urlParams.get('autoplay') === 'true') {
+                setTimeout(() => toggleTTS(), 1000);
+            }
+        }
+
+        setupEventListeners();
+    });
+
+    // --- Функции для кнопок следующей страницы/главы ---
+    function addNextPageButton() {
+        const container = document.getElementById('pageNextButtonContainer');
+        if (!container) return;
+
+        // Очищаем контейнер
+        container.innerHTML = '';
+
+        // Если это не последняя страница, добавляем кнопку следующей страницы
+        if (currentPage < totalPages) {
+            const button = document.createElement('button');
+            button.className = 'next-page-button';
+            button.innerHTML = 'Следующая страница <i class="fas fa-arrow-right"></i>';
+            button.onclick = nextPage;
+            container.appendChild(button);
+        }
+        // Если это последняя страница и есть следующая глава, добавляем кнопку следующей главы
+        else if (currentPage === totalPages && nextChapterId) {
+            const button = document.createElement('button');
+            button.className = 'next-page-button next-page-button-end';
+            button.innerHTML = 'Следующая глава <i class="fas fa-arrow-right"></i>';
+            button.onclick = function() {
+                goToChapter(nextChapterId);
+            };
+            container.appendChild(button);
+        }
+    }
+
+    function addNextChapterButton() {
+        const container = document.getElementById('continuousNextButtonContainer');
+        if (!container || !nextChapterId) return;
+
+        // Очищаем контейнер
+        container.innerHTML = '';
+
+        // Добавляем кнопку следующей главы
+        const button = document.createElement('button');
+        button.className = 'next-page-button next-page-button-end';
+        button.innerHTML = 'Следующая глава <i class="fas fa-arrow-right"></i>';
+        button.onclick = function() {
+            goToChapter(nextChapterId);
+        };
+        container.appendChild(button);
+    }
+
+    // --- Базовый UI (Панель, Шрифты) ---
+    let isToolbarHidden = localStorage.getItem('toolbarHidden') === 'true';
+
+    function initToolbar() {
+        const toolbar = document.getElementById('readingToolbar');
+        const toolbarIcon = document.getElementById('toolbarIcon');
+        const contentContainer = document.getElementById('contentContainer');
+
+        if (isToolbarHidden) {
+            toolbar.classList.add('toolbar-hidden');
+            contentContainer.classList.add('content-container-toolbar-hidden');
+            toolbarIcon.classList.remove('fa-eye-slash');
+            toolbarIcon.classList.add('fa-eye');
+        } else {
+            toolbar.classList.remove('toolbar-hidden');
+            contentContainer.classList.remove('content-container-toolbar-hidden');
+            toolbarIcon.classList.remove('fa-eye');
+            toolbarIcon.classList.add('fa-eye-slash');
+        }
+    }
+
+    function toggleToolbar() {
+        const toolbar = document.getElementById('readingToolbar');
+        const toolbarIcon = document.getElementById('toolbarIcon');
+        const contentContainer = document.getElementById('contentContainer');
+
+        isToolbarHidden = !isToolbarHidden;
+
+        if (isToolbarHidden) {
+            toolbar.classList.add('toolbar-hidden');
+            contentContainer.classList.add('content-container-toolbar-hidden');
+            toolbarIcon.classList.remove('fa-eye-slash');
+            toolbarIcon.classList.add('fa-eye');
+        } else {
+            toolbar.classList.remove('toolbar-hidden');
+            contentContainer.classList.remove('content-container-toolbar-hidden');
+            toolbarIcon.classList.remove('fa-eye');
+            toolbarIcon.classList.add('fa-eye-slash');
+        }
+        localStorage.setItem('toolbarHidden', isToolbarHidden);
+    }
+
+    function changeFontSize(delta) {
+        currentFontSize += delta;
+        if (currentFontSize < 12) currentFontSize = 12;
+        if (currentFontSize > 32) currentFontSize = 32;
+        document.querySelectorAll('.reading-content').forEach(el => el.style.fontSize = currentFontSize + 'px');
+        const fsEl = document.getElementById('currentFontSize');
+        if(fsEl) fsEl.textContent = currentFontSize;
+        saveReadingSettings();
+    }
+
+    function changeReadMode(mode) {
+        if (readMode === mode) return;
+        stopTTS();
+        readMode = mode;
+
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.mode === mode);
+        });
+
+        const pageMode = document.getElementById('pageMode');
+        const continuousMode = document.getElementById('continuousMode');
+        const toolbarNav = document.getElementById('toolbarNav');
+
+        if (mode === 'pages') {
+            if(pageMode) pageMode.style.display = 'block';
+            if(continuousMode) continuousMode.style.display = 'none';
+            if(toolbarNav) toolbarNav.style.display = 'flex';
+            initPagesMode();
+        } else {
+            if(pageMode) pageMode.style.display = 'none';
+            if(continuousMode) continuousMode.style.display = 'block';
+            if(toolbarNav) toolbarNav.style.display = 'none';
+            initContinuousMode();
+        }
+        saveReadingSettings();
+    }
+
+    // --- Логика страниц ---
+    function initPagesMode() {
+        allPages = getAllPages();
+        totalPages = allPages.length;
+        const tp = document.getElementById('totalPages');
+        if(tp) tp.textContent = totalPages;
+        showPage(currentPage);
+        // Добавляем кнопку следующей страницы
+        addNextPageButton();
+    }
+
+    function initContinuousMode() {
+        // В сплошном режиме сбрасываем флаг подготовки
+        isContinuousModePrepared = false;
+        ttsWordMap = [];
+        currentFullText = "";
+
+        // Инициализируем прогресс скролла
+        updateContinuousProgress();
+
+        // Добавляем кнопку следующей главы
+        addNextChapterButton();
+
+        // Подготавливаем DOM для TTS (для кликабельности слов)
+        prepareContinuousModeForTTS();
+    }
+
+    // Подготовка непрерывного режима для TTS (оборачивает слова в спаны)
+    function prepareContinuousModeForTTS() {
+        const container = document.getElementById('continuousContent');
+        if (!container || isContinuousModePrepared) return;
+
+        prepareDomForTTS(container);
+        isContinuousModePrepared = true;
+    }
+
+    // Инициализация отслеживания скролла для сплошного режима
+    function initContinuousScroll() {
+        const content = document.getElementById('continuousContent');
+        if (content) {
+            content.addEventListener('scroll', updateContinuousProgress);
+        }
+    }
+
+    // Обновление прогресса скролла
+    function updateContinuousProgress() {
+        const content = document.getElementById('continuousContent');
+        if (!content || readMode !== 'continuous') return;
+
+        const scrollTop = content.scrollTop;
+        const scrollHeight = content.scrollHeight;
+        const clientHeight = content.clientHeight;
+
+        let scrollProgress = 0;
+        if (scrollHeight > clientHeight) {
+            scrollProgress = Math.min(100, Math.round((scrollTop + clientHeight) / scrollHeight * 100));
+        } else {
+            scrollProgress = 100; // Если весь контент помещается на экран
+        }
+
+        // Обновляем индикатор прогресса
+        const fill = document.getElementById('chapterProgressFill');
+        const txt = document.getElementById('chapterProgressText');
+        if(fill) fill.style.width = scrollProgress + '%';
+        if(txt) txt.textContent = scrollProgress + '%';
+
+        // Сохраняем прогресс при достижении конца
+        if (scrollProgress >= 95) {
+            saveReadingProgress('continuous', scrollProgress);
+        }
+    }
+
+    function showPage(pageNum) {
+        if (pageNum < 1 || pageNum > totalPages) return;
+        currentPage = pageNum;
+
+        // При смене страницы сбрасываем карту и текст
+        ttsWordMap = [];
+        currentFullText = "";
+
+        const pageData = allPages[pageNum - 1];
+        const container = document.getElementById('currentPageContent');
+
+        if (!container) return;
+
+        if (pageData.type === 'text') {
+            container.innerHTML = formatTextForDisplay(pageData.content);
+            // Если TTS активен (или включен), сразу готовим DOM, чтобы работали клики
+            if (ttsEnabled) {
+                prepareDomForTTS(container);
+            }
+        } else {
+            // Для изображений без номера страницы
+            container.innerHTML = `
+                <div class="image-page">
+                    <img src="${pageData.content}" alt="Иллюстрация" class="chapter-image">
+                </div>`;
+        }
+
+        const cpn = document.getElementById('currentPageNum');
+        if(cpn) cpn.textContent = pageNum;
+        updatePageNavigation();
+        updateChapterProgress();
+
+        // Сохраняем прогресс с учетом режима чтения
+        saveReadingProgress('pages', pageNum);
+
+        // Обновляем кнопку следующей страницы/главы
+        addNextPageButton();
+    }
+
+    // --- Подготовка текста и DOM (С КЛИКАБЕЛЬНОСТЬЮ) ---
+    function prepareDomForTTS(containerElement) {
+        // Если карта уже есть для этого контейнера, не переделываем (оптимизация)
+        // Но проверяем, есть ли там слова
+        if (ttsWordMap.length > 0 && containerElement.querySelector('.tts-word')) return currentFullText;
+
+        ttsWordMap = [];
+        currentFullText = "";
+        let wordCounter = 0;
+
+        const paragraphs = containerElement.querySelectorAll('p');
+
+        paragraphs.forEach(p => {
+            const originalText = p.textContent;
+            const wordsRegex = /[\wа-яА-ЯёЁ\-']+/g;
+            let match;
+            let newHtml = "";
+            let lastIdx = 0;
+            let paraSpeechText = "";
+
+            while ((match = wordsRegex.exec(originalText)) !== null) {
+                // Текст до слова
+                const beforeText = originalText.substring(lastIdx, match.index);
+                newHtml += escapeHtml(beforeText);
+                paraSpeechText += beforeText;
+
+                // Слово
+                const word = match[0];
+                const spanId = `tts-w-${readMode === 'pages' ? 'page-' + currentPage : 'continuous-' + currentChapterId}-${wordCounter++}`;
+
+                // Добавляем span с onclick
+                // ВАЖНО: onclick вызывает jumpToWord с ID этого спана
+                newHtml += `<span id="${spanId}" class="tts-word" onclick="jumpToWord('${spanId}')">${escapeHtml(word)}</span>`;
+
+                const wordStart = currentFullText.length + paraSpeechText.length;
+
+                ttsWordMap.push({
+                    id: spanId,
+                    start: wordStart,
+                    end: wordStart + word.length
+                });
+
+                paraSpeechText += word;
+                lastIdx = match.index + word.length;
+            }
+
+            const remainder = originalText.substring(lastIdx);
+            newHtml += escapeHtml(remainder);
+            paraSpeechText += remainder;
+
+            p.innerHTML = newHtml;
+            currentFullText += paraSpeechText + " ";
+        });
+
+        return currentFullText;
+    }
+
+    // --- Функция перехода по клику (JUMP) ---
+    window.jumpToWord = function(spanId) {
+        // Подготавливаем DOM для TTS, если еще не подготовлен
+        if (!isTTSPlaying && !isTTSPaused) {
+            let container;
+            if (readMode === 'pages') {
+                container = document.getElementById('currentPageContent');
+                if (ttsWordMap.length === 0 && container) {
+                    prepareDomForTTS(container);
+                }
+            } else {
+                container = document.getElementById('continuousContent');
+                if (!isContinuousModePrepared && container) {
+                    prepareDomForTTS(container);
+                    isContinuousModePrepared = true;
+                }
+            }
+        }
+
+        // Находим слово в карте
+        const wordEntry = ttsWordMap.find(w => w.id === spanId);
+        if (!wordEntry) {
+            console.log('Слово не найдено в карте, готовим DOM заново...');
+            return;
+        }
+
+        // Останавливаем текущее чтение
+        speechSynthesis.cancel();
+
+        // Сбрасываем состояния паузы/воспроизведения
+        isTTSPaused = false;
+        isTTSPlaying = false;
+
+        // Устанавливаем смещение
+        currentTextOffset = wordEntry.start;
+
+        // Обрезаем текст, начиная с выбранного слова
+        const textToSpeak = currentFullText.substring(currentTextOffset);
+
+        // Запускаем чтение обрезанного куска
+        playUtterance(textToSpeak);
+
+        // Обновляем состояние кнопки (ВАЖНО!)
+        updateTTSButtonsAfterJump();
+    }
+
+    // Обновление состояния кнопки после перехода по слову
+            function updateTTSButtonsAfterJump() {
+        isTTSPlaying = true;
+        isTTSPaused = false;
+        updateTTSButtons();
+
+        // Добавляем активный стиль кнопке
+        const btn = document.getElementById('ttsPlayPauseBtn');
+        if (btn) btn.classList.add('tts-active');
+    }
+
+    // --- TTS Основные функции ---
+    function initTTS() {
+        if (!speechSynthesis) return;
+        loadVoices();
+        speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    function loadVoices() {
+        const voices = speechSynthesis.getVoices();
+        const voiceSelect = document.getElementById('ttsVoice');
+        if (!voiceSelect) return;
+
+        const selected = voiceSelect.value;
+        voiceSelect.innerHTML = '';
+        voices.forEach(voice => {
+            const option = document.createElement('option');
+            option.value = voice.name;
+            option.textContent = `${voice.name} (${voice.lang})`;
+            voiceSelect.appendChild(option);
+        });
+
+        if (selected) voiceSelect.value = selected;
+        else {
+            const ruVoice = voices.find(v => v.lang.startsWith('ru'));
+            if (ruVoice) voiceSelect.value = ruVoice.name;
+        }
+    }
+
+    function toggleTTS() {
+        if (isTTSPlaying) {
+            pauseTTS();
+        } else if (isTTSPaused) {
+            resumeTTS();
+        } else {
+            startTTS();
+        }
+        updateTTSButtons();
+    }
+
+    function startTTS() {
+        stopTTS();
+
+        let container;
+        let textToSpeak = "";
+
+        if (readMode === 'pages') {
+            container = document.getElementById('currentPageContent');
+            if (!container) return;
+
+            // Получаем текст текущей страницы
+            prepareDomForTTS(container);
+
+            // Берем текст только текущей страницы
+            const pageData = allPages[currentPage - 1];
+            if (pageData.type === 'text') {
+                textToSpeak = pageData.content;
+            } else {
+                // Для страниц с изображениями нет текста для озвучки
+                handleTTSFinished();
+                return;
+            }
+
+            currentFullText = textToSpeak;
+            currentTextOffset = 0;
+
+        } else {
+            container = document.getElementById('continuousContent');
+            if (!container) return;
+
+            // Подготавливаем DOM для непрерывного режима
+            prepareContinuousModeForTTS();
+
+            if (!currentFullText || !currentFullText.trim()) {
+                handleTTSFinished();
+                return;
+            }
+
+            textToSpeak = currentFullText;
+            currentTextOffset = 0;
+        }
+
+        if (!textToSpeak || !textToSpeak.trim()) {
+            handleTTSFinished();
+            return;
+        }
+
+        playUtterance(textToSpeak);
+    }
+
+    // Вспомогательная функция для запуска речи (используется и в start, и в jump)
+        function playUtterance(text) {
+        // Останавливаем текущее воспроизведение, если есть
+        speechSynthesis.cancel();
+
+        currentSpeech = new SpeechSynthesisUtterance(text);
+
+        const voiceSelect = document.getElementById('ttsVoice');
+        const voices = speechSynthesis.getVoices();
+        if (voiceSelect && voiceSelect.value) {
+            currentSpeech.voice = voices.find(v => v.name === voiceSelect.value);
+        }
+        currentSpeech.rate = ttsSpeed;
+
+        currentSpeech.onboundary = function(event) {
+            if (event.name === 'word') {
+                // ВАЖНО: Индекс синтезатора (event.charIndex) + наше смещение (currentTextOffset)
+                const realIndex = currentTextOffset + event.charIndex;
+                highlightWordAt(realIndex);
+
+                // Прогресс считаем от полного текста
+                updateTTSProgress((realIndex / currentFullText.length) * 100);
+            }
+        };
+
+        currentSpeech.onstart = function() {
+            isTTSPlaying = true;
+            isTTSPaused = false;
+            updateTTSButtons(); // Обновляем кнопки при старте
+        };
+
+        currentSpeech.onend = function() {
+            // Если мы дочитали до конца (не было отмены)
+            // Проверка важна, т.к. cancel() тоже может вызвать onend в некоторых браузерах
+            if (currentSpeech) {
+                isTTSPlaying = false;
+                isTTSPaused = false;
+                updateTTSButtons();
+                clearHighlights();
+                updateTTSProgress(100);
+                handleTTSFinished();
+
+                // Убираем активный стиль кнопки
+                const btn = document.getElementById('ttsPlayPauseBtn');
+                if (btn) btn.classList.remove('tts-active');
+            }
+        };
+
+        currentSpeech.onerror = function(e) {
+            console.error("TTS Error", e);
+            isTTSPlaying = false;
+            isTTSPaused = false;
+            updateTTSButtons();
+
+            // Убираем активный стиль кнопки при ошибке
+            const btn = document.getElementById('ttsPlayPauseBtn');
+            if (btn) btn.classList.remove('tts-active');
+        };
+
+        speechSynthesis.speak(currentSpeech);
+        isTTSPlaying = true;
+        isTTSPaused = false;
+        updateTTSButtons();
+
+        // Обновляем визуальное состояние кнопки
+        const btn = document.getElementById('ttsPlayPauseBtn');
+        if (btn) btn.classList.add('tts-active');
+    }
+
+    function highlightWordAt(charIndex) {
+        // Ищем слово в карте
+        const wordData = ttsWordMap.find(w => charIndex >= w.start && charIndex < w.end);
+
+        // Удаляем старую подсветку
+        const old = document.querySelector('.tts-word-current');
+        if (old) old.classList.remove('tts-word-current');
+
+        if (wordData) {
+            const el = document.getElementById(wordData.id);
+            if (el) {
+                el.classList.add('tts-word-current');
+                // Мягкий скролл
+                smartScrollTo(el);
+            }
+        }
+    }
+
+    // --- УМНЫЙ СКРОЛЛ (Без прыжков) ---
+    function smartScrollTo(el) {
+        const rect = el.getBoundingClientRect();
+        const headerHeight = 170; // Высота шапки и панели (увеличено)
+        const buffer = 50; // Отступ для комфорта
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+
+        // Проверяем, находится ли элемент в видимой зоне
+        const isVisible = (
+            rect.top >= headerHeight + buffer &&
+            rect.bottom <= viewportHeight - buffer
+        );
+
+        // Если элемент ВИДЕН, вообще не скроллим!
+        if (isVisible) return;
+
+        // Если не виден, скроллим минимально (nearest), чтобы не дергать страницу
+        el.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest', // Самый важный параметр: скроллит ровно столько, чтобы элемент появился
+            inline: 'nearest'
+        });
+    }
+
+    // Логика перехода
+    function handleTTSFinished() {
+        if (readMode === 'pages') {
+            if (currentPage < totalPages) {
+                setTimeout(() => {
+                    nextPage();
+                    setTimeout(() => {
+                        if (ttsEnabled) startTTS();
+                    }, 500);
+                }, 500);
+            } else {
+                goToNextChapter();
+            }
+        } else {
+            goToNextChapter();
+        }
+    }
+
+    function goToNextChapter() {
+        if (nextChapterId !== null) {
+            window.location.href = `/Read/ReadChapter?bookId=${bookId}&chapterId=${nextChapterId}&autoplay=true`;
+        } else {
+            stopTTS();
+        }
+    }
+
+    function stopTTS() {
+        speechSynthesis.cancel();
+        currentSpeech = null; // Обнуляем, чтобы onend не триггерил переход
+        isTTSPlaying = false;
+        isTTSPaused = false;
+        currentTextOffset = 0;
+        clearHighlights();
+        updateTTSButtons();
+        updateTTSProgress(0);
+
+        // Обновляем визуальное состояние кнопки
+        const btn = document.getElementById('ttsPlayPauseBtn');
+        if (btn) btn.classList.remove('tts-active');
+    }
+
+    function pauseTTS() {
+        speechSynthesis.pause();
+        isTTSPaused = true;
+        isTTSPlaying = false;
+        updateTTSButtons();
+
+        // Обновляем визуальное состояние кнопки
+        const btn = document.getElementById('ttsPlayPauseBtn');
+        if (btn) btn.classList.remove('tts-active');
+    }
+
+    function resumeTTS() {
+        speechSynthesis.resume();
+        isTTSPaused = false;
+        isTTSPlaying = true;
+        updateTTSButtons();
+
+        // Обновляем визуальное состояние кнопки
+        const btn = document.getElementById('ttsPlayPauseBtn');
+        if (btn) btn.classList.add('tts-active');
+    }
+
+    function clearHighlights() {
+        document.querySelectorAll('.tts-word-current').forEach(el => el.classList.remove('tts-word-current'));
+    }
+
+    function updateTTSButtons() {
+        const btn = document.getElementById('ttsPlayPauseBtn');
+        const icon = document.getElementById('ttsPlayPauseIcon');
+        if (!btn) return;
+
+        if (isTTSPlaying) {
+            icon.className = 'fas fa-pause';
+            btn.title = 'Пауза';
+            btn.classList.add('tts-active');
+        } else if (isTTSPaused) {
+            icon.className = 'fas fa-play';
+            btn.title = 'Продолжить';
+            btn.classList.remove('tts-active');
+        } else {
+            icon.className = 'fas fa-play';
+            btn.title = 'Читать';
+            btn.classList.remove('tts-active');
+        }
+    }
+
+    function updateTTSProgress(percent) {
+        const bar = document.getElementById('ttsProgressFill');
+        if (bar) bar.style.width = percent + '%';
+    }
+
+    function changeTtsSpeed(delta) {
+        ttsSpeed += delta;
+        ttsSpeed = Math.max(0.5, Math.min(3.0, ttsSpeed));
+        const valEl = document.getElementById('ttsSpeedValue');
+        if(valEl) valEl.textContent = ttsSpeed.toFixed(1) + 'x';
+        localStorage.setItem('ttsSpeed', ttsSpeed);
+
+        if (isTTSPlaying) {
+            // Чтобы изменить скорость на лету, нужно перезапустить с текущего места
+            // Это сложно (нужно искать offset), проще перезапустить слово
+            // Или просто остановить и дать пользователю нажать плей
+            // Реализуем перезапуск с начала отрывка (текущего offset)
+            const currentTxt = currentFullText.substring(currentTextOffset);
+            speechSynthesis.cancel();
+            setTimeout(() => playUtterance(currentTxt), 100);
+        }
+    }
+
+    // --- Вспомогательные ---
+    function getAllPages() {
+        const pages = [];
+        const textContent = getTextContent();
+        if (textContent) {
+            const textPages = splitTextIntoPages(textContent, 2000);
+            textPages.forEach((txt, i) => pages.push({ type: 'text', content: txt, pageNumber: i + 1 }));
+        }
+        const imagePages = @Json.Serialize(Model.ChapterPages?.ImagePages ?? new List<ChapterImagePage>());
+        imagePages.forEach(img => pages.push({ type: 'image', content: img.imageUrl, caption: "" }));
+        return pages.length > 0 ? pages : [{type:'text', content:'Нет содержимого', pageNumber:1}];
+    }
+
+    function splitTextIntoPages(text, limit) {
+        const pages = [];
+        const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
+        let current = "";
+        sentences.forEach(s => {
+            if ((current.length + s.length) > limit && current.length > 0) {
+                pages.push(current.trim());
+                current = s;
+            } else {
+                current += s;
+            }
+        });
+        if (current.trim()) pages.push(current.trim());
+        return pages;
+    }
+
+    function getTextContent() {
+        @if (Model.ChapterPages?.TextContent != null)
+        {
+                        <text>return @Html.Raw(Json.Serialize(Model.ChapterPages.TextContent)) || "";</text>
+        }
+        else
+        {
+                        <text>return "";</text>
+        }
+    }
+
+    function formatTextForDisplay(text) {
+        if (!text) return '<p class="text-gray-500 italic">Текст отсутствует</p>';
+        return text.split(/\n\s*\n/)
+            .filter(p => p.trim())
+            .map(p => `<p>${escapeHtml(p)}</p>`)
+            .join('');
+    }
+
+    function escapeHtml(text) {
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Навигация и прочее
+    function prevPage() { if (currentPage > 1) showPage(currentPage - 1); }
+    function nextPage() { if (currentPage < totalPages) showPage(currentPage + 1); }
+
+    function updatePageNavigation() {
+        const prev = document.getElementById('prevPageBtn');
+        const next = document.getElementById('nextPageBtn');
+        if (prev) prev.disabled = currentPage <= 1;
+        if (next) next.disabled = currentPage >= totalPages;
+    }
+
+    function updateChapterProgress() {
+        const p = totalPages > 0 ? (currentPage/totalPages)*100 : 0;
+        const fill = document.getElementById('chapterProgressFill');
+        const txt = document.getElementById('chapterProgressText');
+        if(fill) fill.style.width = p+'%';
+        if(txt) txt.textContent = p.toFixed(0)+'%';
+    }
+
+    function setupEventListeners() {
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') stopTTS();
+            if (readMode === 'pages') {
+                if (e.key === 'ArrowLeft') prevPage();
+                if (e.key === 'ArrowRight') nextPage();
+            }
+        });
+        const vs = document.getElementById('ttsVoice');
+        if(vs) vs.addEventListener('change', () => {
+            if(isTTSPlaying) {
+                const currentTxt = currentFullText.substring(currentTextOffset);
+                stopTTS();
+                setTimeout(() => playUtterance(currentTxt), 100);
+            }
+        });
+        window.addEventListener('beforeunload', () => {
+            stopTTS();
+            saveReadingProgress(readMode, currentPage);
+            saveReadingSettings();
+        });
+    }
+
+    function saveReadingSettings() {
+        fetch('/Read/UpdateReadingSettings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bookId, readMode, fontSize: currentFontSize })
+        }).catch(e => console.error('Error', e));
+    }
+
+    function saveReadingProgress(mode = readMode, pageNum = currentPage) {
+        if (!@isAuthenticated.ToString().ToLower()) return;
+
+        let total = mode === 'pages' ? totalPages : 100;
+        let pageNumber = mode === 'pages' ? pageNum :
+                        (mode === 'continuous' ?
+                         (parseInt(document.getElementById('chapterProgressText').textContent) || 0) :
+                         pageNum);
+
+        fetch('/Read/SaveReadingProgress', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                bookId,
+                chapterId: currentChapterId,
+                pageNumber: pageNumber,
+                totalPages: total,
+                readMode: mode
+            })
+        }).catch(e => console.error('Error', e));
+    }
+
+    async function toggleLike(bId) {
+        try {
+            const res = await fetch(`/Read/LikeBook?id=${bId}`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'}
+            });
+            const data = await res.json();
+            if (data.success) {
+                const btn = document.querySelector('button[onclick^="toggleLike"]');
+                const icon = btn.querySelector('i');
+                const count = document.getElementById('likesCount');
+                if (data.hasLiked) icon.classList.add('text-red-500');
+                else icon.classList.remove('text-red-500');
+                if(count) count.textContent = data.likesCount;
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    async function toggleFavorite(bId) {
+        try {
+            const res = await fetch(`/Read/ToggleFavorite?id=${bId}`, {
+                method: 'POST', headers: {'Content-Type': 'application/json'}
+            });
+            const data = await res.json();
+            if (data.success) {
+                const btn = document.querySelector('button[onclick^="toggleFavorite"]');
+                const icon = btn.querySelector('i');
+                if (data.isInFavorites) icon.classList.add('text-yellow-500');
+                else icon.classList.remove('text-yellow-500');
+            }
+        } catch (e) { console.error(e); }
+    }
+</script>
+
+@functions {
+    // Функция форматирования контента (C# fallback для сплошного режима)
+    private string FormatChapterContent(ChapterPagesInfo chapterPages)
+    {
+        if (chapterPages == null || (string.IsNullOrEmpty(chapterPages.TextContent) && !chapterPages.ImagePages.Any()))
+            return "<p class='text-center text-gray-500 italic'>Контент главы пока пуст</p>";
+
+        var result = new System.Text.StringBuilder();
+
+        // Текстовый контент с выравниванием по ширине и красной строкой
+        if (!string.IsNullOrEmpty(chapterPages.TextContent))
+        {
+            var cleanText = System.Net.WebUtility.HtmlDecode(chapterPages.TextContent);
+            cleanText = System.Text.RegularExpressions.Regex.Replace(cleanText, @"<[^>]*>", string.Empty);
+
+            var paragraphs = cleanText.Split(new[] { "\r\n\r\n", "\n\n" }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var paragraph in paragraphs)
+            {
+                if (!string.IsNullOrWhiteSpace(paragraph))
+                {
+                    var formatted = FormatParagraph(paragraph.Trim());
+                    result.AppendLine($"<p style='text-align: justify; text-indent: 1.5em;'>{formatted}</p>");
+                }
+            }
+        }
+
+        // Изображения без нумерации
+        foreach (var imagePage in chapterPages.ImagePages.OrderBy(p => p.PageNumber))
+        {
+            result.AppendLine($@"
+                <div class='image-page'>
+                    <img src='{imagePage.ImageUrl}' alt='Иллюстрация' class='chapter-image'>
+                </div>");
+        }
+
+        return result.ToString();
+    }
+
+    private string FormatParagraph(string text)
+    {
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ");
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\s+([.,!?;:])", "$1");
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"([.,!?;:])([а-яА-ЯёЁa-zA-Z0-9])", "$1 $2");
+        return System.Net.WebUtility.HtmlEncode(text.Trim());
+    }
+}

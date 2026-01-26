@@ -1,0 +1,373 @@
+﻿@using System.Web
+@model MajorAuthor.Models.CatalogViewModel
+@{
+    ViewData["Title"] = "Все стихи";
+}
+
+<div class="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] to-[var(--bg-secondary)] py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8">
+            <div class="flex flex-col">
+                <h1 class="text-3xl font-bold text-[var(--text-primary)] mb-2">
+                    <i class="fas fa-feather text-[var(--accent-gold)] mr-3"></i>
+                    Все стихи
+                </h1>
+                @if (!string.IsNullOrEmpty(Model.SearchQuery))
+                {
+                    <div class="flex items-center mt-2">
+                        <span class="text-[var(--text-secondary)] mr-2">Результаты поиска для:</span>
+                        <span class="text-[var(--accent-gold)] font-semibold">"@Model.SearchQuery"</span>
+                        <button onclick="clearSearch()" class="ml-3 text-red-500 hover:text-red-700 transition-colors" title="Очистить поиск">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                }
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+                <span class="text-[var(--text-primary)] font-medium mr-2">Сортировка:</span>
+
+                <div class="flex">
+                    <a href="@Url.Action("AllPoems", new { sortBy = "rating", sortOrder = "asc", page = 1, searchQuery = Model.SearchQuery })"
+                       class="sort-btn @(Model.SortBy == "rating" && Model.SortOrder == "asc" ? "active" : "") rounded-l rounded-r-none border-r-0">
+                        <i class="fas fa-sort-amount-up mr-2"></i>Рейтинг ↑
+                    </a>
+                    <a href="@Url.Action("AllPoems", new { sortBy = "rating", sortOrder = "desc", page = 1, searchQuery = Model.SearchQuery })"
+                       class="sort-btn @(Model.SortBy == "rating" && Model.SortOrder == "desc" ? "active" : "") rounded-r rounded-l-none">
+                        <i class="fas fa-sort-amount-down mr-2"></i>Рейтинг ↓
+                    </a>
+                </div>
+
+                <div class="flex">
+                    <a href="@Url.Action("AllPoems", new { sortBy = "date", sortOrder = "asc", page = 1, searchQuery = Model.SearchQuery })"
+                       class="sort-btn @(Model.SortBy == "date" && Model.SortOrder == "asc" ? "active" : "") rounded-l rounded-r-none border-r-0">
+                        <i class="fas fa-sort-amount-up mr-2"></i>Дата ↑
+                    </a>
+                    <a href="@Url.Action("AllPoems", new { sortBy = "date", sortOrder = "desc", page = 1, searchQuery = Model.SearchQuery })"
+                       class="sort-btn @(Model.SortBy == "date" && Model.SortOrder == "desc" ? "active" : "") rounded-r rounded-l-none">
+                        <i class="fas fa-sort-amount-down mr-2"></i>Дата ↓
+                    </a>
+                </div>
+
+                <div class="flex">
+                    <a href="@Url.Action("AllPoems", new { sortBy = "likes", sortOrder = "asc", page = 1, searchQuery = Model.SearchQuery })"
+                       class="sort-btn @(Model.SortBy == "likes" && Model.SortOrder == "asc" ? "active" : "") rounded-l rounded-r-none border-r-0">
+                        <i class="fas fa-sort-amount-up mr-2"></i>Лайки ↑
+                    </a>
+                    <a href="@Url.Action("AllPoems", new { sortBy = "likes", sortOrder = "desc", page = 1, searchQuery = Model.SearchQuery })"
+                       class="sort-btn @(Model.SortBy == "likes" && Model.SortOrder == "desc" ? "active" : "") rounded-r rounded-l-none">
+                        <i class="fas fa-sort-amount-down mr-2"></i>Лайки ↓
+                    </a>
+                </div>
+
+                <div class="flex">
+                    <a href="@Url.Action("AllPoems", new { sortBy = "reads", sortOrder = "asc", page = 1, searchQuery = Model.SearchQuery })"
+                       class="sort-btn @(Model.SortBy == "reads" && Model.SortOrder == "asc" ? "active" : "") rounded-l rounded-r-none border-r-0">
+                        <i class="fas fa-sort-amount-up mr-2"></i>Просмотры ↑
+                    </a>
+                    <a href="@Url.Action("AllPoems", new { sortBy = "reads", sortOrder = "desc", page = 1, searchQuery = Model.SearchQuery })"
+                       class="sort-btn @(Model.SortBy == "reads" && Model.SortOrder == "desc" ? "active" : "") rounded-r rounded-l-none">
+                        <i class="fas fa-sort-amount-down mr-2"></i>Просмотры ↓
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div id="poemsContainer">
+            @await Html.PartialAsync("_PoemListPartial", Model)
+        </div>
+    </div>
+</div>
+
+<style>
+    .sort-btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        background: var(--auth-block-bg);
+        border: 1px solid var(--auth-block-border);
+        color: var(--auth-block-text);
+        font-size: 0.75rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        white-space: nowrap;
+        cursor: pointer;
+        border-radius: 6px;
+        margin: 0 2px;
+    }
+
+        .sort-btn:hover {
+            background: var(--accent-gold);
+            color: white;
+            border-color: var(--accent-gold);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(var(--accent-gold-rgb, 167, 136, 95), 0.3);
+        }
+
+        .sort-btn.active {
+            background: var(--accent-gold, #A7885F);
+            color: white;
+            border-color: var(--accent-gold, #A7885F);
+            font-weight: 600;
+            box-shadow: 0 2px 12px rgba(var(--accent-gold-rgb, 167, 136, 95), 0.4);
+        }
+
+    .pagination-btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        background: var(--auth-block-bg);
+        border: 1px solid var(--auth-block-border);
+        color: var(--auth-block-text);
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+        .pagination-btn:hover {
+            background: var(--accent-gold);
+            color: white;
+            border-color: var(--accent-gold);
+        }
+
+        .pagination-btn.active {
+            background: var(--accent-gold);
+            color: white;
+            border-color: var(--accent-gold);
+            cursor: default;
+            font-weight: 600;
+        }
+</style>
+
+@section Scripts {
+    <script>
+        // Глобальная переменная для хранения текущего поискового запроса
+        let currentSearchQuery = '@Html.Raw(HttpUtility.JavaScriptStringEncode(Model.SearchQuery))';
+
+        // Функция для обновления активных кнопок сортировки
+        function updateActiveSortButtons(sortBy, sortOrder) {
+            // Убираем активный класс у всех кнопок
+            $('.sort-btn').removeClass('active');
+
+            // Добавляем активный класс к текущей кнопке сортировки
+            $(`.sort-btn[href*="sortBy=${sortBy}"][href*="sortOrder=${sortOrder}"]`).addClass('active');
+        }
+
+        // Функция для выполнения поиска
+        function performPoemsSearch(query) {
+            currentSearchQuery = query;
+            showLoadingIndicator();
+            const urlParams = new URLSearchParams(window.location.search);
+            const sortBy = urlParams.get('sortBy') || 'rating';
+            const sortOrder = urlParams.get('sortOrder') || 'desc';
+
+            $.ajax({
+                url: '@Url.Action("SearchPoems", "Catalog")',
+                type: 'GET',
+                data: {
+                    query: query,
+                    sortBy: sortBy,
+                    sortOrder: sortOrder,
+                    page: 1
+                },
+                success: function (data) {
+                    $('#poemsContainer').html(data);
+                    updateBrowserHistory(query, sortBy, sortOrder, 1);
+                    updateActiveSortButtons(sortBy, sortOrder); // Обновляем кнопки
+                },
+                error: function () {
+                    hideLoadingIndicator();
+                    showError('Произошла ошибка при поиске. Пожалуйста, попробуйте еще раз.');
+                }
+            });
+        }
+
+        // Функция для очистки поиска
+        function clearSearch() {
+            currentSearchQuery = '';
+            performPoemsSearch('');
+            $('#mainSearchInput').val('');
+            $('#searchInputMobile').val('');
+        }
+
+        // Функция для показа индикатора загрузки
+        function showLoadingIndicator() {
+            $('#poemsContainer').html(`
+                <div class="white-block text-center py-12">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--accent-gold)] mx-auto mb-4"></div>
+                    <p class="text-[var(--auth-block-text)]">Поиск стихов...</p>
+                </div>
+            `);
+        }
+
+        function hideLoadingIndicator() { }
+
+        function showError(message) {
+            $('#poemsContainer').html(`
+                <div class="white-block text-center py-12">
+                    <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+                    <p class="text-[var(--auth-block-text)]">${message}</p>
+                </div>
+            `);
+        }
+
+        // Функция для обновления истории браузера без перезагрузки страницы
+        function updateBrowserHistory(query, sortBy, sortOrder, page) {
+            const params = new URLSearchParams();
+            if (query) params.set('searchQuery', query);
+            if (sortBy && sortBy !== 'rating') params.set('sortBy', sortBy);
+            if (sortOrder && sortOrder !== 'desc') params.set('sortOrder', sortOrder);
+            if (page && page != 1) params.set('page', page);
+
+            const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+            window.history.replaceState({ path: newUrl }, '', newUrl);
+
+            // Обновляем заголовок с поисковым запросом
+            const titleDiv = document.querySelector('.flex.flex-col');
+            if (titleDiv) {
+                let existingSearchDisplay = titleDiv.querySelector('.flex.items-center.mt-2');
+                if (existingSearchDisplay) existingSearchDisplay.remove();
+
+                if (query) {
+                    titleDiv.insertAdjacentHTML('beforeend', `
+                        <div class="flex items-center mt-2">
+                            <span class="text-[var(--text-secondary)] mr-2">Результаты поиска для:</span>
+                            <span class="text-[var(--accent-gold)] font-semibold">"${escapeHtml(query)}"</span>
+                            <button onclick="clearSearch()" class="ml-3 text-red-500 hover:text-red-700 transition-colors" title="Очистить поиск">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `);
+                }
+            }
+        }
+
+        function escapeHtml(unsafe) {
+             return unsafe
+                 .replace(/&/g, "&amp;")
+                 .replace(/</g, "&lt;")
+                 .replace(/>/g, "&gt;")
+                 .replace(/"/g, "&quot;")
+                 .replace(/'/g, "&#039;");
+        }
+
+        // Обработчик для пагинации
+        $(document).on('click', '#poemsContainer .pagination-btn', function (e) {
+            e.preventDefault();
+            if ($(this).hasClass('active') || $(this).text() === '...') return;
+
+            const pageUrl = new URL($(this).attr('href'), window.location.origin);
+            const page = pageUrl.searchParams.get('page');
+
+            if (page) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const sortBy = urlParams.get('sortBy') || 'rating';
+                const sortOrder = urlParams.get('sortOrder') || 'desc';
+
+                showLoadingIndicator();
+
+                $.ajax({
+                    url: '@Url.Action("AllPoems", "Catalog")',
+                    type: 'GET',
+                    data: {
+                        searchQuery: currentSearchQuery,
+                        sortBy: sortBy,
+                        sortOrder: sortOrder,
+                        page: page
+                    },
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    success: function (data) {
+                        $('#poemsContainer').html(data);
+                        updateBrowserHistory(currentSearchQuery, sortBy, sortOrder, page);
+                        updateActiveSortButtons(sortBy, sortOrder); // Обновляем кнопки
+                        window.scrollTo(0, 0);
+                    },
+                    error: function () {
+                        hideLoadingIndicator();
+                        showError('Ошибка при загрузке страницы.');
+                    }
+                });
+            }
+        });
+
+        // Обработчик для сортировки
+        $(document).on('click', '.sort-btn', function (e) {
+            e.preventDefault();
+            if ($(this).hasClass('active')) return;
+
+            const url = new URL($(this).attr('href'), window.location.origin);
+            const sortBy = url.searchParams.get('sortBy');
+            const sortOrder = url.searchParams.get('sortOrder');
+
+            showLoadingIndicator();
+
+            $.ajax({
+                url: '@Url.Action("AllPoems", "Catalog")',
+                type: 'GET',
+                data: {
+                    searchQuery: currentSearchQuery,
+                    sortBy: sortBy,
+                    sortOrder: sortOrder,
+                    page: 1
+                },
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function (data) {
+                    $('#poemsContainer').html(data);
+                    updateBrowserHistory(currentSearchQuery, sortBy, sortOrder, 1);
+                    updateActiveSortButtons(sortBy, sortOrder); // Обновляем кнопки
+                },
+                error: function () {
+                    hideLoadingIndicator();
+                    showError('Ошибка при применении сортировки.');
+                }
+            });
+        });
+
+        // Инициализация при загрузке страницы
+        $(document).ready(function () {
+            // Инициализируем активные кнопки при загрузке
+            const urlParams = new URLSearchParams(window.location.search);
+            const sortBy = urlParams.get('sortBy') || 'rating';
+            const sortOrder = urlParams.get('sortOrder') || 'desc';
+            updateActiveSortButtons(sortBy, sortOrder);
+
+            // Перехватываем отправку форм поиска
+            $('#mainSearchForm, #mobileSearchForm').on('submit', function (e) {
+                if (window.location.pathname.toLowerCase().includes('/catalog/allpoems')) {
+                    const query = $(this).find('input[type="text"]').val().trim();
+                    e.preventDefault();
+                    performPoemsSearch(query);
+
+                    $('#mainSearchInputWrapper').removeClass('active');
+                    $('#searchWrapperMobile').removeClass('active');
+                    $('.search-toggle-desktop').removeClass('hidden-when-active');
+                }
+            });
+
+            // Обработчик для live search
+            let searchTimeout;
+            $('#mainSearchInput, #searchInputMobile').on('input', function () {
+                if (window.location.pathname.toLowerCase().includes('/catalog/allpoems')) {
+                    clearTimeout(searchTimeout);
+                    const query = $(this).val().trim();
+
+                    if (query.length >= 2) {
+                        searchTimeout = setTimeout(() => {
+                            performPoemsSearch(query);
+                        }, 500);
+                    } else if (query.length === 0 && currentSearchQuery) {
+                        clearSearch();
+                    }
+                }
+            });
+        });
+    </script>
+}

@@ -1,4 +1,5 @@
-﻿using MajorAuthor.Data;
+﻿// Services/HomeServiceWithFactory.cs
+using MajorAuthor.Data;
 using MajorAuthor.Models;
 using MajorAuthor.Data.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -10,45 +11,33 @@ using MajorAuthor.Helpers;
 
 namespace MajorAuthor.Services
 {
-    /// <summary>
-    /// Сервис, который инкапсулирует всю логику запросов к базе данных
-    /// для главной страницы, используя фабрику DbContext для
-    /// безопасного выполнения параллельных запросов.
-    /// </summary>
-    public class HomeServiceWithFactory : IHomeService
+    public class HomeServiceWithFactory : IHomeService
     {
         private readonly IDbContextFactory<MajorAuthorDbContext> _contextFactory;
+        private readonly IRatingService _ratingService;
 
-        /// <summary>
-        /// Конструктор, который внедряет фабрику для создания контекстов.
-        /// </summary>
-        /// <param name="contextFactory">Фабрика DbContext.</param>
-        public HomeServiceWithFactory(IDbContextFactory<MajorAuthorDbContext> contextFactory)
+        public HomeServiceWithFactory(IDbContextFactory<MajorAuthorDbContext> contextFactory, IRatingService ratingService)
         {
             _contextFactory = contextFactory;
+            _ratingService = ratingService;
         }
 
-        /// <summary>
-        /// Получает все данные, необходимые для HomeViewModel,
-        /// выполняя запросы параллельно.
-        /// </summary>
-        /// <param name="userId">ID пользователя для персонализации.</param>
-        public async Task<HomeViewModel> GetHomeDataAsync(string userId)
+        public async Task<HomeViewModel> GetHomeDataAsync(string userId)
         {
             var viewModel = new HomeViewModel
             {
                 IsUserLoggedIn = !string.IsNullOrEmpty(userId)
             };
 
-            // Создаем список задач для параллельного выполнения.
-            var tasks = new List<Task>();
+            var now = DateTime.UtcNow;
+            var weekStart = GetStartOfWeek(now);
+            var monthStart = new DateTime(now.Year, now.Month, 1);
+            var yearStart = new DateTime(now.Year, 1, 1);
 
-            // Каждая задача будет создавать свой собственный, изолированный экземпляр DbContext,
-            // что позволяет избежать ошибки InvalidOperationException.
-            // Используем Task.Run для выполнения запроса в отдельном потоке из пула.
+            var tasks = new List<Task>();
 
-            // Запрос 1: Доступные жанры
-            var genresTask = Task.Run(async () =>
+            // Запрос 1: Доступные жанры
+            var genresTask = Task.Run(async () =>
             {
                 using var context = _contextFactory.CreateDbContext();
                 return await context.Genres
@@ -58,276 +47,485 @@ namespace MajorAuthor.Services
             });
             tasks.Add(genresTask);
 
-            // Запрос 2: Популярные книги
-            var popularBooksTask = Task.Run(async () =>
+            // Запрос 2: Популярные книги (общий рейтинг) - ОГРАНИЧЕНО ДО 8
+            var popularBooksTask = Task.Run(async () =>
             {
                 using var context = _contextFactory.CreateDbContext();
-                return await context.Books
+                var books = await context.Books
                   .Include(b => b.BookAuthors)
                     .ThenInclude(ba => ba.Author)
-                  .OrderByDescending(b => b.LikesCount + (double)b.ReadsCount / 10.0)
-                  .Take(10)
-                  .Select(b => new HomeViewModel.BookDisplayModel
-                  {
-                      Id = b.Id,
-                      Title = b.Title,
-                      AuthorName = b.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
-                      CoverImageUrl = b.CoverImageUrl,
-                      ReadsCount = b.ReadsCount,
-                      LikesCount = b.LikesCount,
-                      IsAdultContent = b.IsAdultContent
-                  })
+                  .Include(b => b.BookTags)
+                    .ThenInclude(t => t.Tag)
+                  .Include(b => b.BookGenres)
+                    .ThenInclude(g => g.Genre)
+                  .Where(b => b.IsPublic)
+                  .OrderByDescending(b => b.Rating)
+                  .Take(8)
                   .ToListAsync();
+
+                return books.Select(b => new HomeViewModel.BookDisplayModel
+                {
+                    Id = b.Id,
+                    Title = b.Title,
+                    AuthorName = b.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
+                    CoverImageUrl = b.CoverImageUrl,
+                    ReadsCount = b.ReadsCount,
+                    LikesCount = b.LikesCount,
+                    IsAdultContent = b.IsAdultContent,
+                    Rating = b.Rating,
+                    WeeklyRating = b.WeeklyRating,
+                    MonthlyRating = b.MonthlyRating,
+                    YearlyRating = b.YearlyRating,
+                    IsPublic = b.IsPublic,
+                    Genres = b.BookGenres.Select(bg => bg.Genre.Name).ToList(),
+                    Tags = b.BookTags.Select(bt => bt.Tag.Name).ToList(),
+                    Authors = b.BookAuthors.Select(ba => ba.Author.PenName).ToList(),
+                    Description = b.Description,
+                    PublicationDate = b.PublicationDate
+                }).ToList();
             });
             tasks.Add(popularBooksTask);
 
-            // Запрос 3: Популярные авторы
-            var popularAuthorsTask = Task.Run(async () =>
+            // Запрос 3: Популярные книги за текущую неделю - ОГРАНИЧЕНО ДО 8
+            var weeklyBooksTask = Task.Run(async () =>
             {
                 using var context = _contextFactory.CreateDbContext();
-                return await context.Authors
-                  .Select(a => new HomeViewModel.AuthorDisplayModel
-                  {
-                      Id = a.Id,
-                      Name = a.PenName,
-                      PhotoUrl = a.PhotoUrl,
-                      BooksCount = a.BookAuthors.Count(),
-                      TotalReadsCount = a.BookAuthors.Sum(ba => ba.Book.ReadsCount)
-                  })
-                  .OrderByDescending(a => a.TotalReadsCount)
-                  .Take(10)
+                var books = await context.Books
+                  .Include(b => b.BookAuthors)
+                    .ThenInclude(ba => ba.Author)
+                  .Include(b => b.BookGenres)
+                    .ThenInclude(g => g.Genre)
+                  .Include(b => b.BookTags)
+                    .ThenInclude(t => t.Tag)
+                  .Where(b => b.IsPublic)
+                  .OrderByDescending(b => b.WeeklyRating)
+                  .ThenByDescending(b => b.Rating)
+                  .Take(8)
                   .ToListAsync();
+
+                return books.Select(b => new HomeViewModel.BookDisplayModel
+                {
+                    Id = b.Id,
+                    Title = b.Title,
+                    AuthorName = b.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
+                    CoverImageUrl = b.CoverImageUrl,
+                    ReadsCount = b.ReadsCount,
+                    LikesCount = b.LikesCount,
+                    IsAdultContent = b.IsAdultContent,
+                    Rating = b.Rating,
+                    WeeklyRating = b.WeeklyRating,
+                    IsNew = b.PublicationDate >= weekStart,
+                    IsPublic = b.IsPublic,
+                    Genres = b.BookGenres.Select(bg => bg.Genre.Name).ToList(),
+                    Tags = b.BookTags.Select(bt => bt.Tag.Name).ToList(),
+                    Authors = b.BookAuthors.Select(ba => ba.Author.PenName).ToList(),
+                    Description = b.Description,
+                    PublicationDate = b.PublicationDate
+                }).ToList();
+            });
+            tasks.Add(weeklyBooksTask);
+
+            // Запрос 4: Популярные книги за текущий месяц - ОГРАНИЧЕНО ДО 8
+            var monthlyBooksTask = Task.Run(async () =>
+            {
+                using var context = _contextFactory.CreateDbContext();
+                var books = await context.Books
+                  .Include(b => b.BookAuthors)
+                    .ThenInclude(ba => ba.Author)
+                  .Include(b => b.BookTags)
+                    .ThenInclude(t => t.Tag)
+                  .Include(b => b.BookGenres)
+                    .ThenInclude(g => g.Genre)
+                  .Where(b => b.IsPublic)
+                  .OrderByDescending(b => b.MonthlyRating)
+                  .ThenByDescending(b => b.Rating)
+                  .Take(8)
+                  .ToListAsync();
+
+                return books.Select(b => new HomeViewModel.BookDisplayModel
+                {
+                    Id = b.Id,
+                    Title = b.Title,
+                    AuthorName = b.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
+                    CoverImageUrl = b.CoverImageUrl,
+                    ReadsCount = b.ReadsCount,
+                    LikesCount = b.LikesCount,
+                    IsAdultContent = b.IsAdultContent,
+                    Rating = b.Rating,
+                    MonthlyRating = b.MonthlyRating,
+                    IsPublic = b.IsPublic,
+                    Genres = b.BookGenres.Select(bg => bg.Genre.Name).ToList(),
+                    Tags = b.BookTags.Select(bt => bt.Tag.Name).ToList(),
+                    Authors = b.BookAuthors.Select(ba => ba.Author.PenName).ToList(),
+                    Description = b.Description,
+                    PublicationDate = b.PublicationDate
+                }).ToList();
+            });
+            tasks.Add(monthlyBooksTask);
+
+            // Запрос 5: Популярные книги за текущий год - ОГРАНИЧЕНО ДО 8
+            var yearlyBooksTask = Task.Run(async () =>
+            {
+                using var context = _contextFactory.CreateDbContext();
+                var books = await context.Books
+                  .Include(b => b.BookAuthors)
+                    .ThenInclude(ba => ba.Author)
+                  .Include(b => b.BookTags)
+                    .ThenInclude(t => t.Tag)
+                  .Include(b => b.BookGenres)
+                    .ThenInclude(g => g.Genre)
+                  .Where(b => b.IsPublic)
+                  .OrderByDescending(b => b.YearlyRating)
+                  .ThenByDescending(b => b.Rating)
+                  .Take(8)
+                  .ToListAsync();
+
+                return books.Select(b => new HomeViewModel.BookDisplayModel
+                {
+                    Id = b.Id,
+                    Title = b.Title,
+                    AuthorName = b.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
+                    CoverImageUrl = b.CoverImageUrl,
+                    ReadsCount = b.ReadsCount,
+                    LikesCount = b.LikesCount,
+                    IsAdultContent = b.IsAdultContent,
+                    Rating = b.Rating,
+                    YearlyRating = b.YearlyRating,
+                    IsPublic = b.IsPublic,
+                    Genres = b.BookGenres.Select(bg => bg.Genre.Name).ToList(),
+                    Tags = b.BookTags.Select(bt => bt.Tag.Name).ToList(),
+                    Authors = b.BookAuthors.Select(ba => ba.Author.PenName).ToList(),
+                    Description = b.Description,
+                    PublicationDate = b.PublicationDate
+                }).ToList();
+            });
+            tasks.Add(yearlyBooksTask);
+
+            // Запрос 6: Популярные авторы - ОГРАНИЧЕНО ДО 5
+            var popularAuthorsTask = Task.Run(async () =>
+            {
+                using var context = _contextFactory.CreateDbContext();
+                var authors = await context.Authors
+                  .Include(a => a.BookAuthors)
+                    .ThenInclude(ba => ba.Book)
+                  .Include(a => a.Poems)
+                  .Include(a => a.ApplicationUser)
+                  .ToListAsync();
+
+                var authorRatings = authors.Select(a => new
+                {
+                    Author = a,
+                    TotalBookLikes = a.BookAuthors.Sum(ba => ba.Book.LikesCount),
+                    TotalBookViews = a.BookAuthors.Sum(ba => ba.Book.ReadsCount),
+                    TotalPoemLikes = a.Poems.Sum(p => p.LikesCount),
+                    TotalPoemViews = a.Poems.Sum(p => p.ViewsCount)
+                })
+                .Select(x => new HomeViewModel.AuthorDisplayModel
+                {
+                    Id = x.Author.Id,
+                    Name = x.Author.PenName,
+                    PhotoUrl = x.Author.ApplicationUser.ProfilePictureUrl,
+                    BooksCount = x.Author.BookAuthors.Count(),
+                    TotalReadsCount = x.TotalBookViews + x.TotalPoemViews,
+                    TotalLikesCount = x.TotalBookLikes + x.TotalPoemLikes,
+                    Rating = _ratingService.CalculateGlobalRating(
+                        x.TotalBookLikes + x.TotalPoemLikes,
+                        x.TotalBookViews + x.TotalPoemViews
+                    ),
+                    IsNew = x.Author.AuthorProfileCreationDate >= monthStart
+                })
+                .OrderByDescending(a => a.Rating)
+                .Take(5)
+                .ToList();
+
+                return authorRatings;
             });
             tasks.Add(popularAuthorsTask);
 
-            // Запрос 4: Недавно обновленные книги
-            var recentlyUpdatedBooksTask = Task.Run(async () =>
+            // Запрос 7: Популярные стихи (общий рейтинг) - ОГРАНИЧЕНО ДО 5
+            var popularPoemsTask = Task.Run(async () =>
             {
                 using var context = _contextFactory.CreateDbContext();
-                return await context.Books
-                  .Include(b => b.BookAuthors)
-                    .ThenInclude(ba => ba.Author)
-                  .Where(b => b.LastUpdateTime >= DateTime.UtcNow.AddDays(-7))
-                  .OrderByDescending(b => b.LastUpdateTime)
-                  .Take(10)
-                  .Select(b => new HomeViewModel.BookDisplayModel
-                  {
-                      Id = b.Id,
-                      Title = b.Title,
-                      AuthorName = b.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
-                      CoverImageUrl = b.CoverImageUrl,
-                      UpdateInfo = TimeHelper.GetRelativeTime(b.LastUpdateTime),
-                      ReadsCount = b.ReadsCount,
-                      LikesCount = b.LikesCount
-                  })
-                  .ToListAsync();
-            });
-            tasks.Add(recentlyUpdatedBooksTask);
-
-            // Запрос 5: Новые популярные книги
-            var newPopularBooksTask = Task.Run(async () =>
-            {
-                using var context = _contextFactory.CreateDbContext();
-                return await context.Books
-                  .Include(b => b.BookAuthors)
-                    .ThenInclude(ba => ba.Author)
-                  .Where(b => b.PublicationDate >= DateTime.UtcNow.AddDays(-30))
-                  .OrderByDescending(b => b.LikesCount + (double)b.ReadsCount / 5.0)
-                  .Take(10)
-                  .Select(b => new HomeViewModel.BookDisplayModel
-                  {
-                      Id = b.Id,
-                      Title = b.Title,
-                      AuthorName = b.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
-                      CoverImageUrl = b.CoverImageUrl,
-                      ReadsCount = b.ReadsCount,
-                      LikesCount = b.LikesCount
-                  })
-                  .ToListAsync();
-            });
-            tasks.Add(newPopularBooksTask);
-
-            // Запрос 6: Новые популярные авторы
-            var newPopularAuthorsTask = Task.Run(async () =>
-            {
-                using var context = _contextFactory.CreateDbContext();
-                return await context.Authors
-                  .Where(a => a.AuthorProfileCreationDate >= DateTime.UtcNow.AddDays(-90))
-                  .Select(a => new HomeViewModel.AuthorDisplayModel
-                  {
-                      Id = a.Id,
-                      Name = a.PenName,
-                      PhotoUrl = a.PhotoUrl,
-                      RegistrationInfo = TimeHelper.GetRelativeTime(a.AuthorProfileCreationDate),
-                      TotalReadsCount = a.BookAuthors.Sum(ba => ba.Book.ReadsCount)
-                  })
-                  .OrderByDescending(a => a.TotalReadsCount)
-                  .Take(10)
-                  .ToListAsync();
-            });
-            tasks.Add(newPopularAuthorsTask);
-
-            // Запрос 7: Продвигающиеся книги
-            var promotedBooksTask = Task.Run(async () =>
-            {
-                using var context = _contextFactory.CreateDbContext();
-                return await context.Promotions
-                  .Include(p => p.Book)
-                    .ThenInclude(b => b.BookAuthors)
-                      .ThenInclude(ba => ba.Author)
-                  .Where(p => p.StartDate <= DateTime.UtcNow && p.EndDate >= DateTime.UtcNow)
-                  .Select(p => new HomeViewModel.BookDisplayModel
-                  {
-                      Id = p.Book.Id,
-                      Title = p.Book.Title,
-                      AuthorName = p.Book.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
-                      CoverImageUrl = p.Book.CoverImageUrl,
-                      ReadsCount = p.Book.ReadsCount,
-                      LikesCount = p.Book.LikesCount,
-                      IsAdultContent = p.Book.IsAdultContent
-                  })
-                  .ToListAsync();
-            });
-            tasks.Add(promotedBooksTask);
-
-            // НОВЫЙ Запрос 8: Популярные стихи
-            var popularPoemsTask = Task.Run(async () =>
-            {
-                using var context = _contextFactory.CreateDbContext();
-                return await context.Poems
+                var poems = await context.Poems
                   .Include(p => p.Author)
-                  .OrderByDescending(p => p.LikesCount + (double)p.ViewsCount / 5.0)
-                  .Take(10)
-                  .Select(p => new HomeViewModel.PoemDisplayModel
-                  {
-                      Id = p.Id,
-                      Title = p.Title,
-                      AuthorName = p.Author.PenName,
-                      ContentSnippet = p.Content.Length > 100 ? p.Content.Substring(0, 100) : p.Content,
-                      ReadsCount = p.ViewsCount,
-                      LikesCount = p.LikesCount,
-                      CommentsCount = p.Comments.Count()
-                  })
+                  .OrderByDescending(p => p.Rating)
+                  .Take(5)
                   .ToListAsync();
+
+                return poems.Select(p => new HomeViewModel.PoemDisplayModel
+                {
+                    Id = p.Id,
+                    Title = p.Title,
+                    AuthorName = p.Author.PenName,
+                    ContentSnippet = p.Content.Length > 100 ? p.Content.Substring(0, 100) + "..." : p.Content,
+                    ReadsCount = p.ViewsCount,
+                    LikesCount = p.LikesCount,
+                    CommentsCount = p.Comments.Count,
+                    Rating = p.Rating,
+                    WeeklyRating = p.WeeklyRating,
+                    MonthlyRating = p.MonthlyRating,
+                    YearlyRating = p.YearlyRating,
+                    IsNew = p.PublicationDate >= weekStart
+                }).ToList();
             });
             tasks.Add(popularPoemsTask);
 
-            // НОВЫЙ Запрос 9: Новые стихи
-            var newPoemsTask = Task.Run(async () =>
+            // Запрос 8: Популярные стихи за текущую неделю - ОГРАНИЧЕНО ДО 5
+            var weeklyPoemsTask = Task.Run(async () =>
             {
                 using var context = _contextFactory.CreateDbContext();
-                return await context.Poems
+                var poems = await context.Poems
                   .Include(p => p.Author)
-                  .Where(p => p.PublicationDate >= DateTime.UtcNow.AddDays(-1))
-                  .OrderByDescending(p => p.PublicationDate)
-                  .Take(10)
-                  .Select(p => new HomeViewModel.PoemDisplayModel
-                  {
-                      Id = p.Id,
-                      Title = p.Title,
-                      AuthorName = p.Author.PenName,
-                      ContentSnippet = p.Content.Length > 100 ? p.Content.Substring(0, 100) : p.Content,
-                      CreationInfo = TimeHelper.GetRelativeTime(p.PublicationDate)
-                  })
+                  .OrderByDescending(p => p.WeeklyRating)
+                  .ThenByDescending(p => p.Rating)
+                  .Take(5)
                   .ToListAsync();
+
+                return poems.Select(p => new HomeViewModel.PoemDisplayModel
+                {
+                    Id = p.Id,
+                    Title = p.Title,
+                    AuthorName = p.Author.PenName,
+                    ContentSnippet = p.Content.Length > 100 ? p.Content.Substring(0, 100) + "..." : p.Content,
+                    ReadsCount = p.ViewsCount,
+                    LikesCount = p.LikesCount,
+                    Rating = p.Rating,
+                    WeeklyRating = p.WeeklyRating,
+                    IsNew = p.PublicationDate >= weekStart
+                }).ToList();
+            });
+            tasks.Add(weeklyPoemsTask);
+
+            // Запрос 9: Популярные стихи за текущий месяц - ОГРАНИЧЕНО ДО 5
+            var monthlyPoemsTask = Task.Run(async () =>
+            {
+                using var context = _contextFactory.CreateDbContext();
+                var poems = await context.Poems
+                  .Include(p => p.Author)
+                  .OrderByDescending(p => p.MonthlyRating)
+                  .ThenByDescending(p => p.Rating)
+                  .Take(5)
+                  .ToListAsync();
+
+                return poems.Select(p => new HomeViewModel.PoemDisplayModel
+                {
+                    Id = p.Id,
+                    Title = p.Title,
+                    AuthorName = p.Author.PenName,
+                    ContentSnippet = p.Content.Length > 100 ? p.Content.Substring(0, 100) + "..." : p.Content,
+                    ReadsCount = p.ViewsCount,
+                    LikesCount = p.LikesCount,
+                    Rating = p.Rating,
+                    MonthlyRating = p.MonthlyRating,
+                    IsNew = p.PublicationDate >= monthStart
+                }).ToList();
+            });
+            tasks.Add(monthlyPoemsTask);
+
+            // Запрос 10: Новые стихи - ОГРАНИЧЕНО ДО 5
+            var newPoemsTask = Task.Run(async () =>
+            {
+                using var context = _contextFactory.CreateDbContext();
+                var poems = await context.Poems
+                  .Include(p => p.Author)
+                  .Where(p => p.PublicationDate >= DateTime.UtcNow.AddDays(-7))
+                  .OrderByDescending(p => p.PublicationDate)
+                  .Take(5)
+                  .ToListAsync();
+
+                return poems.Select(p => new HomeViewModel.PoemDisplayModel
+                {
+                    Id = p.Id,
+                    Title = p.Title,
+                    AuthorName = p.Author.PenName,
+                    ContentSnippet = p.Content.Length > 100 ? p.Content.Substring(0, 100) + "..." : p.Content,
+                    CreationInfo = TimeHelper.GetRelativeTime(p.PublicationDate),
+                    ReadsCount = p.ViewsCount,
+                    LikesCount = p.LikesCount,
+                    Rating = p.Rating
+                }).ToList();
             });
             tasks.Add(newPoemsTask);
 
-            // НОВЫЙ Запрос 10: Популярные блоги
-            var popularBlogsTask = Task.Run(async () =>
+            // Запрос 11: Популярные блоги - ОГРАНИЧЕНО ДО 5
+            var popularBlogsTask = Task.Run(async () =>
             {
                 using var context = _contextFactory.CreateDbContext();
-                return await context.Blogs
+                var blogs = await context.Blogs
                   .Include(b => b.Author)
                   .Include(b => b.Comments)
-                  .OrderByDescending(b => b.LikesCount * 1.5 + b.ViewsCount * 1 + b.Comments.Count() * 3)
-                  .Take(10)
-                  .Select(b => new HomeViewModel.BlogDisplayModel
-                  {
-                      Id = b.Id,
-                      Title = b.Title,
-                      AuthorName = b.Author.PenName,
-                      ContentSnippet = b.Content.Length > 100 ? b.Content.Substring(0, 100) : b.Content,
-                      LikesCount = b.LikesCount,
-                      ViewsCount = b.ViewsCount,
-                      CommentsCount = b.Comments.Count
-                  })
+                  .OrderByDescending(b => b.Rating)
+                  .Take(5)
                   .ToListAsync();
+
+                return blogs.Select(b => new HomeViewModel.BlogDisplayModel
+                {
+                    Id = b.Id,
+                    Title = b.Title,
+                    AuthorName = b.Author.PenName,
+                    ContentSnippet = b.Content.Length > 100 ? b.Content.Substring(0, 100) + "..." : b.Content,
+                    LikesCount = b.LikesCount,
+                    ViewsCount = b.ViewsCount,
+                    CommentsCount = b.Comments.Count,
+                    Rating = b.Rating,
+                    WeeklyRating = b.WeeklyRating,
+                    MonthlyRating = b.MonthlyRating
+                }).ToList();
             });
             tasks.Add(popularBlogsTask);
 
-            // Если пользователь авторизован, добавляем запрос на рекомендации
-            if (!string.IsNullOrEmpty(userId))
+            // Запрос 12: Недавно обновленные книги - ОГРАНИЧЕНО ДО 8
+            var recentlyUpdatedBooksTask = Task.Run(async () =>
+            {
+                using var context = _contextFactory.CreateDbContext();
+                var books = await context.Books
+                  .Include(b => b.BookAuthors)
+                    .ThenInclude(ba => ba.Author)
+                  .Include(b => b.BookTags)
+                    .ThenInclude(t => t.Tag)
+                  .Include(b => b.BookGenres)
+                    .ThenInclude(g => g.Genre)
+                  .Where(b => b.LastUpdateTime >= DateTime.UtcNow.AddDays(-7) && b.IsPublic)
+                  .OrderByDescending(b => b.LastUpdateTime)
+                  .Take(8)
+                  .ToListAsync();
+
+                return books.Select(b => new HomeViewModel.BookDisplayModel
+                {
+                    Id = b.Id,
+                    Title = b.Title,
+                    AuthorName = b.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
+                    CoverImageUrl = b.CoverImageUrl,
+                    UpdateInfo = TimeHelper.GetRelativeTime(b.LastUpdateTime),
+                    ReadsCount = b.ReadsCount,
+                    LikesCount = b.LikesCount,
+                    Rating = b.Rating,
+                    IsPublic = b.IsPublic,
+                    Genres = b.BookGenres.Select(bg => bg.Genre.Name).ToList(),
+                    Tags = b.BookTags.Select(bt => bt.Tag.Name).ToList(),
+                    Authors = b.BookAuthors.Select(ba => ba.Author.PenName).ToList(),
+                    Description = b.Description,
+                    PublicationDate = b.PublicationDate
+                }).ToList();
+            });
+            tasks.Add(recentlyUpdatedBooksTask);
+
+            // Запрос 13: Продвигаемые книги - ОГРАНИЧЕНО ДО 8
+            var promotedBooksTask = Task.Run(async () =>
+            {
+                using var context = _contextFactory.CreateDbContext();
+                var promotions = await context.Promotions
+                  .Include(p => p.Book)
+                    .ThenInclude(b => b.BookTags)
+                    .ThenInclude(t => t.Tag)
+                  .Include(p => p.Book)
+                    .ThenInclude(b => b.BookAuthors)
+                      .ThenInclude(ba => ba.Author)
+                  .Include(p => p.Book)
+                    .ThenInclude(b => b.BookGenres)
+                    .ThenInclude(g => g.Genre)
+                  .Where(p => p.StartDate <= DateTime.UtcNow && p.EndDate >= DateTime.UtcNow && p.Book.IsPublic)
+                  .Take(8)
+                  .ToListAsync();
+
+                return promotions.Select(p => new HomeViewModel.BookDisplayModel
+                {
+                    Id = p.Book.Id,
+                    Title = p.Book.Title,
+                    AuthorName = p.Book.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
+                    CoverImageUrl = p.Book.CoverImageUrl,
+                    ReadsCount = p.Book.ReadsCount,
+                    LikesCount = p.Book.LikesCount,
+                    IsAdultContent = p.Book.IsAdultContent,
+                    Rating = p.Book.Rating,
+                    IsPublic = p.Book.IsPublic,
+                    Genres = p.Book.BookGenres.Select(bg => bg.Genre.Name).ToList(),
+                    Tags = p.Book.BookTags.Select(bt => bt.Tag.Name).ToList(),
+                    Authors = p.Book.BookAuthors.Select(ba => ba.Author.PenName).ToList(),
+                    Description = p.Book.Description,
+                    PublicationDate = p.Book.PublicationDate
+                }).ToList();
+            });
+            tasks.Add(promotedBooksTask);
+
+            // Если пользователь авторизован, добавляем запрос на рекомендации - ОГРАНИЧЕНО ДО 8
+            if (!string.IsNullOrEmpty(userId))
             {
                 var recommendedBooksTask = Task.Run(async () =>
                 {
-                    using var context = _contextFactory.CreateDbContext();
                     return await GetRecommendedBooksAsync(userId);
                 });
                 tasks.Add(recommendedBooksTask);
             }
 
-            // Ожидаем завершения всех задач
-            await Task.WhenAll(tasks);
+            // Ожидаем завершения всех задач
+            await Task.WhenAll(tasks);
 
-            // Заполняем ViewModel данными из завершенных задач.
-            // Поскольку мы уверены, что все задачи завершились, обращение к .Result безопасно.
-            viewModel.AvailableGenres = genresTask.Result;
+            // Заполняем ViewModel данными из завершенных задач
+            viewModel.AvailableGenres = genresTask.Result;
             viewModel.PopularBooks = popularBooksTask.Result;
+            viewModel.WeeklyPopularBooks = weeklyBooksTask.Result;
+            viewModel.MonthlyPopularBooks = monthlyBooksTask.Result;
+            viewModel.YearlyPopularBooks = yearlyBooksTask.Result;
             viewModel.PopularAuthors = popularAuthorsTask.Result;
-            viewModel.RecentlyUpdatedBooks = recentlyUpdatedBooksTask.Result;
-            viewModel.NewPopularBooks = newPopularBooksTask.Result;
-            viewModel.NewPopularAuthors = newPopularAuthorsTask.Result;
-            viewModel.PromotedBooks = promotedBooksTask.Result;
             viewModel.PopularPoems = popularPoemsTask.Result;
+            viewModel.WeeklyPopularPoems = weeklyPoemsTask.Result;
+            viewModel.MonthlyPopularPoems = monthlyPoemsTask.Result;
             viewModel.NewPoems = newPoemsTask.Result;
             viewModel.PopularBlogs = popularBlogsTask.Result;
+            viewModel.RecentlyUpdatedBooks = recentlyUpdatedBooksTask.Result;
+            viewModel.PromotedBooks = promotedBooksTask.Result;
 
-            if (tasks.Count > 10) // Если был добавлен запрос на рекомендации
-            {
+            if (!string.IsNullOrEmpty(userId))
+            {
                 viewModel.RecommendedBooks = ((Task<List<HomeViewModel.BookDisplayModel>>)tasks.Last()).Result;
             }
 
             return viewModel;
         }
 
-        /// <summary>
-        /// Получает список книг по ID жанра.
-        /// </summary>
-        /// <param name="genreId">ID жанра.</param>
-        public async Task<List<HomeViewModel.BookDisplayModel>> GetBooksByGenreAsync(int genreId)
+        private DateTime GetStartOfWeek(DateTime dt)
         {
-            using var context = _contextFactory.CreateDbContext();
-            return await context.Books
-              .Include(b => b.BookAuthors)
-                .ThenInclude(ba => ba.Author)
-              .Where(b => b.BookGenres.Any(bg => bg.GenreId == genreId))
-              .OrderByDescending(b => b.PublicationDate)
-              .Take(10)
-              .Select(b => new HomeViewModel.BookDisplayModel
-              {
-                  Id = b.Id,
-                  Title = b.Title,
-                  AuthorName = b.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
-                  CoverImageUrl = b.CoverImageUrl,
-                  ReadsCount = b.ReadsCount,
-                  LikesCount = b.LikesCount,
-                  IsAdultContent = b.IsAdultContent
-              })
-              .ToListAsync();
+            int diff = (7 + (dt.DayOfWeek - DayOfWeek.Monday)) % 7;
+            return dt.AddDays(-1 * diff).Date;
         }
 
-        /// <summary>
-        /// Внутренний метод для получения рекомендаций.
-        /// </summary>
-        /// <param name="userId">ID пользователя.</param>
-        private async Task<List<HomeViewModel.BookDisplayModel>> GetRecommendedBooksAsync(string userId)
+        public async Task<List<HomeViewModel.BookDisplayModel>> GetBooksByGenreAsync(int genreId)
         {
-            // Здесь мы намеренно не создаем новый контекст, так как этот метод
-            // вызывается из GetHomeDataAsync, где уже создан отдельный контекст.
-            // Это демонстрирует, что фабрика позволяет создавать контексты в
-            // любом месте, где это необходимо.
-            using var context = _contextFactory.CreateDbContext();
+            using var context = _contextFactory.CreateDbContext();
+            var books = await context.Books
+              .Include(b => b.BookAuthors)
+                .ThenInclude(ba => ba.Author)
+              .Include(b => b.BookGenres)
+                .ThenInclude(g => g.Genre)
+              .Include(b => b.BookTags)
+                .ThenInclude(t => t.Tag)
+              .Where(b => b.BookGenres.Any(bg => bg.GenreId == genreId) && b.IsPublic)
+              .OrderByDescending(b => b.Rating)
+              .Take(8)
+              .ToListAsync();
+
+            return books.Select(b => new HomeViewModel.BookDisplayModel
+            {
+                Id = b.Id,
+                Title = b.Title,
+                AuthorName = b.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
+                CoverImageUrl = b.CoverImageUrl,
+                ReadsCount = b.ReadsCount,
+                LikesCount = b.LikesCount,
+                IsAdultContent = b.IsAdultContent,
+                Rating = b.Rating,
+                Description = b.Description,
+                PublicationDate = b.PublicationDate,
+                Genres = b.BookGenres.Select(bg => bg.Genre.Name).ToList(),
+                Tags = b.BookTags.Select(bt => bt.Tag.Name).ToList(),
+                Authors = b.BookAuthors.Select(ba => ba.Author.PenName).ToList()
+            }).ToList();
+        }
+
+        private async Task<List<HomeViewModel.BookDisplayModel>> GetRecommendedBooksAsync(string userId)
+        {
+            using var context = _contextFactory.CreateDbContext();
 
             var userPreferredGenreIds = await context.UserPreferredGenres
               .Where(upg => upg.ApplicationUserId == userId)
@@ -339,28 +537,68 @@ namespace MajorAuthor.Services
               .Select(upt => upt.TagId)
               .ToListAsync();
 
-            return await context.Books
+            var books = await context.Books
               .Include(b => b.BookAuthors)
                 .ThenInclude(ba => ba.Author)
               .Include(b => b.BookGenres)
+                .ThenInclude(g => g.Genre)
               .Include(b => b.BookTags)
-              .Where(b => b.BookGenres.Any(bg => userPreferredGenreIds.Contains(bg.GenreId)) ||
-                    b.BookTags.Any(bt => userPreferredTagIds.Contains(bt.TagId)))
-              .OrderByDescending(b => b.LikesCount + (double)b.ReadsCount)
-              .Take(10)
-              .Select(b => new HomeViewModel.BookDisplayModel
-              {
-                  Id = b.Id,
-                  Title = b.Title,
-                  AuthorName = b.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
-                  CoverImageUrl = b.CoverImageUrl,
-                  ReadsCount = b.ReadsCount,
-                  LikesCount = b.LikesCount,
-                  IsAdultContent = b.IsAdultContent,
-                  RecommendationReason = (b.BookGenres.Any(bg => userPreferredGenreIds.Contains(bg.GenreId)) ? "Потому что вы любите этот жанр" : "") +
-                           (b.BookTags.Any(bt => userPreferredTagIds.Contains(bt.TagId)) ? " и этот тег" : "")
-              })
+                .ThenInclude(t => t.Tag)
+              .Where(b => b.IsPublic && (b.BookGenres.Any(bg => userPreferredGenreIds.Contains(bg.GenreId)) ||
+                    b.BookTags.Any(bt => userPreferredTagIds.Contains(bt.TagId))))
+              .Take(8)
               .ToListAsync();
+
+            return books.Select(b => new HomeViewModel.BookDisplayModel
+            {
+                Id = b.Id,
+                Title = b.Title,
+                AuthorName = b.BookAuthors.Select(ba => ba.Author.PenName).FirstOrDefault() ?? "Неизвестен",
+                CoverImageUrl = b.CoverImageUrl,
+                ReadsCount = b.ReadsCount,
+                LikesCount = b.LikesCount,
+                IsAdultContent = b.IsAdultContent,
+                Rating = b.Rating,
+                IsPublic = b.IsPublic,
+                Description = b.Description,
+                PublicationDate = b.PublicationDate,
+                Genres = b.BookGenres.Select(bg => bg.Genre.Name).ToList(),
+                Tags = b.BookTags.Select(bt => bt.Tag.Name).ToList(),
+                Authors = b.BookAuthors.Select(ba => ba.Author.PenName).ToList()
+            })
+            .OrderByDescending(b => b.Rating)
+            .Take(8)
+            .ToList();
+        }
+
+        public async Task<IEnumerable<HomeViewModel.PoemDisplayModel>> GetPopularPoemsForPeriodAsync(string period)
+        {
+            using var context = _contextFactory.CreateDbContext();
+
+            IQueryable<Poem> query = context.Poems.Include(p => p.Author);
+
+            query = period.ToLower() switch
+            {
+                "month" => query.OrderByDescending(p => p.MonthlyRating),
+                "year" => query.OrderByDescending(p => p.YearlyRating),
+                _ => query.OrderByDescending(p => p.WeeklyRating), // "week" по умолчанию
+            };
+
+            var poems = await query.Take(5).ToListAsync();
+
+            return poems.Select(p => new HomeViewModel.PoemDisplayModel
+            {
+                Id = p.Id,
+                Title = p.Title,
+                AuthorName = p.Author.PenName,
+                ContentSnippet = p.Content.Length > 100 ? p.Content.Substring(0, 100) + "..." : p.Content,
+                ReadsCount = p.ViewsCount,
+                LikesCount = p.LikesCount,
+                Rating = p.Rating,
+                WeeklyRating = p.WeeklyRating,
+                MonthlyRating = p.MonthlyRating,
+                YearlyRating = p.YearlyRating
+            });
         }
     }
 }

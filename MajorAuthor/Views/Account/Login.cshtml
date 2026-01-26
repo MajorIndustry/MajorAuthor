@@ -1,109 +1,466 @@
 ﻿@model MajorAuthor.Models.LoginViewModel
+@using MajorAuthor.Models
 @{
-    // Указываем, что это представление использует _Layout.cshtml
     Layout = "_Layout";
     ViewData["Title"] = "Вход";
+
+    var jsReturnUrl = Url.Content(Model.ReturnUrl ?? "~/").Replace("'", "\\'");
 }
 
-<h1 class="text-4xl font-bold text-center mb-10 section-title">@ViewData["Title"]</h1>
+<div class="min-h-screen custom-bg flex items-start sm:items-center justify-center py-8 px-4">
+    <div class="w-full max-w-md p-6 rounded-2xl white-block">
+        <!-- Заголовок -->
+        <header class="text-center mb-6">
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold section-title decorative-title">
+                @ViewData["Title"]
+            </h1>
+        </header>
 
-<div class="flex flex-col md:flex-row justify-center items-center gap-8">
-    <div class="md:w-1/2 p-6 rounded-lg border shadow-xl card">
-        <section>
-            <form asp-controller="Account" asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl" method="post">
-                <h2 class="text-2xl font-semibold mb-4 section-title">Войти с помощью аккаунта</h2>
-                <hr />
-                <div asp-validation-summary="All" class="text-red-600 font-bold mb-4" role="alert"></div>
+        <!-- Вывод общих ошибок -->
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                <div asp-validation-summary="All" class="text-sm"></div>
+            </div>
+        }
 
-                @* НОВОЕ: Отображение сообщений из TempData *@
-                @if (ViewData.ModelState.ContainsKey(string.Empty) && ViewData.ModelState[string.Empty].Errors.Any())
+        <!-- Блок внешней авторизации -->
+        <div class="mb-6">
+            <p class="text-sm text-center mb-4">С помощью соцсетей</p>
+            <div class="flex items-center justify-center gap-4">
+                @if ((Model.ExternalLogins?.Count ?? 0) == 0)
                 {
-                    <div class="text-green-600 font-bold mb-4" role="alert">
-                        @foreach (var error in ViewData.ModelState[string.Empty].Errors)
-                        {
-                            <p>@error.ErrorMessage</p>
-                        }
-                    </div>
-                }
-
-                <div class="mb-4">
-                    <label asp-for="Email" class="block text-sm font-medium text-themed-label"></label>
-                    <input asp-for="Email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-accent-gold focus:ring-accent-gold dark:bg-gray-700 dark:text-gray-100" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                    <span asp-validation-for="Email" class="text-red-600 text-xs mt-1"></span>
-                </div>
-                <div class="mb-4">
-                    <label asp-for="Password" class="block text-sm font-medium text-themed-label"></label>
-                    <input asp-for="Password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-accent-gold focus:ring-accent-gold dark:bg-gray-700 dark:text-gray-100" autocomplete="current-password" aria-required="true" placeholder="password" />
-                    <span asp-validation-for="Password" class="text-red-600 text-xs mt-1"></span>
-                </div>
-                <div class="mb-4">
-                    <div class="flex items-center">
-                        <input asp-for="RememberMe" class="h-4 w-4 text-accent-gold border-gray-300 rounded focus:ring-accent-gold" />
-                        <label asp-for="RememberMe" class="ml-2 block text-sm text-themed-label"></label>
-                    </div>
-                </div>
-                <div>
-                    <button type="submit" class="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-accent-gold hover:bg-accent-light focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent-gold transition-colors">Войти</button>
-                </div>
-                <div class="mt-4 text-center">
-                    <p class="text-sm text-themed-label">
-                        <a asp-controller="Account" asp-action="ForgotPassword" class="text-accent-gold hover:underline">Забыли пароль?</a>
-                    </p>
-                    <p class="text-sm text-themed-label">
-                        <a asp-controller="Account" asp-action="Register" asp-route-returnUrl="@Model.ReturnUrl" class="text-accent-gold hover:underline">Зарегистрироваться как новый пользователь</a>
-                    </p>
-                    <p class="text-sm text-themed-label">
-                        <a asp-controller="Account" asp-action="ResendEmailConfirmation" class="text-accent-gold hover:underline">Отправить повторное подтверждение Email</a>
-                    </p>
-                </div>
-            </form>
-        </section>
-    </div>
-    <div class="md:w-1/2 p-6 rounded-lg border shadow-xl card">
-        <section>
-            <h2 class="text-2xl font-semibold mb-4 section-title">Войти с помощью другого сервиса</h2>
-            <hr />
-            @{
-                if ((Model.ExternalLogins?.Count ?? 0) == 0)
-                {
-                    <p class="text-sm text-themed-label">
-                        На данный момент нет настроенных внешних сервисов аутентификации.
-                    </p>
+                    <span class="text-sm">Внешние провайдеры не настроены.</span>
                 }
                 else
                 {
-                    <form asp-controller="Account" asp-action="ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="mt-4">
-                        <div>
-                            <p>
-                                @foreach (var provider in Model.ExternalLogins)
+                    @foreach (var provider in Model.ExternalLogins)
+                    {
+                        <button type="button"
+                                data-provider="@provider.Name"
+                                class="external-login-btn w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-105 social-btn-bg"
+                                title="Войти через @provider.DisplayName"
+                                aria-label="Войти через @provider.DisplayName">
+
+                            @if (provider.DisplayName == "Google")
+                            {
+                                <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                    <path fill="#EA4335" d="M24 9.5c3.5 0 6.4 1.3 8.4 2.4l6.1-6.1C34.6 3 29.7 1 24 1 14.8 1 6.9 6.2 3 13.7l7.3 5.6C12.8 13 17.9 9.5 24 9.5z" />
+                                    <path fill="#34A853" d="M46.5 24.5c0-1.5-.1-2.5-.4-3.7H24v7h12.6c-.6 3.1-2.6 6-6.1 7.7l7.4 5.8C43.6 37.6 46.5 31.7 46.5 24.5z" />
+                                    <path fill="#4A90E2" d="M10.3 29.3A14.4 14.4 0 0 1 9 24.5c0-1.7.3-3.4.9-4.9L3.5 13.9A23.9 23.9 0 0 0 1 24.5c0 3.7.9 7.2 2.5 10.3l6.8-5.5z" />
+                                    <path fill="#FBBC05" d="M24 46c6 0 11.1-2 15-5.5l-7.4-5.8c-2 1.5-4.6 2.4-7.6 2.4-6.2 0-11.3-3.5-13.7-8.6L3 34.3C6.9 41.8 14.8 47 24 47z" />
+                                </svg>
+                            }
+                            else if (provider.DisplayName == "Yandex")
+                            {
+                                <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="yandex-icon">
+                                    <circle cx="12" cy="12" r="10" class="yandex-circle" />
+                                    <text x="12" y="16" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="12" class="yandex-text">Я</text>
+                                </svg>
+                            }
+                            else
+                            {
+                                @if (!string.IsNullOrEmpty(provider.DisplayName))
                                 {
-                                    <button type="submit" class="w-full py-2 px-4 mb-3 border border-transparent rounded-md shadow-sm text-sm font-medium text-white
-                                            @if (provider.DisplayName == "Google")
-                                            {
-                                                        <text>bg-red-500 hover:bg-red-600</text>
-                                                }
-                                                else if (provider.DisplayName == "Yandex")
-                                                {
-                                                        <text>bg-yellow-500 hover:bg-yellow-600</text>
-                                                }
-                                                else
-                                                {
-                                                        <text>bg-gray-500 hover:bg-gray-600</text>
-                                                }
-                                                focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors"
-                                                        name="provider" value="@provider.Name" title="Войти через @provider.DisplayName">
-                                                    Войти через @provider.DisplayName
-                                                </button>
+                                    <span class="text-white">@provider.DisplayName[0]</span>
                                 }
-                            </p>
-                        </div>
-                    </form>
+                                else
+                                {
+                                    <span class="text-white">?</span>
+                                }
+                            }
+                        </button>
+                    }
                 }
-            }
-        </section>
+            </div>
+        </div>
+
+        <!-- Разделитель -->
+        <div class="flex items-center gap-3 mb-6">
+            <div class="flex-1 border-t border-[var(--border-color)]"></div>
+            <div class="text-xs">или</div>
+            <div class="flex-1 border-t border-[var(--border-color)]"></div>
+        </div>
+
+        <!-- Форма входа -->
+        <form asp-controller="Account" asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl" method="post" class="space-y-6">
+            @Html.AntiForgeryToken()
+
+            <div>
+                <label asp-for="Email" class="block text-sm font-medium mb-2">Почта</label>
+                <input asp-for="Email" type="email" class="auth-input w-full rounded-lg px-4 py-3"
+                       autocomplete="email" aria-required="true" placeholder="name@example.com"
+                       inputmode="email" />
+                <span asp-validation-for="Email" class="validation-error"></span>
+            </div>
+
+            <div>
+                <label asp-for="Password" class="block text-sm font-medium mb-2">Пароль</label>
+                <input asp-for="Password" type="password" class="auth-input w-full rounded-lg px-4 py-3"
+                       autocomplete="current-password" aria-required="true" placeholder="Введите пароль" />
+                <span asp-validation-for="Password" class="validation-error"></span>
+            </div>
+
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <input asp-for="RememberMe" class="h-4 w-4 text-[var(--accent-gold)] border-[var(--border-color)] rounded focus:ring-[var(--accent-gold)] bg-[var(--bg-secondary)]" />
+                    <label asp-for="RememberMe" class="ml-2 block text-sm">Запомнить меня</label>
+                </div>
+                <div>
+                    <a asp-controller="Account" asp-action="ForgotPassword" class="text-sm text-[var(--accent-gold)] hover:underline transition-colors">Забыли пароль?</a>
+                </div>
+            </div>
+
+            <div>
+                <button type="submit" class="auth-btn-primary w-full py-3 rounded-lg font-semibold">Войти</button>
+            </div>
+
+            <div class="text-center space-y-2">
+                <p class="text-sm">Всё ещё нет аккаунта? <a asp-controller="Account" asp-action="Register" class="text-[var(--accent-gold)] hover:underline transition-colors">Зарегистрироваться</a></p>
+                <p class="text-xs">Если вы не получили письмо с подтверждением, вы можете <a asp-controller="Account" asp-action="ResendEmailConfirmation" class="text-[var(--accent-gold)] hover:underline transition-colors">отправить его повторно</a>.</p>
+            </div>
+        </form>
+
     </div>
 </div>
 
+<!-- Модальное окно для внешней регистрации -->
+<div id="externalLoginEmailModal" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-labelledby="external-modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-center justify-center min-h-screen px-4 py-10 sm:p-0">
+        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" aria-hidden="true"></div>
+
+        <div class="white-block rounded-lg text-left overflow-hidden transform transition-all sm:my-8 sm:max-w-lg sm:w-full mx-4">
+            <div class="px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div class="sm:flex sm:items-start">
+                    <div class="mt-3 text-center sm:mt-0 sm:text-left w-full">
+                        <h3 class="text-lg leading-6 font-medium" id="external-modal-title">
+                            Завершение регистрации через <span id="externalProviderName" class="font-bold text-[var(--accent-gold)]"></span>
+                        </h3>
+                        <div class="mt-4">
+                            <p class="text-sm mb-4">
+                                Ваш внешний провайдер не предоставил адрес электронной почты. Пожалуйста, введите его для завершения регистрации.
+                            </p>
+                            <input type="email" id="externalEmailInput"
+                                   class="auth-input w-full rounded-lg px-4 py-3"
+                                   placeholder="your@email.com"
+                                   autocomplete="email"
+                                   inputmode="email">
+                            <div id="externalEmailError" class="validation-error mt-2 min-h-4"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="px-4 py-4 sm:px-6 sm:flex sm:flex-row-reverse gap-3">
+                <button type="button" id="submitExternalEmailBtn"
+                        class="auth-btn-primary w-full sm:w-auto px-6 py-2 rounded-lg font-semibold">
+                    Завершить регистрацию
+                </button>
+                <button type="button" id="closeExternalModalBtn"
+                        class="auth-btn-secondary mt-3 sm:mt-0 w-full sm:w-auto px-6 py-2 rounded-lg font-medium">
+                    Отмена
+                </button>
+                <input type="hidden" id="externalReturnUrlHidden">
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Общий фон для кнопок социальных сетей */
+    .social-btn-bg {
+        background-color: var(--bg-secondary) !important;
+        border: 1px solid var(--border-color) !important;
+    }
+
+    /* Стили для иконки Яндекс */
+    .yandex-icon {
+        color: var(--yandex-bg);
+    }
+
+    /* Светлая тема - круг #2D3748, буква золотая */
+    body:not(.dark-theme) .yandex-circle {
+        fill: #2D3748;
+    }
+
+    body:not(.dark-theme) .yandex-text {
+        fill: var(--accent-gold);
+    }
+
+    /* Темная тема - круг белый, буква золотая */
+    body.dark-theme .yandex-circle {
+        fill: #FFFFFF;
+    }
+
+    body.dark-theme .yandex-text {
+        fill: var(--accent-gold);
+    }
+
+    /* Убедимся, что весь текст внутри white-block хорошо виден */
+    .white-block,
+    .white-block *:not(a):not(button) {
+        color: var(--auth-block-text) !important;
+    }
+
+        /* Ссылки оставляем золотыми */
+        .white-block a {
+            color: var(--accent-gold) !important;
+        }
+
+    /* Стили для полей ввода - ИСПРАВЛЕНИЕ ПРОБЛЕМЫ С ТЕКСТОМ */
+    .auth-input {
+        background-color: var(--bg-secondary) !important;
+        border: 1px solid var(--border-color) !important;
+        color: var(--text-primary) !important;
+        transition: all 0.3s ease;
+    }
+
+        /* Обеспечиваем читаемость текста во всех состояниях */
+        .auth-input:focus,
+        .auth-input:not(:focus),
+        .auth-input:hover {
+            color: var(--text-primary) !important;
+            background-color: var(--bg-secondary) !important;
+        }
+
+        .auth-input:focus {
+            border-color: var(--accent-gold) !important;
+            box-shadow: 0 0 0 2px rgba(var(--accent-gold-rgb), 0.2) !important;
+            outline: none !important;
+        }
+
+        .auth-input::placeholder {
+            color: var(--text-secondary) !important;
+            opacity: 0.7 !important;
+        }
+
+        /* Стили для автозаполнения браузера */
+        .auth-input:-webkit-autofill,
+        .auth-input:-webkit-autofill:hover,
+        .auth-input:-webkit-autofill:focus,
+        .auth-input:-webkit-autofill:active {
+            -webkit-text-fill-color: var(--text-primary) !important;
+            -webkit-box-shadow: 0 0 0px 1000px var(--bg-secondary) inset !important;
+            border: 1px solid var(--border-color) !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+
+    /* Стили для кнопок */
+    .auth-btn-primary {
+        background: var(--accent-gold) !important;
+        color: var(--bg-dark) !important;
+        border: none !important;
+        transition: all 0.3s ease;
+    }
+
+        .auth-btn-primary:hover {
+            background: var(--accent-light) !important;
+            transform: translateY(-1px);
+        }
+
+    .auth-btn-secondary {
+        background: transparent !important;
+        color: var(--auth-block-text) !important;
+        border: 1px solid var(--border-color) !important;
+        transition: all 0.3s ease;
+    }
+
+        .auth-btn-secondary:hover {
+            background: var(--border-color) !important;
+        }
+
+    /* Стили для ошибок валидации */
+    .validation-error {
+        color: #dc2626 !important;
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+        display: block;
+    }
+
+    .field-validation-error {
+        color: #dc2626 !important;
+        font-size: 0.75rem;
+    }
+
+    /* Убираем тени и лишние рамки у кнопок соцсетей */
+    .external-login-btn {
+        box-shadow: none !important;
+    }
+
+    /* Убираем белую/темную обводку вокруг модального окна */
+    #externalLoginEmailModal .white-block {
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2) !important;
+        border: 1px solid var(--auth-block-border) !important;
+    }
+
+    /* Гарантируем читаемость текста в полях ввода при любых условиях */
+    input[type="email"],
+    input[type="password"],
+    input[type="text"] {
+        color: var(--text-primary) !important;
+        background-color: var(--bg-secondary) !important;
+    }
+
+    /* Усиленные стили для гарантии читаемости */
+    .auth-input:not(:placeholder-shown) {
+        color: var(--text-primary) !important;
+    }
+</style>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        const jsReturnUrl = '@jsReturnUrl';
+
+        const externalModal = document.getElementById("externalLoginEmailModal");
+        const externalProviderName = document.getElementById("externalProviderName");
+        const externalEmailInput = document.getElementById("externalEmailInput");
+        const externalEmailError = document.getElementById("externalEmailError");
+        const externalSubmitBtn = document.getElementById("submitExternalEmailBtn");
+        const externalCancelBtn = document.getElementById("closeExternalModalBtn");
+        const externalReturnUrlHidden = document.getElementById("externalReturnUrlHidden");
+
+        function toggleModal(modal, show) {
+            modal.classList.toggle("hidden", !show);
+        }
+
+        // Обработчики кнопок внешних провайдеров
+        document.querySelectorAll('.external-login-btn').forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+                const provider = this.dataset.provider;
+
+                const authUrl = '@Url.Action("ExternalLogin", "Account")' +
+                                `?provider=${encodeURIComponent(provider)}&returnUrl=${encodeURIComponent(jsReturnUrl)}`;
+
+                window.location.href = authUrl;
+            });
+        });
+
+        // Обработка GET-параметров после редиректа
+        document.addEventListener("DOMContentLoaded", function () {
+            const urlParams = new URLSearchParams(window.location.search);
+            const status = urlParams.get('status');
+            const provider = urlParams.get('provider');
+            const tempDataKey = urlParams.get('tempDataKey');
+            const returnUrlFromQuery = urlParams.get('returnUrl') || jsReturnUrl;
+
+            if (status === "email_missing" && provider && tempDataKey) {
+                externalProviderName.textContent = provider;
+                externalReturnUrlHidden.value = returnUrlFromQuery;
+
+                if (!document.getElementById('externalTempDataKey')) {
+                    const tempInput = document.createElement('input');
+                    tempInput.type = 'hidden';
+                    tempInput.id = 'externalTempDataKey';
+                    tempInput.value = tempDataKey;
+                    externalModal.querySelector('.px-4').appendChild(tempInput);
+                }
+
+                toggleModal(externalModal, true);
+                history.replaceState({}, document.title, window.location.pathname);
+            }
+        });
+
+        // Обработчик отправки формы внешней регистрации
+        externalSubmitBtn.addEventListener("click", async function () {
+            const email = externalEmailInput.value.trim();
+            const returnUrl = externalReturnUrlHidden.value;
+            const tempDataKey = document.getElementById('externalTempDataKey')?.value;
+            const submitBtn = this;
+
+            if (!email || !/^\S+@@\S+\.\S+$/.test(email)) {
+                externalEmailError.textContent = 'Пожалуйста, введите корректный адрес электронной почты.';
+                return;
+            }
+
+            if (!tempDataKey) {
+                externalEmailError.textContent = 'Отсутствуют данные сессии. Пожалуйста, начните вход заново.';
+                return;
+            }
+
+            externalEmailError.textContent = '';
+
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Отправка...';
+            submitBtn.disabled = true;
+
+            try {
+                const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+                const response = await fetch('@Url.Action("CompleteExternalLoginRegistration", "Account")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        returnUrl: returnUrl,
+                        tempDataKey: tempDataKey
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    toggleModal(externalModal, false);
+                    window.location.href = data.redirectUrl;
+                } else if (data.status === 'email_confirmation_required') {
+                    toggleModal(externalModal, false);
+                    alert(data.message);
+                    window.location.href = data.redirectUrl;
+                } else {
+                    externalEmailError.textContent = data.message || 'Произошла ошибка при завершении регистрации.';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                externalEmailError.textContent = 'Ошибка сети. Пожалуйста, попробуйте еще раз.';
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Закрытие модального окна
+        externalCancelBtn.addEventListener('click', function() {
+            toggleModal(externalModal, false);
+        });
+
+        // Закрытие по клику вне модального окна
+        externalModal.addEventListener('click', function(e) {
+            if (e.target === externalModal) {
+                toggleModal(externalModal, false);
+            }
+        });
+
+        // ESC для закрытия модального окна
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !externalModal.classList.contains('hidden')) {
+                toggleModal(externalModal, false);
+            }
+        });
+
+        // Дополнительный скрипт для гарантии читаемости текста в полях ввода
+        document.addEventListener('DOMContentLoaded', function() {
+            // Принудительно устанавливаем стили для всех полей ввода
+            const inputs = document.querySelectorAll('.auth-input');
+            inputs.forEach(input => {
+                // Устанавливаем стили при загрузке
+                input.style.color = 'var(--text-primary)';
+                input.style.backgroundColor = 'var(--bg-secondary)';
+
+                // Устанавливаем стили при изменении фокуса
+                input.addEventListener('blur', function() {
+                    this.style.color = 'var(--text-primary)';
+                    this.style.backgroundColor = 'var(--bg-secondary)';
+                });
+
+                input.addEventListener('focus', function() {
+                    this.style.color = 'var(--text-primary)';
+                    this.style.backgroundColor = 'var(--bg-secondary)';
+                });
+            });
+        });
+    </script>
 }

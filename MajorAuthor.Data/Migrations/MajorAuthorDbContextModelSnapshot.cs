@@ -41,6 +41,12 @@ namespace MajorAuthor.Data.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
+                    b.Property<string>("FirstName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LastName")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
 
@@ -112,22 +118,29 @@ namespace MajorAuthor.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("FullName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<double>("MonthlyRating")
+                        .HasColumnType("float");
 
                     b.Property<string>("PenName")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<string>("PhotoUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                    b.Property<double>("Rating")
+                        .HasColumnType("float");
+
+                    b.Property<double>("WeeklyRating")
+                        .HasColumnType("float");
+
+                    b.Property<double>("YearlyRating")
+                        .HasColumnType("float");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ApplicationUserId")
+                        .IsUnique();
+
+                    b.HasIndex("PenName")
                         .IsUnique();
 
                     b.ToTable("Authors");
@@ -155,11 +168,20 @@ namespace MajorAuthor.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<DateTime>("LastUpdateTime")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("LikesCount")
                         .HasColumnType("int");
 
+                    b.Property<double>("MonthlyRating")
+                        .HasColumnType("float");
+
                     b.Property<DateTime>("PublicationDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<double>("Rating")
+                        .HasColumnType("float");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -168,6 +190,9 @@ namespace MajorAuthor.Data.Migrations
 
                     b.Property<int>("ViewsCount")
                         .HasColumnType("int");
+
+                    b.Property<double>("WeeklyRating")
+                        .HasColumnType("float");
 
                     b.HasKey("Id");
 
@@ -249,6 +274,33 @@ namespace MajorAuthor.Data.Migrations
                     b.ToTable("BlogLikes");
                 });
 
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BlogReading", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApplicationUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("BlogId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ReadDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationUserId");
+
+                    b.HasIndex("BlogId");
+
+                    b.ToTable("BlogReadings");
+                });
+
             modelBuilder.Entity("MajorAuthor.Data.Entities.Book", b =>
                 {
                     b.Property<int>("Id")
@@ -257,15 +309,27 @@ namespace MajorAuthor.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("AllowDownload")
+                        .HasColumnType("bit");
+
                     b.Property<string>("CoverImageUrl")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("CycleId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("EnableTTS")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsAdultContent")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPublic")
                         .HasColumnType("bit");
 
                     b.Property<DateTime>("LastUpdateTime")
@@ -274,10 +338,19 @@ namespace MajorAuthor.Data.Migrations
                     b.Property<int>("LikesCount")
                         .HasColumnType("int");
 
+                    b.Property<double>("MonthlyRating")
+                        .HasColumnType("float");
+
                     b.Property<DateTime>("PublicationDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<double>("Rating")
+                        .HasColumnType("float");
+
                     b.Property<int>("ReadsCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StatusId")
                         .HasColumnType("int");
 
                     b.Property<string>("Title")
@@ -285,7 +358,22 @@ namespace MajorAuthor.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int>("TypeId")
+                        .HasColumnType("int");
+
+                    b.Property<double>("WeeklyRating")
+                        .HasColumnType("float");
+
+                    b.Property<double>("YearlyRating")
+                        .HasColumnType("float");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("CycleId");
+
+                    b.HasIndex("StatusId");
+
+                    b.HasIndex("TypeId");
 
                     b.ToTable("Books");
                 });
@@ -310,6 +398,31 @@ namespace MajorAuthor.Data.Migrations
                     b.HasIndex("AuthorId");
 
                     b.ToTable("BookAuthors");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BookCycle", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AuthorId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.ToTable("BookCycles");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.BookGenre", b =>
@@ -343,13 +456,22 @@ namespace MajorAuthor.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("InvitationToken")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("InvitationType")
+                        .HasColumnType("int");
+
                     b.Property<string>("InviteeEmail")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("InviteeUserId")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<bool>("IsAccepted")
                         .HasColumnType("bit");
@@ -357,6 +479,8 @@ namespace MajorAuthor.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BookId");
+
+                    b.HasIndex("InviteeUserId");
 
                     b.ToTable("BookInvitations");
                 });
@@ -418,6 +542,23 @@ namespace MajorAuthor.Data.Migrations
                     b.ToTable("BookReadings");
                 });
 
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BookStatus", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BookStatuses");
+                });
+
             modelBuilder.Entity("MajorAuthor.Data.Entities.BookTag", b =>
                 {
                     b.Property<int>("BookId")
@@ -435,6 +576,23 @@ namespace MajorAuthor.Data.Migrations
                     b.ToTable("BookTags");
                 });
 
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BookType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BookTypes");
+                });
+
             modelBuilder.Entity("MajorAuthor.Data.Entities.Chapter", b =>
                 {
                     b.Property<int>("Id")
@@ -446,8 +604,14 @@ namespace MajorAuthor.Data.Migrations
                     b.Property<int>("BookId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("bit");
+
                     b.Property<int>("Order")
                         .HasColumnType("int");
+
+                    b.Property<DateTime>("PublicationDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Title")
                         .IsRequired()
@@ -656,7 +820,6 @@ namespace MajorAuthor.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("ImageUrl")
-                        .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
@@ -693,11 +856,22 @@ namespace MajorAuthor.Data.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("ContentHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
                     b.Property<int>("LikesCount")
                         .HasColumnType("int");
 
+                    b.Property<double>("MonthlyRating")
+                        .HasColumnType("float");
+
                     b.Property<DateTime>("PublicationDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<double>("Rating")
+                        .HasColumnType("float");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -712,9 +886,18 @@ namespace MajorAuthor.Data.Migrations
                     b.Property<int>("ViewsCount")
                         .HasColumnType("int");
 
+                    b.Property<double>("WeeklyRating")
+                        .HasColumnType("float");
+
+                    b.Property<double>("YearlyRating")
+                        .HasColumnType("float");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AuthorId");
+
+                    b.HasIndex("ContentHash")
+                        .IsUnique();
 
                     b.ToTable("Poems");
                 });
@@ -783,6 +966,33 @@ namespace MajorAuthor.Data.Migrations
                     b.ToTable("PoemLikes");
                 });
 
+            modelBuilder.Entity("MajorAuthor.Data.Entities.PoemReading", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ApplicationUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("PoemId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ReadDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationUserId");
+
+                    b.HasIndex("PoemId");
+
+                    b.ToTable("PoemReadings");
+                });
+
             modelBuilder.Entity("MajorAuthor.Data.Entities.Promotion", b =>
                 {
                     b.Property<int>("Id")
@@ -838,6 +1048,50 @@ namespace MajorAuthor.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("PromotionPlans");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.SimilarBook", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("BookId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CalculationDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<int?>("CommonGenresCount")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CommonTagsCount")
+                        .HasColumnType("int");
+
+                    b.Property<bool?>("SameAuthor")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("SimilarToBookId")
+                        .HasColumnType("int");
+
+                    b.Property<double>("SimilarityScore")
+                        .HasPrecision(4, 3)
+                        .HasColumnType("float(4)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookId");
+
+                    b.HasIndex("SimilarToBookId");
+
+                    b.HasIndex("BookId", "SimilarToBookId")
+                        .IsUnique();
+
+                    b.ToTable("SimilarBooks");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.Tag", b =>
@@ -1130,6 +1384,51 @@ namespace MajorAuthor.Data.Migrations
                     b.Navigation("Blog");
                 });
 
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BlogReading", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "ApplicationUser")
+                        .WithMany("BlogReadings")
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MajorAuthor.Data.Entities.Blog", "Blog")
+                        .WithMany("Readings")
+                        .HasForeignKey("BlogId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApplicationUser");
+
+                    b.Navigation("Blog");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.Book", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.Entities.BookCycle", "Cycle")
+                        .WithMany("Books")
+                        .HasForeignKey("CycleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("MajorAuthor.Data.Entities.BookStatus", "Status")
+                        .WithMany("Books")
+                        .HasForeignKey("StatusId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MajorAuthor.Data.Entities.BookType", "Type")
+                        .WithMany("Books")
+                        .HasForeignKey("TypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Cycle");
+
+                    b.Navigation("Status");
+
+                    b.Navigation("Type");
+                });
+
             modelBuilder.Entity("MajorAuthor.Data.Entities.BookAuthor", b =>
                 {
                     b.HasOne("MajorAuthor.Data.Entities.Author", "Author")
@@ -1147,6 +1446,17 @@ namespace MajorAuthor.Data.Migrations
                     b.Navigation("Author");
 
                     b.Navigation("Book");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BookCycle", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.Entities.Author", "Author")
+                        .WithMany("BookCycles")
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.BookGenre", b =>
@@ -1176,7 +1486,13 @@ namespace MajorAuthor.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "InviteeUser")
+                        .WithMany()
+                        .HasForeignKey("InviteeUserId");
+
                     b.Navigation("Book");
+
+                    b.Navigation("InviteeUser");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.BookLike", b =>
@@ -1412,6 +1728,25 @@ namespace MajorAuthor.Data.Migrations
                     b.Navigation("Poem");
                 });
 
+            modelBuilder.Entity("MajorAuthor.Data.Entities.PoemReading", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.ApplicationUser", "ApplicationUser")
+                        .WithMany("PoemReadings")
+                        .HasForeignKey("ApplicationUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MajorAuthor.Data.Entities.Poem", "Poem")
+                        .WithMany("Readings")
+                        .HasForeignKey("PoemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ApplicationUser");
+
+                    b.Navigation("Poem");
+                });
+
             modelBuilder.Entity("MajorAuthor.Data.Entities.Promotion", b =>
                 {
                     b.HasOne("MajorAuthor.Data.Entities.Book", "Book")
@@ -1429,6 +1764,25 @@ namespace MajorAuthor.Data.Migrations
                     b.Navigation("Book");
 
                     b.Navigation("PromotionPlan");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.SimilarBook", b =>
+                {
+                    b.HasOne("MajorAuthor.Data.Entities.Book", "Book")
+                        .WithMany("SimilarBooks")
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MajorAuthor.Data.Entities.Book", "SimilarToBook")
+                        .WithMany()
+                        .HasForeignKey("SimilarToBookId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Book");
+
+                    b.Navigation("SimilarToBook");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.UserFavoriteBook", b =>
@@ -1547,6 +1901,8 @@ namespace MajorAuthor.Data.Migrations
 
                     b.Navigation("BlogLikes");
 
+                    b.Navigation("BlogReadings");
+
                     b.Navigation("BookLikes");
 
                     b.Navigation("ChaptersRead");
@@ -1562,6 +1918,8 @@ namespace MajorAuthor.Data.Migrations
                     b.Navigation("PoemComments");
 
                     b.Navigation("PoemLikes");
+
+                    b.Navigation("PoemReadings");
 
                     b.Navigation("PreferredGenres");
 
@@ -1580,6 +1938,8 @@ namespace MajorAuthor.Data.Migrations
 
                     b.Navigation("BookAuthors");
 
+                    b.Navigation("BookCycles");
+
                     b.Navigation("Followers");
 
                     b.Navigation("Poems");
@@ -1590,6 +1950,8 @@ namespace MajorAuthor.Data.Migrations
                     b.Navigation("Comments");
 
                     b.Navigation("Likes");
+
+                    b.Navigation("Readings");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.BlogComment", b =>
@@ -1617,7 +1979,24 @@ namespace MajorAuthor.Data.Migrations
 
                     b.Navigation("Readings");
 
+                    b.Navigation("SimilarBooks");
+
                     b.Navigation("UserFavorites");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BookCycle", b =>
+                {
+                    b.Navigation("Books");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BookStatus", b =>
+                {
+                    b.Navigation("Books");
+                });
+
+            modelBuilder.Entity("MajorAuthor.Data.Entities.BookType", b =>
+                {
+                    b.Navigation("Books");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.Chapter", b =>
@@ -1642,6 +2021,8 @@ namespace MajorAuthor.Data.Migrations
                     b.Navigation("Comments");
 
                     b.Navigation("Likes");
+
+                    b.Navigation("Readings");
                 });
 
             modelBuilder.Entity("MajorAuthor.Data.Entities.PoemComment", b =>

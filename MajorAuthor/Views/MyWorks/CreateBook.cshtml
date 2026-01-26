@@ -6,81 +6,6 @@
 }
 
 <style>
-    body {
-        background-color: #000;
-        color: #D4AF37;
-        font-family: 'Inter', sans-serif;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .content-container {
-        flex-grow: 1;
-    }
-
-    .form-control,
-    .form-select {
-        background-color: #1a1a1a;
-        color: #D4AF37;
-        border: 1px solid #D4AF37;
-        border-radius: 5px;
-        transition: all 0.3s ease;
-    }
-
-        .form-control:focus,
-        .form-select:focus {
-            background-color: #2b2b2b;
-            color: #D4AF37;
-            border-color: #ffc400;
-            box-shadow: 0 0 5px #ffc400;
-        }
-
-    .form-label {
-        color: #D4AF37;
-        font-weight: 500;
-    }
-
-    .btn-primary {
-        background-color: #D4AF37;
-        border-color: #D4AF37;
-        color: #000;
-        border-radius: 5px;
-        transition: background-color 0.3s ease, border-color 0.3s ease;
-    }
-
-        .btn-primary:hover {
-            background-color: #ffc400;
-            border-color: #ffc400;
-            color: #000;
-        }
-
-    .btn-secondary {
-        background-color: #4a4a4a;
-        border-color: #4a4a4a;
-        color: #fff;
-        border-radius: 5px;
-        transition: background-color 0.3s ease, border-color 0.3s ease;
-    }
-
-        .btn-secondary:hover {
-            background-color: #6a6a6a;
-            border-color: #6a6a6a;
-            color: #fff;
-        }
-
-    hr {
-        border-top: 1px solid #D4AF37;
-    }
-
-    .text-danger {
-        color: #ff4d4d !important;
-    }
-
-    h2, h4 {
-        color: #D4AF37;
-    }
-
     .autocomplete-container {
         position: relative;
     }
@@ -90,22 +15,23 @@
         width: 100%;
         max-height: 200px;
         overflow-y: auto;
-        border: 1px solid #D4AF37;
-        background-color: #1a1a1a;
+        border: 1px solid var(--accent-gold);
+        background-color: var(--bg-secondary);
         z-index: 1000;
         margin-top: -1px;
         border-radius: 0 0 5px 5px;
         list-style-type: none;
         padding: 0;
         display: none;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 6px var(--shadow-color);
     }
 
         .autocomplete-list li {
-            padding: 10px;
+            padding: 12px;
             cursor: pointer;
-            color: #D4AF37;
-            border-bottom: 1px solid #2b2b2b;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+            transition: all 0.2s ease;
         }
 
             .autocomplete-list li:last-child {
@@ -113,50 +39,218 @@
             }
 
             .autocomplete-list li:hover {
-                background-color: #2b2b2b;
+                background-color: var(--border-color);
+                color: var(--text-primary);
             }
 
             .autocomplete-list li.highlighted {
-                background-color: #2b2b2b;
+                background-color: var(--border-color);
+                color: var(--text-primary);
             }
+
+    /* Используем тот же цвет, что и у текста "Если вы хотите работать..." */
+    .text-secondary-custom {
+        color: var(--text-secondary) !important;
+    }
+
+    .form-label {
+        color: var(--text-secondary) !important;
+        font-weight: 500;
+    }
+
+    .form-control {
+        background-color: var(--bg-secondary) !important;
+        color: var(--text-primary) !important;
+        border-color: var(--border-color) !important;
+    }
+
+        .form-control::placeholder {
+            color: var(--text-secondary) !important;
+        }
+
+    /* Контрастные стили для чекбокса и его метки */
+    .form-check-label {
+        color: var(--text-secondary) !important;
+    }
+
+    /* Контрастные стили для кнопки отмены */
+    .auth-btn-secondary {
+        background: transparent;
+        color: var(--text-secondary) !important;
+        border: 1px solid var(--border-color);
+    }
+
+        .auth-btn-secondary:hover {
+            background: var(--border-color);
+            color: var(--text-secondary) !important;
+        }
+
+    /* Стили для тегов */
+    .tags-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+    }
+
+    .tag-item {
+        background: var(--accent-gold);
+        color: var(--bg-primary);
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .tag-remove {
+        cursor: pointer;
+        font-weight: bold;
+        padding: 2px;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0,0,0,0.2);
+    }
+
+        .tag-remove:hover {
+            background: rgba(0,0,0,0.3);
+        }
+
+    /* Стили для множественного выбора */
+    .multiselect-container {
+        max-height: 150px;
+        overflow-y: auto;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        padding: 8px;
+        background: var(--bg-secondary);
+    }
+
+    .form-check {
+        margin-bottom: 8px;
+    }
+
+    .form-check-input:checked {
+        background-color: var(--accent-gold);
+        border-color: var(--accent-gold);
+    }
 </style>
 
-<div class="row d-flex justify-content-center content-container">
-    <div class="col-12 col-md-8">
-        <h2>Добавить новую книгу</h2>
-        <hr />
-        <form asp-action="CreateBook" method="post" enctype="multipart/form-data">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <div class="white-block animate-fade-in-up">
+        <h2 class="text-2xl font-bold mb-6 gradient-text">Добавить новую книгу</h2>
 
-            <div class="form-group mb-3">
-                <label asp-for="Title" class="form-label">Название книги</label>
-                <input asp-for="Title" class="form-control rounded" />
-                <span asp-validation-for="Title" class="text-danger"></span>
+        <form asp-action="CreateBook" method="post" enctype="multipart/form-data" class="space-y-6">
+            <div asp-validation-summary="ModelOnly" class="text-red-500 text-sm"></div>
+
+            <!-- Название книги -->
+            <div class="form-group">
+                <label asp-for="Title" class="form-label block text-sm font-medium mb-2">Название книги *</label>
+                <input asp-for="Title" class="form-control w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-opacity-20 transition-all duration-200"
+                       placeholder="Введите название книги" />
+                <span asp-validation-for="Title" class="text-red-500 text-xs mt-1"></span>
             </div>
-            <div class="form-group mb-3">
-                <label asp-for="Description" class="form-label">Описание</label>
-                <textarea asp-for="Description" class="form-control rounded" rows="5"></textarea>
-                <span asp-validation-for="Description" class="text-danger"></span>
+
+            <!-- Описание -->
+            <div class="form-group">
+                <label asp-for="Description" class="form-label block text-sm font-medium mb-2">Описание</label>
+                <textarea asp-for="Description" class="form-control w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-opacity-20 transition-all duration-200"
+                          rows="5" placeholder="Опишите вашу книгу..."></textarea>
+                <span asp-validation-for="Description" class="text-red-500 text-xs mt-1"></span>
             </div>
-            <div class="form-group mb-3">
-                <label asp-for="CoverImage" class="form-label">Обложка книги (необязательно)</label>
-                <input asp-for="CoverImage" class="form-control rounded" type="file" accept="image/*" />
+
+            <!-- Тип книги -->
+            <div class="form-group">
+                <label asp-for="TypeId" class="form-label block text-sm font-medium mb-2">Тип книги *</label>
+                <select asp-for="TypeId" asp-items="Model.BookTypes.Select(t => new SelectListItem { Text = t.Name, Value = t.Id.ToString() })"
+                        class="form-control w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-opacity-20 transition-all duration-200">
+                    <option value="">Выберите тип книги</option>
+                </select>
+                <span asp-validation-for="TypeId" class="text-red-500 text-xs mt-1"></span>
             </div>
-            <div class="form-group form-check mb-3">
-                <input asp-for="IsAdultContent" class="form-check-input" type="checkbox" />
-                <label asp-for="IsAdultContent" class="form-check-label">18+</label>
+
+            <!-- Жанры -->
+            <div class="form-group">
+                <label class="form-label block text-sm font-medium mb-2">Жанры</label>
+                <div class="multiselect-container">
+                    @foreach (var genre in Model.Genres)
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="SelectedGenreIds" value="@genre.Id" id="genre-@genre.Id" />
+                            <label class="form-check-label" for="genre-@genre.Id">
+                                @genre.Name
+                            </label>
+                        </div>
+                    }
+                </div>
+                <div class="text-xs text-secondary-custom mt-1">Выберите один или несколько жанров</div>
             </div>
-            <hr />
-            <h4 class="mt-4">Добавить соавтора (необязательно)</h4>
-            <p class="text-muted">Если вы хотите работать над книгой вместе, вы можете пригласить другого пользователя по его email.</p>
-            <div class="form-group mb-3 autocomplete-container">
-                <label asp-for="CoAuthorEmail" class="form-label">Email соавтора</label>
-                <input asp-for="CoAuthorEmail" id="coAuthorEmailInput" class="form-control rounded" type="email" autocomplete="off" />
-                <ul id="emailSuggestions" class="autocomplete-list rounded"></ul>
+
+            <!-- Теги -->
+            <div class="form-group">
+                <label class="form-label block text-sm font-medium mb-2">Теги</label>
+                <div class="autocomplete-container relative">
+                    <input type="text" id="tagInput"
+                           class="form-control w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-opacity-20 transition-all duration-200"
+                           placeholder="Введите тег и нажмите Enter" />
+                    <ul id="tagSuggestions" class="autocomplete-list rounded"></ul>
+                </div>
+                <div class="text-xs text-secondary-custom mt-1">Введите тег и нажмите Enter для добавления</div>
+
+                <!-- Контейнер для добавленных тегов -->
+                <div id="tagsContainer" class="tags-container mt-2">
+                    <!-- Теги будут добавляться здесь динамически -->
+                </div>
+
+                <!-- Скрытое поле для хранения тегов -->
+                <input type="hidden" id="tagsData" name="Tags" />
             </div>
-            <div class="form-group mb-3 d-flex justify-content-between">
-                <button type="submit" class="btn btn-primary">Создать книгу и отправить приглашение</button>
-                <a asp-action="Index" class="btn btn-secondary">Отмена</a>
+
+            <!-- Обложка -->
+            <div class="form-group">
+                <label asp-for="CoverImage" class="form-label block text-sm font-medium mb-2">Обложка книги (необязательно)</label>
+                <input asp-for="CoverImage" class="form-control w-full px-4 py-2 rounded-lg border file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold transition-all duration-200"
+                       type="file" accept="image/*" />
+            </div>
+
+            <!-- Контент 18+ -->
+            <div class="form-group">
+                <div class="flex items-center space-x-3">
+                    <input asp-for="IsAdultContent" class="form-check-input w-4 h-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500" type="checkbox" />
+                    <label asp-for="IsAdultContent" class="form-check-label text-sm font-medium cursor-pointer">Содержит контент 18+</label>
+                </div>
+            </div>
+
+            <hr class="border-gray-600 my-6">
+
+            <!-- Поиск соавтора -->
+            <div class="form-group">
+                <h4 class="text-lg font-semibold mb-3 gradient-text">Добавить соавтора</h4>
+                <p class="text-secondary-custom text-sm mb-4">Если вы хотите работать над книгой вместе, вы можете пригласить другого пользователя по его email.</p>
+
+                <div class="autocomplete-container relative">
+                    <label asp-for="CoAuthorEmail" class="form-label block text-sm font-medium mb-2">Email соавтора</label>
+                    <input asp-for="CoAuthorEmail" id="coAuthorEmailInput"
+                           class="form-control w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-opacity-20 transition-all duration-200"
+                           type="email" autocomplete="off" placeholder="Введите email пользователя" />
+                    <ul id="emailSuggestions" class="autocomplete-list rounded"></ul>
+                    <div class="text-xs text-secondary-custom mt-1">Начните вводить email для поиска пользователей</div>
+                </div>
+            </div>
+
+            <!-- Кнопки -->
+            <div class="form-group flex flex-col sm:flex-row gap-4 justify-between items-center pt-6">
+                <button type="submit" class="gold-button w-full sm:w-auto px-8 py-3 text-lg font-semibold">
+                    <i class="fas fa-plus-circle mr-2"></i>Создать книгу
+                </button>
+                <a asp-action="Index" class="auth-btn-secondary w-full sm:w-auto px-8 py-3 text-lg font-semibold text-center">
+                    <i class="fas fa-times mr-2"></i>Отмена
+                </a>
             </div>
         </form>
     </div>
@@ -168,71 +262,265 @@
     }
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // === Управление тегами ===
+            const tagInput = document.getElementById('tagInput');
+            const tagsContainer = document.getElementById('tagsContainer');
+            const tagsData = document.getElementById('tagsData');
+            const tagSuggestions = document.getElementById('tagSuggestions');
+            let tags = [];
+
+            // Функция для добавления тега
+            function addTag(tagText) {
+                const trimmedTag = tagText.trim();
+                if (trimmedTag && !tags.includes(trimmedTag)) {
+                    tags.push(trimmedTag);
+                    updateTagsDisplay();
+                    tagInput.value = '';
+                    tagSuggestions.style.display = 'none';
+                }
+            }
+
+            // Функция для удаления тега
+            function removeTag(tagToRemove) {
+                tags = tags.filter(tag => tag !== tagToRemove);
+                updateTagsDisplay();
+            }
+
+            // Обновление отображения тегов и скрытого поля
+            function updateTagsDisplay() {
+                tagsContainer.innerHTML = '';
+                tags.forEach(tag => {
+                    const tagElement = document.createElement('div');
+                    tagElement.className = 'tag-item';
+                    tagElement.innerHTML = `
+                        ${tag}
+                        <span class="tag-remove" onclick="removeTag('${tag}')">×</span>
+                    `;
+                    tagsContainer.appendChild(tagElement);
+                });
+                tagsData.value = JSON.stringify(tags);
+            }
+
+            // Обработка ввода тегов
+            tagInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addTag(this.value);
+                } else if (e.key === 'Backspace' && this.value === '' && tags.length > 0) {
+                    removeTag(tags[tags.length - 1]);
+                }
+            });
+
+            // Автодополнение для тегов
+            tagInput.addEventListener('input', function () {
+                const query = this.value.trim();
+                if (query.length < 2) {
+                    tagSuggestions.style.display = 'none';
+                    return;
+                }
+
+                fetch(`/MyWorks/GetTags?query=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(tags => {
+                        tagSuggestions.innerHTML = '';
+                        if (tags.length > 0) {
+                            tags.forEach(tag => {
+                                const li = document.createElement('li');
+                                li.textContent = tag.name;
+                                li.setAttribute('data-value', tag.name);
+                                li.addEventListener('click', function () {
+                                    addTag(tag.name);
+                                });
+                                tagSuggestions.appendChild(li);
+                            });
+                            tagSuggestions.style.display = 'block';
+                        } else {
+                            tagSuggestions.style.display = 'none';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Ошибка при загрузке тегов:', error);
+                        tagSuggestions.style.display = 'none';
+                    });
+            });
+
+            // Скрытие списка тегов при клике вне
+            document.addEventListener('click', function (e) {
+                if (!tagInput.contains(e.target) && !tagSuggestions.contains(e.target)) {
+                    tagSuggestions.style.display = 'none';
+                }
+            });
+
+            // Глобальные функции для тегов
+            window.removeTag = removeTag;
+
+            // === Существующий код для автодополнения email ===
             const emailInput = document.getElementById('coAuthorEmailInput');
             const suggestionsList = document.getElementById('emailSuggestions');
             let debounceTimeout;
+            let currentFocus = -1;
 
             // Живой поиск
             emailInput.addEventListener('input', function () {
                 clearTimeout(debounceTimeout);
-                const query = this.value;
-                debounceTimeout = setTimeout(() => fetchEmails(query), 300);
-            });
+                const query = this.value.trim();
 
-            // Отображение первых трех авторов при фокусе
-            emailInput.addEventListener('focus', function () {
-                const query = this.value;
-                fetchEmails(query);
-            });
-
-            // Обработка клика по предложению
-            suggestionsList.addEventListener('mousedown', function (e) {
-                if (e.target.tagName === 'LI') {
-                    emailInput.value = e.target.getAttribute('data-email');
+                if (query.length < 2) {
                     suggestionsList.style.display = 'none';
+                    return;
+                }
+
+                debounceTimeout = setTimeout(() => fetchUsers(query), 300);
+            });
+
+            // Показывать список при фокусе, если есть текст
+            emailInput.addEventListener('focus', function () {
+                const query = this.value.trim();
+                if (query.length >= 2) {
+                    fetchUsers(query);
                 }
             });
 
-            // Скрытие списка, когда поле ввода теряет фокус
-            emailInput.addEventListener('blur', function() {
-                setTimeout(() => {
+            // Навигация по стрелкам
+            emailInput.addEventListener('keydown', function (e) {
+                const items = suggestionsList.querySelectorAll('li');
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    currentFocus = Math.min(currentFocus + 1, items.length - 1);
+                    updateActiveItem(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    currentFocus = Math.max(currentFocus - 1, -1);
+                    updateActiveItem(items);
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (currentFocus > -1 && items[currentFocus]) {
+                        selectItem(items[currentFocus]);
+                    }
+                } else if (e.key === 'Escape') {
                     suggestionsList.style.display = 'none';
-                }, 150);
+                    currentFocus = -1;
+                }
             });
 
-            // Функция для получения и отображения email-адресов
-            async function fetchEmails(query) {
-                try {
-                    const response = await fetch(`/api/authors/search?email=${encodeURIComponent(query)}`);
-                    if (!response.ok) {
-                        console.error('Ошибка при поиске авторов:', response.statusText);
-                        suggestionsList.innerHTML = '<li style="cursor: default; color: #ff4d4d;">Не удалось загрузить авторов.</li>';
-                        suggestionsList.style.display = 'block';
-                        return;
+            function updateActiveItem(items) {
+                // Убираем выделение со всех элементов
+                items.forEach(item => item.classList.remove('highlighted'));
+
+                // Добавляем выделение активному элементу
+                if (currentFocus > -1 && items[currentFocus]) {
+                    items[currentFocus].classList.add('highlighted');
+                    // Прокручиваем к активному элементу
+                    items[currentFocus].scrollIntoView({ block: 'nearest' });
+                }
+            }
+
+            // Обработка клика по предложению
+            suggestionsList.addEventListener('mousedown', function (e) {
+                e.preventDefault(); // Предотвращаем потерю фокуса с input
+                const li = e.target.closest('li');
+                if (li) {
+                    selectItem(li);
+                }
+            });
+
+            // Скрытие списка при потере фокуса
+            emailInput.addEventListener('blur', function() {
+                // Небольшая задержка, чтобы обработать клик по предложению
+                setTimeout(() => {
+                    if (!suggestionsList.contains(document.activeElement)) {
+                        suggestionsList.style.display = 'none';
+                        currentFocus = -1;
                     }
-                    const authors = await response.json();
-                    displaySuggestions(authors);
+                }, 200);
+            });
+
+            // Функция для выбора элемента
+            function selectItem(li) {
+                const email = li.getAttribute('data-email');
+                if (email) {
+                    emailInput.value = email;
+                    suggestionsList.style.display = 'none';
+                    currentFocus = -1;
+
+                    // Фокусируем обратно на input для продолжения ввода
+                    setTimeout(() => {
+                        emailInput.focus();
+                    }, 10);
+                }
+            }
+
+            // Функция для получения пользователей
+            async function fetchUsers(query) {
+                try {
+                    showLoadingState();
+
+                    const response = await fetch(`/api/users/search?email=${encodeURIComponent(query)}`);
+                    if (!response.ok) {
+                        throw new Error('Ошибка при поиске пользователей');
+                    }
+
+                    const users = await response.json();
+                    displaySuggestions(users);
                 } catch (error) {
                     console.error('Ошибка при запросе:', error);
-                    suggestionsList.innerHTML = '<li style="cursor: default; color: #ff4d4d;">Ошибка сети. Попробуйте еще раз.</li>';
-                    suggestionsList.style.display = 'block';
+                    showErrorState('Не удалось загрузить пользователей');
                 }
             }
 
             // Функция для отображения предложений
-            function displaySuggestions(authors) {
+            function displaySuggestions(users) {
                 suggestionsList.innerHTML = '';
-                if (authors && authors.length > 0) {
-                    authors.forEach(author => {
+
+                if (users && users.length > 0) {
+                    users.forEach(user => {
                         const li = document.createElement('li');
-                        li.textContent = `${author.penName} (${author.email})`;
-                        li.setAttribute('data-email', author.email);
+                        li.className = 'px-4 py-3 hover:bg-amber-600 hover:bg-opacity-20 cursor-pointer transition-colors duration-200 border-b border-gray-700 last:border-b-0';
+
+                        const userType = user.hasAuthorProfile ?
+                            `<span class="text-green-400 text-xs bg-green-900 bg-opacity-50 px-2 py-1 rounded">Автор</span>` :
+                            `<span class="text-blue-400 text-xs bg-blue-900 bg-opacity-50 px-2 py-1 rounded">Читатель</span>`;
+
+                        li.innerHTML = `
+                            <div class="flex justify-between items-start mb-1">
+                                <div class="font-medium" style="color: var(--accent-gold)">${escapeHtml(user.userName)}</div>
+                                ${userType}
+                            </div>
+                            <div class="text-sm" style="color: var(--text-primary)">${escapeHtml(user.email)}</div>
+                            ${user.penName ? `<div class="text-xs mt-1" style="color: var(--text-secondary)">Псевдоним: ${escapeHtml(user.penName)}</div>` : ''}
+                        `;
+                        li.setAttribute('data-email', user.email);
                         suggestionsList.appendChild(li);
                     });
                     suggestionsList.style.display = 'block';
                 } else {
-                    suggestionsList.style.display = 'none';
+                    suggestionsList.innerHTML = `
+                        <li class="px-4 py-3 text-center" style="color: var(--text-primary)">
+                            <div class="mb-2">Пользователь не найден</div>
+                            <div class="text-xs" style="color: var(--accent-gold)">Приглашение будет отправлено на введенный email</div>
+                        </li>`;
+                    suggestionsList.style.display = 'block';
                 }
+            }
+
+            function showLoadingState() {
+                suggestionsList.innerHTML = '<li class="px-4 py-3 text-center" style="color: var(--text-primary)"><i class="fas fa-spinner fa-spin mr-2"></i>Поиск пользователей...</li>';
+                suggestionsList.style.display = 'block';
+            }
+
+            function showErrorState(message) {
+                suggestionsList.innerHTML = `<li class="px-4 py-3 text-red-400 text-center">${message}</li>`;
+                suggestionsList.style.display = 'block';
+            }
+
+            function escapeHtml(unsafe) {
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
             }
         });
     </script>

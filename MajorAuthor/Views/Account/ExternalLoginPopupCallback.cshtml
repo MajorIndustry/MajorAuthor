@@ -1,0 +1,42 @@
+﻿@* ExternalLoginPopupCallback.cshtml (обновлено для postMessage) *@
+@{
+    Layout = null;
+    var jsonResponse = ViewData["JsonResponse"] as string ?? "{}";
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>External Login Callback</title>
+</head>
+<body>
+    <script>
+        // Преобразуем JSON-строку в объект
+        const responseData = @Html.Raw(jsonResponse);
+
+        // 💡 postMessage требует, чтобы данные были строкой, поэтому повторно сериализуем
+        const message = JSON.stringify(responseData);
+
+        // 💡 Важная проверка:
+        if (window.opener) {
+            try {
+                // Отправляем сообщение родительскому окну.
+                // '*' означает, что мы готовы отправить сообщение любому домену.
+                // В продакшене лучше указать конкретный домен родителя.
+                window.opener.postMessage(message, '*');
+
+            } catch (e) {
+                console.error("Ошибка при отправке postMessage:", e);
+            }
+        } else {
+            console.error("Родительское окно (window.opener) не найдено.");
+        }
+
+        // Закрываем pop-up окно
+        // Используем небольшую задержку, чтобы гарантировать отправку сообщения
+        setTimeout(function() {
+             window.close();
+        }, 50);
+
+    </script>
+</body>
+</html>

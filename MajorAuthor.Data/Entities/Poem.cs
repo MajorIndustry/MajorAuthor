@@ -1,15 +1,18 @@
 ﻿// Проект: MajorAuthor.Data
 // Файл: Entities/Poem.cs
 // Обновлен для включения поля Status.
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MajorAuthor.Data.Entities
 {
     /// <summary>
     /// Представляет стих, написанный автором.
     /// </summary>
+    [Microsoft.EntityFrameworkCore.Index(nameof(ContentHash), IsUnique = true)]
     public class Poem
     {
         /// <summary>
@@ -29,8 +32,12 @@ namespace MajorAuthor.Data.Entities
         /// Текст стиха.
         /// </summary>
         [Required]
+        [Column(TypeName = "nvarchar(max)")]
         public string Content { get; set; }
 
+        [Required]
+        [MaxLength(64)]
+        public string ContentHash { get; set; }
         /// <summary>
         /// Внешний ключ к автору, который написал стих.
         /// </summary>
@@ -62,6 +69,10 @@ namespace MajorAuthor.Data.Entities
         /// Количество комментариев к стиху.
         /// </summary>
         public int CommentsCount { get; set; } = 0;
+        public double Rating { get; set; } = 0;
+        public double WeeklyRating { get; set; } = 0;
+        public double MonthlyRating { get; set; } = 0;
+        public double YearlyRating { get; set; } = 0;
 
         /// <summary>
         /// Коллекция лайков этого стиха.
@@ -72,6 +83,8 @@ namespace MajorAuthor.Data.Entities
         /// Коллекция комментариев к этому стиху.
         /// </summary>
         public ICollection<PoemComment> Comments { get; set; } = new List<PoemComment>();
+
+        public ICollection<PoemReading> Readings { get; set; } = new List<PoemReading>();
         /// <summary>
         /// Количество просмотров записи.
         /// </summary>

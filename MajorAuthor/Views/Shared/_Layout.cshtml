@@ -1,10 +1,8 @@
-﻿@*
-    Проект: MajorAuthor
-    Файл: Views/Shared/_Layout.cshtml
-    Описание: Основной макет для всех представлений сайта.
-*@
-@using MajorAuthor.Data
+﻿﻿﻿﻿﻿@using MajorAuthor.Data
+@using MajorAuthor.Data.Entities
+@using MajorAuthor.Models
 @using Microsoft.AspNetCore.Identity
+@inject MajorAuthorDbContext DbContext
 @inject SignInManager<ApplicationUser> SignInManager
 @inject UserManager<ApplicationUser> UserManager
 
@@ -14,202 +12,738 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - MajorAuthor</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/MajorAuthor.Web.styles.css" asp-append-version="true" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         /* Основные CSS переменные для тем */
         :root {
-            /* Улучшенная Светлая тема */
-            --bg-primary: #FDFDFD; /* Почти белый, очень чистый */
-            --bg-secondary: #FFFFFF; /* Чистый белый для карточек/контейнеров */
-            --text-primary: #2C3E50; /* Темно-сине-серый для основного текста */
-            --text-secondary: #607D8B; /* Средний сине-серый для второстепенного текста */
-            --accent-gold: #A7885F; /* Приглушенный, элегантный латунный золотой */
-            --accent-light: #C09A6B; /* Чуть светлее акцент для наведения/активного состояния */
-            --border-color: #EAEAEA; /* Светлый, мягкий серый для границ */
-            --shadow-color: rgba(0, 0, 0, 0.05); /* Очень легкая тень */
-            --header-bg: #F0F0F0; /* Изменено для контраста со светлым bg-secondary */
+            --bg-primary: #FDFDFD;
+            --bg-secondary: #FFFFFF;
+            --text-primary: #2C3E50;
+            --text-secondary: #6B7280;
+            --accent-gold: #A7885F;
+            --accent-light: #C09A6B;
+            --border-color: #EAEAEA;
+            --shadow-color: rgba(0, 0, 0, 0.05);
+            --header-bg: #F0F0F0;
             --header-text: #2C3E50;
-            --accent-gold-rgb: 167, 136, 95; /* RGB для использования в rgba() */
-            --footer-bg: #F0F0F0; /* Изменено для контраста со светлым bg-secondary */
+            --accent-gold-rgb: 167, 136, 95;
+            --footer-bg: #F0F0F0;
+            --auth-block-bg: #2D3748;
+            --auth-block-text: #E2E8F0;
+            --auth-block-border: #4A5568;
+            --genre-text: #3B82F6;
+            --tag-text: #A855F7;
+            --accent-light-rgb: 192, 154, 107;
+            --genre-border: rgba(59, 130, 246, 0.3);
+            --tag-border: rgba(168, 85, 247, 0.3);
         }
 
         /* Темная тема */
         body.dark-theme {
-            --bg-primary: #1A202C; /* Очень темно-синий/серый */
-            --bg-secondary: #2D3748; /* Темно-серый */
-            --text-primary: #E2E8F0; /* Светло-серый */
-            --text-secondary: #A0AEC0; /* Средне-светло-серый */
-            --accent-gold: #FFD700; /* Яркий золотой */
-            --accent-light: #B8860B; /* Темно-золотой */
-            --border-color: #4A5568; /* Темный бордер */
+            --bg-primary: #2D3748;
+            --bg-secondary: #2D3748;
+            --text-primary: #E2E8F0;
+            --text-secondary: #A0AEC0;
+            --accent-gold: #FFD700;
+            --accent-light: #B8860B;
+            --border-color: #4A5568;
             --shadow-color: rgba(0, 0, 0, 0.5);
-            --header-bg: #1A202C; /* Изменено на bg-primary для контраста с bg-secondary */
+            --header-bg: #1A202C;
             --header-text: #E2E8F0;
-            --accent-gold-rgb: 255, 215, 0; /* RGB для использования в rgba() */
-            --footer-bg: #1A202C; /* Изменено на bg-primary для контраста с bg-secondary */
+            --accent-gold-rgb: 255, 215, 0;
+            --footer-bg: #1A202C;
+            --auth-block-bg: #FFFFFF;
+            --auth-block-text: #2C3E50;
+            --auth-block-border: #EAEAEA;
+            --genre-text: #93C5FD;
+            --tag-text: #C4B5FD;
+            --accent-light-rgb: 184, 134, 11;
+            --genre-border: rgba(147, 197, 253, 0.3);
+            --tag-border: rgba(196, 181, 253, 0.3);
         }
 
-        /* Применение переменных */
+        .text-theme-aware {
+            color: var(--text-primary) !important;
+        }
+
+        /* Исправления для высоты и прокрутки */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--bg-primary);
             color: var(--text-primary);
             transition: background-color 0.3s, color 0.3s;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
 
-        /* Применяем стили для .container к основному содержимому main */
-        main.container {
-            background-color: var(--bg-secondary);
-            color: var(--text-primary);
-            border-radius: 0; /* Убраны округлые углы для main контейнера */
-            margin-top: 0; /* Отступ сверху убран */
-            margin-bottom: 0; /* Отступ снизу убран */
+        .layout-wrapper {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            width: 100%;
         }
 
-        .card {
-            background-color: var(--bg-secondary);
-            border-color: var(--border-color);
-            box-shadow: 0 1px 3px 0 var(--shadow-color), 0 1px 2px 0 var(--shadow-color);
-            border-radius: 0.5rem; /* Округлые углы для карточек оставлены */
+        main {
+            flex: 1 0 auto;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
         }
 
-        .section-title {
-            color: var(--accent-gold);
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
         }
 
-        /* Хедер */
-        .app-header {
+        footer {
+            flex-shrink: 0;
+            width: 100%;
+        }
+
+        /* Стили для кастомного хедера чтения - УМЕНЬШЕННЫЕ ОТСТУПЫ */
+        .reading-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
             background-color: var(--header-bg);
             color: var(--header-text);
-            border-bottom: none; /* Убрана граница */
-            padding: 1rem 2rem;
+            /* УМЕНЬШЕННЫЕ ОТСТУПЫ: Уменьшаем общие отступы */
+            padding: 0.5rem 1.5rem 0.75rem 1.5rem;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 4px var(--shadow-color); /* Используем переменную */
-            border-radius: 0; /* Убраны округлые углы для хедера */
+            justify-content: space-between;
+            z-index: 1000;
+            box-shadow: 0 2px 10px var(--shadow-color);
+            border-bottom: 1px solid var(--border-color);
+            min-height: 70px; /* Уменьшенная минимальная высота хедера */
+        }
+
+            .reading-header .header-left,
+            .reading-header .header-right {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                min-width: 80px;
+            }
+
+            .reading-header .header-center {
+                flex: 1;
+                max-width: 900px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 0.25rem; /* Уменьшенный gap */
+                margin-top: 0.25rem; /* Уменьшенный отступ сверху */
+            }
+
+            .reading-header .book-title {
+                font-size: 1rem; /* Уменьшенный размер шрифта */
+                font-weight: 600;
+                color: var(--accent-gold);
+                text-align: center;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 100%;
+            }
+
+            .reading-header .chapter-navigation {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem; /* Уменьшенный gap */
+            }
+
+            .reading-header .nav-button {
+                background: var(--accent-gold);
+                color: var(--header-bg);
+                border: none;
+                width: 1.75rem; /* Уменьшенный размер кнопок */
+                height: 1.75rem;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                font-size: 0.8rem; /* Уменьшенный размер иконок */
+            }
+
+                .reading-header .nav-button:disabled {
+                    opacity: 0.3;
+                    cursor: not-allowed;
+                }
+
+                .reading-header .nav-button:hover:not(:disabled) {
+                    transform: scale(1.1);
+                    box-shadow: 0 2px 8px rgba(var(--accent-gold-rgb), 0.4);
+                }
+
+            .reading-header .chapter-selector {
+                min-width: 180px; /* Уменьшенная минимальная ширина */
+                /* ПРИНУДИТЕЛЬНОЕ ИЗМЕНЕНИЕ: Используем !important для цвета фона хедера */
+                background: var(--header-bg) !important;
+                color: var(--header-text) !important;
+                border: 1px solid var(--border-color);
+                border-radius: 6px; /* Уменьшенный радиус */
+                padding: 0.25rem 0.5rem; /* Уменьшенные отступы */
+                font-size: 0.85rem; /* Уменьшенный размер шрифта */
+            }
+
+                /* Фон для нативных опций select (такой же как у хедера) */
+                .reading-header .chapter-selector option {
+                    background-color: var(--header-bg) !important;
+                    color: var(--header-text) !important;
+                }
+
+            .reading-header .chapter-read-indicator {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.25rem;
+                font-size: 0.75rem; /* Уменьшенный размер шрифта */
+                color: var(--accent-gold);
+                margin-left: 0.5rem;
+            }
+
+            /* УМЕНЬШЕННЫЕ ОТСТУПЫ для иконок в хедере чтения */
+            .reading-header .header-icons {
+                display: flex;
+                align-items: center;
+                gap: 1rem; /* Уменьшенный gap */
+            }
+
+            .reading-header .header-icon {
+                font-size: 1.25rem; /* Уменьшенный размер иконок */
+                cursor: pointer;
+                transition: color 0.2s;
+                color: var(--header-text);
+            }
+
+                .reading-header .header-icon:hover {
+                    color: var(--accent-gold);
+                }
+
+            .reading-header .profile-icon-circle {
+                width: 2.25rem; /* Уменьшенный размер круга профиля */
+                height: 2.25rem;
+                border-radius: 9999px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.1rem; /* Уменьшенный размер шрифта */
+                font-weight: 600;
+                transition: background-color 0.2s, color 0.2s;
+                text-decoration: none;
+                background-color: var(--accent-gold);
+                color: var(--header-bg);
+            }
+        /* Стили для меток в формах создания/редактирования стихов */
+        .poem-label {
+            color: var(--auth-block-text) !important;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Специфичные стили для ошибок в формах стихов */
+        .poem-error {
+            color: #ef4444 !important;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        .poem-error-summary {
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .poem-error-summary-title {
+            color: #ef4444;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .poem-error-list {
+            list-style-type: disc;
+            padding-left: 1.25rem;
+            margin: 0;
+        }
+
+        .poem-error-item {
+            color: var(--auth-block-text);
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Ошибка дублирования стиха */
+        .poem-duplicate-error {
+            background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .poem-duplicate-error-icon {
+            color: #ef4444;
+            flex-shrink: 0;
+            margin-top: 0.125rem;
+        }
+
+        .poem-duplicate-error-text {
+            color: var(--auth-block-text);
+            font-size: 0.875rem;
+            line-height: 1.25rem;
+        }
+
+        /* Подсветка полей с ошибками */
+        .input-error {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+        }
+
+            .input-error:focus {
+                border-color: #ef4444 !important;
+                box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+            }
+        /* Адаптивность для хедера чтения */
+        @@media (max-width: 768px) {
+            .reading-header {
+                padding: 0.5rem 1rem 0.5rem 1rem;
+                flex-wrap: wrap;
+                min-height: 65px;
+            }
+
+                .reading-header .header-left,
+                .reading-header .header-right {
+                    min-width: auto;
+                    flex: 1;
+                }
+
+                .reading-header .header-center {
+                    order: 3;
+                    width: 100%;
+                    margin-top: 0.25rem; /* Уменьшенный отступ */
+                }
+
+                .reading-header .chapter-selector {
+                    min-width: 140px; /* Уменьшенная минимальная ширина для мобильных */
+                    font-size: 0.8rem;
+                }
+
+                .reading-header .header-icons {
+                    gap: 0.75rem; /* Уменьшенный gap на мобильных */
+                }
+
+                .reading-header .book-title {
+                    font-size: 0.9rem; /* Уменьшенный размер шрифта на мобильных */
+                }
+
+                .reading-header .nav-button {
+                    width: 1.5rem; /* Уменьшенный размер кнопок на мобильных */
+                    height: 1.5rem;
+                    font-size: 0.7rem;
+                }
+        }
+
+        @@media (max-width: 480px) {
+            .reading-header .chapter-navigation {
+                gap: 0.25rem;
+            }
+
+            .reading-header .chapter-selector {
+                min-width: 120px;
+                font-size: 0.75rem; /* Уменьшенный размер шрифта */
+            }
+
+            .reading-header .book-title {
+                font-size: 0.85rem; /* Уменьшенный размер шрифта */
+            }
+        }
+
+        /* Стандартный хедер - корректировка для размещения поиска по центру */
+        .app-header {
+            position: relative;
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 1.5rem;
+            padding: 1rem 2rem;
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            box-shadow: 0 2px 4px var(--shadow-color);
+            border-radius: 0;
+            align-items: center;
+            min-height: 4rem;
+            z-index: 50;
         }
 
         .app-title {
             font-size: 1.8rem;
             font-weight: 700;
             color: var(--accent-gold);
-            text-decoration: none; /* Убираем подчеркивание у ссылки */
-            transition: color 0.2s; /* Плавный переход цвета */
+            text-decoration: none;
+            transition: color 0.2s;
+            grid-column: 1;
+            white-space: nowrap;
         }
 
             .app-title:hover {
-                color: var(--accent-light); /* Изменение цвета при наведении */
+                color: var(--accent-light);
             }
 
         .header-icons {
+            grid-column: 3;
             display: flex;
             align-items: center;
             gap: 1.5rem;
+            z-index: 10;
         }
 
         .header-icon {
             font-size: 1.5rem;
             cursor: pointer;
             transition: color 0.2s;
-            color: var(--header-text); /* Цвет иконок */
+            color: var(--header-text);
         }
 
             .header-icon:hover {
                 color: var(--accent-gold);
             }
 
-        /* Кнопки */
-        .btn-primary {
-            background-color: var(--accent-gold);
-            color: var(--header-bg); /* Темный текст на золотом для лучшего контраста */
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
+        /* Стиль для круга профиля (авторизованный пользователь) */
+        .profile-icon-circle {
+            width: 2.5rem;
+            height: 2.5rem;
+            border-radius: 9999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 600;
             transition: background-color 0.2s, color 0.2s;
-            border: none; /* Убираем стандартную границу */
+            text-decoration: none;
+            background-color: var(--accent-gold);
+            color: var(--header-bg);
         }
 
-            .btn-primary:hover {
-                background-color: var(--accent-light);
-                color: var(--header-bg);
+        /* Анимации для счетчика сообщений */
+        .notification-badge.updating {
+            background: #FFA500 !important;
+            animation: pulse 1.5s infinite;
+        }
+
+        .notification-badge.pulse {
+            animation: pulse 0.6s ease-in-out;
+        }
+
+        @@keyframes pulse {
+            0% {
+                transform: scale(1);
             }
 
-        .btn-secondary {
-            background-color: transparent;
-            color: var(--accent-gold);
-            border: 1px solid var(--accent-gold);
+            50% {
+                transform: scale(1.2);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        /* Анимации для контента */
+        @@keyframes fade-in-up {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-in-up {
+            animation: fade-in-up 0.6s ease-out forwards;
+        }
+
+        /* НОВЫЕ СТИЛИ ДЛЯ ДЕСКТОПНОГО ВЫЕЗЖАЮЩЕГО ПОИСКА ПО ЦЕНТРУ */
+        .main-search-container {
+            grid-column: 2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            height: 100%;
+            max-width: 600px;
+            margin: 0 auto;
+            z-index: 5;
+        }
+
+        .main-search-input-wrapper {
+            position: absolute;
+            width: 0;
+            opacity: 0;
+            visibility: hidden;
+            transition: width 0.3s ease-out, opacity 0.3s ease-out, visibility 0.3s ease-out;
+            display: flex;
+            align-items: center;
+            background-color: var(--header-bg);
+            border-radius: 9999px;
+            box-shadow: 0 2px 4px var(--shadow-color);
+            min-width: 250px;
+        }
+
+            .main-search-input-wrapper.active {
+                width: 100%;
+                opacity: 1;
+                visibility: visible;
+            }
+
+        .main-search-input {
+            flex-grow: 1;
             padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            transition: background-color 0.2s, color 0.2s, border-color 0.2s;
-        }
-
-            .btn-secondary:hover {
-                background-color: var(--accent-gold);
-                color: var(--header-bg); /* Темный текст на золотом при наведении */
-                border-color: var(--accent-gold);
-            }
-
-        /* Переключатель темы */
-        .theme-switch-btn {
+            border: 1px solid var(--border-color);
+            border-radius: 9999px;
             background-color: var(--bg-primary);
-            color: var(--accent-gold);
-            border: 1px solid var(--accent-gold);
-            padding: 0.5rem 1rem;
-            border-radius: 9999px; /* rounded-full */
-            font-size: 0.875rem;
-            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
-        }
-
-            .theme-switch-btn:hover {
-                background-color: var(--accent-gold);
-                color: var(--header-bg); /* Темный текст на золотом фоне */
-            }
-
-        /* НОВЫЙ CSS класс для текста лейбла жанра */
-        .text-themed-label {
             color: var(--text-primary);
-        }
-
-        /* НОВЫЕ ПРАВИЛА ДЛЯ ЦВЕТА ТЕКСТА ВВОДА В ТЕМНОЙ ТЕМЕ */
-        input[type="email"],
-        input[type="password"],
-        input[type="text"],
-        textarea { /* Добавлено textarea */
-            color: var(--text-primary); /* Цвет текста ввода */
-            background-color: var(--bg-secondary); /* Фон ввода */
-            border-color: var(--border-color); /* Рамка ввода */
-            border-width: 1px; /* Убедимся, что рамка есть */
-            border-radius: 0.25rem; /* Немного округлые углы */
-            padding: 0.5rem 0.75rem; /* Отступы */
             transition: border-color 0.2s, box-shadow 0.2s;
+            height: 2.5rem;
         }
 
-            input[type="email"]:focus,
-            input[type="password"]:focus,
-            input[type="text"]:focus,
-            textarea:focus {
+            .main-search-input:focus {
                 border-color: var(--accent-gold);
-                box-shadow: 0 0 0 3px rgba(var(--accent-gold-rgb), 0.2); /* Предполагается, что у нас есть RGB версия акцента */
+                box-shadow: 0 0 0 3px rgba(var(--accent-gold-rgb), 0.2);
                 outline: none;
             }
 
-            input::placeholder,
-            textarea::placeholder {
-                color: var(--text-secondary); /* Цвет заполнителя */
-                opacity: 1; /* Убедитесь, что заполнитель не прозрачен */
+        .main-search-btn, .main-search-close-btn {
+            background: none;
+            border: none;
+            color: var(--header-text);
+            cursor: pointer;
+            padding: 0.5rem;
+            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .main-search-btn:hover, .main-search-close-btn:hover {
+                color: var(--accent-gold);
             }
+
+        /* Стили для выпадающих результатов поиска */
+        .autocomplete-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: var(--auth-block-bg);
+            border: 1px solid var(--auth-block-border);
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+            margin-top: 8px;
+            padding: 8px;
+        }
+
+        .autocomplete-item {
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            transition: all 0.2s;
+            border-radius: 8px;
+        }
+
+            .autocomplete-item:hover {
+                background: var(--border-color);
+                transform: translateX(4px);
+            }
+
+            .autocomplete-item:last-child {
+                border-bottom: none;
+            }
+
+        .autocomplete-work-type {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-light));
+            color: var(--header-bg);
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .autocomplete-work-title {
+            font-weight: 600;
+            color: var(--auth-block-text);
+            margin-bottom: 2px;
+        }
+
+        .autocomplete-work-author {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .autocomplete-work-stats {
+            display: flex;
+            gap: 12px;
+            margin-top: 4px;
+            font-size: 0.75rem;
+        }
+
+        .autocomplete-stat {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .autocomplete-author-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+        }
+
+        .autocomplete-author-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--accent-gold);
+        }
+
+        .autocomplete-author-info {
+            flex: 1;
+        }
+
+        .autocomplete-author-name {
+            font-weight: 600;
+            color: var(--auth-block-text);
+        }
+
+        .autocomplete-author-subscribers {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .autocomplete-section-title {
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--accent-gold);
+            background: var(--border-color);
+            margin: 4px 0;
+            border-radius: 6px;
+        }
+
+        /* Скрыть иконку поиска desktop-only, когда main-search-input-wrapper активен */
+        .header-icons .search-toggle-desktop.hidden-when-active {
+            display: none !important;
+        }
+
+        /* МОБИЛЬНЫЙ ПОИСК (Иконка всегда видна, строка выезжает) */
+        .search-wrapper-mobile {
+            position: absolute;
+            top: 0;
+            right: 0;
+            height: 100%;
+            width: 0;
+            overflow: hidden;
+            transition: width 0.3s ease-out;
+            display: flex;
+            align-items: center;
+            background-color: var(--header-bg);
+            padding: 0;
+            z-index: 55;
+        }
+
+            .search-wrapper-mobile.active {
+                width: 100%;
+                padding: 0 0.5rem;
+            }
+
+        .search-input {
+            width: 100%;
+            height: 60%;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            border: 1px solid var(--border-color);
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+            .search-input:focus {
+                border-color: var(--accent-gold);
+                box-shadow: 0 0 0 3px rgba(var(--accent-gold-rgb), 0.2);
+                outline: none;
+            }
+
+        .search-close-btn {
+            background: none;
+            border: none;
+            color: var(--header-text);
+            margin-left: 0.5rem;
+            cursor: pointer;
+            padding: 0;
+            line-height: 1;
+        }
+
+        /* Стили для бейджа уведомлений */
+        .notification-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #EF4444;
+            color: white;
+            border-radius: 9999px;
+            min-width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+            border: 2px solid var(--header-bg);
+        }
 
         /* Dropdown specific styles - адаптированы под переменные */
         .dropdown-menu {
-            background-color: var(--bg-secondary); /* same as card */
-            border: 1px solid var(--border-color); /* slightly lighter border */
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
             border-radius: 0.5rem;
             box-shadow: 0 4px 6px var(--shadow-color);
-            z-index: 1000; /* Ensure it's above other content */
+            z-index: 1000;
         }
 
         .dropdown-item {
@@ -221,117 +755,1000 @@
         }
 
             .dropdown-item:hover {
-                background-color: var(--border-color); /* medium gray for hover */
-                color: var(--accent-gold); /* highlight text on hover */
+                background-color: var(--border-color);
+                color: var(--accent-gold);
             }
 
-        /* Footer styles */
-        footer {
-            background-color: var(--footer-bg); /* Фон футера теперь использует переменную */
-            border-top: none; /* Убрана граница */
-            color: var(--text-secondary); /* Цвет текста футера */
-            border-radius: 0; /* Убраны округлые углы для футера */
+        /* УЛУЧШЕННЫЕ СТИЛИ ДЛЯ WHITE-BLOCK */
+        .white-block {
+            background: var(--auth-block-bg);
+            color: var(--auth-block-text);
+            border: 1px solid var(--auth-block-border);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            padding: 1.25rem;
         }
 
-            footer a {
-                color: var(--text-secondary);
-                transition: color 0.2s;
+            .white-block:hover {
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+                transform: translateY(-2px);
             }
 
-                footer a:hover {
-                    color: var(--accent-gold);
-                }
+        /* Улучшенная типографика для контента внутри white-block */
+        .work-type-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-light));
+            color: var(--header-bg);
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 0.75rem;
+        }
 
-        /* New styles for profile icons */
-        .profile-icon-circle {
-            width: 2.5rem; /* Equivalent to w-10, slightly larger for visibility */
-            height: 2.5rem; /* Equivalent to h-10 */
-            border-radius: 9999px; /* Makes it perfectly round (rounded-full) */
+        .work-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--auth-block-text);
+            line-height: 1.3;
+            margin-bottom: 0.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .author-name {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+        }
+
+        .content-snippet {
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: var(--auth-block-text);
+            opacity: 0.9;
+            margin-bottom: 1rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .stats-container {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+            .stat-item.views {
+                color: var(--text-secondary);
+            }
+
+            .stat-item.likes {
+                color: #dc2626;
+            }
+
+        .stat-icon {
+            font-size: 0.875rem;
+            width: 16px;
+            text-align: center;
+        }
+
+        /* Специфические стили для карточек авторов */
+        .author-card {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.25rem;
+        }
+
+        .author-avatar {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--accent-gold);
+            flex-shrink: 0;
+        }
+
+        .author-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .author-main-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--auth-block-text);
+            margin-bottom: 0.25rem;
+            line-height: 1.3;
+        }
+
+        .author-pen-name {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+        }
+
+        .author-subscribers {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+        }
+
+        /* Стили для вкладок поиска */
+        .search-tab-active {
+            display: inline-block;
+            padding: 1rem;
+            color: var(--accent-gold);
+            border-bottom: 2px solid var(--accent-gold);
+            border-top-left-radius: 0.5rem;
+            border-top-right-radius: 0.5rem;
+            font-weight: 700;
+        }
+
+        .search-tab-inactive {
+            display: inline-block;
+            padding: 1rem;
+            border-bottom: 2px solid transparent;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+            .search-tab-inactive:hover {
+                color: var(--text-primary);
+                border-bottom-color: var(--border-color);
+            }
+
+        .sort-button-active {
+            background: var(--accent-gold);
+            color: var(--header-bg);
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .sort-button-inactive {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+            .sort-button-inactive:hover {
+                background: var(--border-color);
+            }
+
+        /* Стили для счетчика в списке диалогов */
+        .unread-counter {
+            background: var(--accent-gold);
+            color: var(--header-bg);
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            min-width: 1.5rem;
+            height: 1.5rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.25rem; /* Text size (text-xl) */
-            font-weight: 600; /* Medium weight (font-semibold) */
-            transition: background-color 0.2s, color 0.2s;
-            text-decoration: none; /* Убираем подчеркивание у ссылки */
+            padding: 0 0.5rem;
+            flex-shrink: 0;
         }
 
-        .profile-icon-unauth {
-            background-color: var(--text-secondary); /* Нейтральный цвет из темы */
-            color: var(--bg-primary); /* Контрастный текст */
+        .unread-counter-mobile {
+            background: var(--accent-gold);
+            color: var(--header-bg);
+            border-radius: 9999px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            width: 1.25rem;
+            height: 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
         }
 
-        .profile-icon-auth {
-            background-color: var(--accent-gold); /* Золотой фон */
-            color: var(--header-bg); /* Цвет текста из фона хедера (черный/белый) */
+        /* Кнопки авторизации */
+        .auth-btn-primary {
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-light));
+            color: var(--header-bg);
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .auth-btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(var(--accent-gold-rgb), 0.3);
+            }
+
+        .auth-btn-secondary {
+            background: transparent;
+            color: var(--text-primary);
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .auth-btn-secondary:hover {
+                background: var(--border-color);
+                transform: translateY(-1px);
+            }
+
+        /* Mobile specific tweaks */
+        @@media (max-width: 768px) {
+            .app-header {
+                grid-template-columns: auto 1fr auto;
+                gap: 0.75rem;
+                padding: 0.75rem 1rem;
+            }
+
+            .app-title {
+                font-size: 1.25rem;
+            }
+
+            .main-search-container {
+                display: none;
+            }
+
+            .header-icons {
+                gap: 0.75rem;
+            }
+
+                .header-icons .desktop-only > *:not(#themeToggle):not(.profile-icon-circle) {
+                    display: none !important;
+                }
+
+                .header-icons .desktop-only {
+                    display: flex !important;
+                    align-items: center;
+                    gap: 0.75rem;
+                }
+
+            .search-toggle-mobile {
+                display: inline-flex !important;
+                order: -1;
+            }
+
+            .search-toggle-desktop {
+                display: none !important;
+            }
+
+            .search-wrapper-mobile.active {
+                width: 100%;
+                padding: 0 0.5rem;
+            }
+
+            .autocomplete-results {
+                position: fixed;
+                top: 60px;
+                left: 10px;
+                right: 10px;
+                max-height: 60vh;
+            }
+
+            .notification-badge {
+                top: -4px;
+                right: -4px;
+                min-width: 16px;
+                height: 16px;
+                font-size: 0.6rem;
+            }
+
+            .white-block {
+                padding: 1rem;
+                margin: 0 0.25rem;
+            }
+
+            .work-title {
+                font-size: 1.1rem;
+            }
+
+            .content-snippet {
+                font-size: 0.9rem;
+                -webkit-line-clamp: 2;
+            }
+
+            .author-card {
+                padding: 1rem;
+            }
+
+            .author-avatar {
+                width: 2.5rem;
+                height: 2.5rem;
+            }
+
+            .search-tab-active,
+            .search-tab-inactive {
+                padding: 0.75rem 0.5rem;
+                font-size: 0.875rem;
+            }
+        }
+
+        @@media (min-width: 769px) {
+            .search-toggle-mobile {
+                display: none !important;
+            }
+
+            .header-icons .desktop-only {
+                display: flex !important;
+                align-items: center;
+                gap: 1.5rem;
+            }
+        }
+
+        /* СТИЛИ ДЛЯ УВЕДОМЛЕНИЙ */
+        .notification-header-gold {
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .notification-item {
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+            .notification-item.unread {
+                border-left-color: var(--accent-gold);
+                background: linear-gradient(90deg, rgba(var(--accent-gold-rgb), 0.05), transparent);
+            }
+
+            .notification-item:hover {
+                transform: translateX(4px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            }
+
+        .notification-type-badge {
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-light));
+            color: var(--header-bg);
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .notification-time {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .notification-message {
+            color: var(--text-primary);
+            line-height: 1.4;
+        }
+
+        .notification-empty-state {
+            text-align: center;
+            padding: 3rem 2rem;
+        }
+
+        .notification-empty-icon {
+            font-size: 4rem;
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+        }
+
+        .gold-button {
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-light));
+            color: var(--header-bg);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+            .gold-button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(var(--accent-gold-rgb), 0.3);
+                color: var(--header-bg);
+            }
+
+        .notification-dropdown {
+            width: 380px;
+            max-height: 500px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .notification-dropdown-header {
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-light));
+            color: var(--header-bg);
+            padding: 1rem 1.25rem;
+        }
+
+        .notification-dropdown-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .notification-dropdown-content {
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .notification-dropdown-footer {
+            border-top: 1px solid var(--border-color);
+            padding: 0.75rem 1.25rem;
+            text-align: center;
+        }
+
+        /* Анимации для уведомлений */
+        @@keyframes slideInNotification {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        .notification-slide-in {
+            animation: slideInNotification 0.3s ease-out;
+        }
+
+        /* Стили для скроллбара в выпадающем списке */
+        .notification-dropdown-content::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .notification-dropdown-content::-webkit-scrollbar-track {
+            background: var(--border-color);
+        }
+
+        .notification-dropdown-content::-webkit-scrollbar-thumb {
+            background: var(--accent-gold);
+            border-radius: 2px;
+        }
+
+        /* Футер с цветом хедера */
+        .footer-header-bg {
+            background-color: var(--header-bg);
+            color: var(--header-text);
+            padding: 1rem 0;
+        }
+
+        /* Остальные существующие стили */
+        .gold-accent {
+            color: var(--accent-gold);
+        }
+
+        .input-dark {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+            .input-dark::placeholder {
+                color: var(--text-secondary);
+            }
+
+        .label-dark {
+            color: var(--text-primary) !important;
+        }
+
+        .char-count-black {
+            color: var(--text-primary) !important;
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .file-btn {
+            background: linear-gradient(180deg,#FFD542,#FFC400);
+            color: #0b1220;
+            padding: 0.45rem 0.9rem;
+            border-radius: 999px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        /* LIGHT THEME SPECIFICS */
+        body:not(.dark-theme) .input-dark {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        /* DARK THEME specifics */
+        body.dark-theme .input-dark {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+        }
+
+        /* Стили для темной и светлой тем */
+        body.dark-theme .white-block {
+            background: var(--auth-block-bg);
+            color: var(--auth-block-text);
+            border-color: var(--auth-block-border);
+        }
+
+        body:not(.dark-theme) .white-block {
+            background: var(--auth-block-bg);
+            color: var(--auth-block-text);
+            border-color: var(--auth-block-border);
+        }
+
+        /* Container styles */
+        .container {
+            max-width: 100%;
+            width: 100%;
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+            margin: 0 auto;
+        }
+
+        /* Убедитесь, что эти стили есть в вашем Layout */
+        .text-secondary-custom {
+            color: var(--text-secondary) !important;
+        }
+
+        /* Улучшенные контрастные стили для форм */
+        body.dark-theme .form-label,
+        body:not(.dark-theme) .form-label {
+            color: var(--text-secondary) !important;
+        }
+
+        body.dark-theme .form-check-label,
+        body:not(.dark-theme) .form-check-label {
+            color: var(--text-secondary) !important;
+        }
+
+        body.dark-theme .auth-btn-secondary,
+        body:not(.dark-theme) .auth-btn-secondary {
+            color: var(--text-secondary) !important;
+        }
+
+            body.dark-theme .auth-btn-secondary:hover,
+            body:not(.dark-theme) .auth-btn-secondary:hover {
+                color: var(--text-secondary) !important;
+            }
+
+        @@media (min-width: 640px) {
+            .container {
+                max-width: 100%;
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+        }
+
+        @@media (min-width: 768px) {
+            .container {
+                max-width: 100%;
+                padding-left: 1.5rem;
+                padding-right: 1.5rem;
+            }
+        }
+
+        @@media (min-width: 1024px) {
+            .container {
+                max-width: 1280px;
+            }
         }
     </style>
 </head>
 <body class="dark-theme">
-    <header class="app-header">
-        <a asp-area="" asp-controller="Home" asp-action="Index" class="app-title">MajorAuthor</a>
-        <div class="header-icons">
-            <svg class="header-icon w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
-            </svg>
-            <svg class="header-icon w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                <path fill-rule="evenodd" d="M14 2H6a2 2 0 00-2 2v14l6-4 6 4V4a2 2 0 00-2-2z" clip-rule="evenodd"></path>
-            </svg>
-            <a asp-controller="MyWorks" asp-action="AddWork" class="header-icon">
-                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-            </a>
+    @{
+        var isReadChapterPage = ViewContext.RouteData.Values["controller"]?.ToString() == "Read"
+        && ViewContext.RouteData.Values["action"]?.ToString() == "ReadChapter";
 
+        // Для кастомного хедера чтения используем ViewBag
+        var readingHeaderModel = ViewBag.ReadingHeaderModel as MajorAuthor.Models.ChapterReadViewModel;
+    }
 
-            @if (SignInManager.IsSignedIn(User))
-            {
-                <div class="relative group">
-                    <button class="profile-icon-circle profile-icon-auth focus:outline-none"
-                            aria-haspopup="true"
-                            aria-expanded="false"
-                            id="profileDropdownToggle">
-                        <span>@UserManager.GetUserName(User).FirstOrDefault().ToString().ToUpper()</span>
-                    </button>
-                    <div id="profileDropdownMenu"
-                         class="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 dropdown-menu hidden group-hover:block focus-within:block"
-                         role="menu"
-                         aria-orientation="vertical"
-                         aria-labelledby="profileDropdownToggle">
-                        <a asp-controller="Profile" asp-action="MyProfile" class="dropdown-item" role="menuitem">Мой профиль</a>
-                        <a asp-controller="Account" asp-action="Settings" class="dropdown-item" role="menuitem">Настройки</a>
-                        <a asp-controller="MyWorks" asp-action="Index" class="dropdown-item" role="menuitem">Мои произведения</a>
-                        <a asp-controller="Books" asp-action="Liked" class="dropdown-item" role="menuitem">Понравившиеся</a>
-                        <a asp-controller="Books" asp-action="Bookmarks" class="dropdown-item" role="menuitem">Закладки</a>
-                        <form asp-controller="Account" asp-action="Logout" method="post" class="w-full">
-                            <button type="submit" class="dropdown-item w-full text-left" role="menuitem">Выйти</button>
+    <div class="layout-wrapper">
+        @if (!isReadChapterPage)
+        {
+            <!-- Стандартный хедер -->
+            <header class="app-header">
+                <a asp-area="" asp-controller="Home" asp-action="Index" class="app-title">MajorAuthor</a>
+
+                @* ДЕСКТОПНЫЙ ПОИСК (появляется по центру) *@
+                <div class="main-search-container">
+                    <div id="mainSearchInputWrapper" class="main-search-input-wrapper">
+                        <form asp-controller="Search" asp-action="Index" method="get" class="main-search-form flex w-full" id="mainSearchForm">
+                            <input type="text"
+                                   name="query"
+                                   id="mainSearchInput"
+                                   class="main-search-input"
+                                   placeholder="Найти произведения, авторов..."
+                                   aria-label="Строка поиска"
+                                   autocomplete="off"
+                                   required />
+                            <input type="hidden" name="searchInProfile" id="searchInProfile" value="" />
+                            <button type="submit" class="main-search-btn" aria-label="Начать поиск">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
+                                </svg>
+                            </button>
+                            <button id="mainSearchCloseBtn" type="button" class="main-search-close-btn" aria-label="Закрыть поиск">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                            </button>
                         </form>
+                        @* Результаты автодополнения *@
+                        <div id="autocompleteResults" class="autocomplete-results" style="display: none;"></div>
                     </div>
                 </div>
-            }
-            else
-            {
-                <a asp-controller="Account" asp-action="Login" class="profile-icon-circle profile-icon-unauth">
-                    <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
-                    </svg>
-                </a>
-            }
-            <button id="themeToggle" class="theme-switch-btn">
-                Переключить тему
-            </button>
-        </div>
-    </header>
+                @* КОНЕЦ ДЕСКТОПНОГО ПОИСКА *@
 
-    <main role="main" class="container mx-auto px-0 py-0 flex-grow">
-        @RenderBody()
-    </main>
+                <div class="header-icons">
+                    @* ИКОНКА ПОИСКА ДЛЯ МОБИЛЬНОЙ ВЕРСИИ (ВСЕГДА ВИДНА) *@
+                    <button id="searchToggleMobile" class="header-icon w-6 h-6 search-toggle-mobile" aria-label="Открыть поиск">
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
+                        </svg>
+                    </button>
+                    @* СТРОКА ПОИСКА ДЛЯ МОБИЛЬНОЙ ВЕРСИИ (ВЫЕЗЖАЕТ) *@
+                    <div id="searchWrapperMobile" class="search-wrapper-mobile">
+                        <form asp-controller="Search" asp-action="Index" method="get" class="search-form flex w-full h-full" id="mobileSearchForm">
+                            <input type="text"
+                                   name="query"
+                                   id="searchInputMobile"
+                                   class="search-input w-full"
+                                   placeholder="Найти произведения, авторов..."
+                                   aria-label="Строка поиска"
+                                   autocomplete="off"
+                                   required />
+                            <input type="hidden" name="searchInProfile" id="searchInProfileMobile" value="" />
+                            <button type="submit" class="header-icon search-close-btn" aria-label="Начать поиск">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
+                                </svg>
+                            </button>
+                            <button id="searchCloseBtnMobile" type="button" class="header-icon search-close-btn" aria-label="Закрыть поиск">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                            </button>
+                        </form>
+                        @* Результаты автодополнения для мобильной версии *@
+                        <div id="autocompleteResultsMobile" class="autocomplete-results" style="display: none;"></div>
+                    </div>
+                    @* КОНЕЦ МОБИЛЬНОГО ПОИСКА *@
 
-    <footer class="text-center py-4 text-gray-500 mt-auto">
-        <div class="container mx-auto">
-            &copy; @DateTime.Now.Year - MajorAuthor.Web - <a asp-area="" asp-controller="Home" asp-action="Privacy" class="text-gray-400 hover:text-accent-gold">Политика конфиденциальности</a>
-        </div>
-    </footer>
+                    <div class="desktop-only flex items-center gap-4">
+                        @* ИКОНКА ПОИСКА ДЛЯ ДЕСКТОПА (скрывается при активации формы) *@
+                        <button id="searchToggleDesktop" class="header-icon w-6 h-6 search-toggle-desktop" aria-label="Открыть поиск">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clip-rule="evenodd"></path>
+                            </svg>
+                        </button>
+
+                        @* ИКОНКА СООБЩЕНИЙ ДЛЯ АВТОРОВ - ВИДНА НА ВСЕХ СТРАНИЦАХ *@
+                        @if (SignInManager.IsSignedIn(User))
+                        {
+                            var currentUser = await UserManager.GetUserAsync(User);
+                            if (currentUser != null)
+                            {
+                                // Явно загружаем AuthorProfile
+                                await DbContext.Entry(currentUser)
+                                .Reference(u => u.AuthorProfile)
+                                .LoadAsync();
+
+                                if (currentUser.AuthorProfile != null)
+                                {
+                                    <a asp-controller="Messages" asp-action="Index" class="header-icon relative" id="messagesIcon" aria-label="Сообщения">
+                                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                            <path fill-rule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zM7 8H5v2h2V8zm2 0h2v2H9V8zm6 0h-2v2h2V8z" clip-rule="evenodd"></path>
+                                        </svg>
+                                        <span id="unreadMessagesBadge" class="notification-badge hidden">0</span>
+                                    </a>
+                                }
+                            }
+                        }
+
+                        @* Иконка закладок *@
+                        <a asp-controller="Books" asp-action="Bookmarks" class="header-icon">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" d="M14 2H6a2 2 0 00-2 2v14l6-4 6 4V4a2 2 0 00-2-2z" clip-rule="evenodd"></path>
+                            </svg>
+                        </a>
+                        @* Улучшенная иконка уведомлений *@
+                        <div class="relative group" id="notificationContainer">
+                            <button class="header-icon relative transition-all duration-300 hover:scale-110"
+                                    id="notificationToggle"
+                                    aria-label="Уведомления">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"></path>
+                                </svg>
+                                <span id="notificationBadge" class="notification-badge hidden transform scale-110">0</span>
+                            </button>
+
+                            @* Улучшенный выпадающий список уведомлений *@
+                            <div id="notificationDropdown"
+                                 class="absolute right-0 mt-2 rounded-lg shadow-xl notification-dropdown hidden group-hover:block focus-within:block z-50"
+                                 role="menu"
+                                 aria-labelledby="notificationToggle">
+
+                                @* Заголовок с золотым градиентом *@
+                                <div class="notification-dropdown-header rounded-t-lg">
+                                    <div class="flex justify-between items-center">
+                                        <h3 class="notification-dropdown-title">
+                                            <i class="fas fa-bell"></i>
+                                            <span class="text-white font-bold">УВЕДОМЛЕНИЯ</span>
+                                        </h3>
+                                        <button id="markAllAsRead"
+                                                class="text-white text-sm bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition-all duration-200 flex items-center gap-1"
+                                                title="Отметить все как прочитанные">
+                                            <i class="fas fa-check-double text-xs"></i>
+                                            <span class="text-xs font-semibold">Все прочитано</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                @* Список уведомлений *@
+                                <div id="notificationList" class="notification-dropdown-content bg-white dark:bg-gray-800">
+                                    @* Уведомления будут загружены через JavaScript *@
+                                    <div class="flex justify-center items-center py-8">
+                                        <div class="text-center">
+                                            <div class="spinner-border animate-spin inline-block w-6 h-6 border-2 border-var(--accent-gold) border-t-transparent rounded-full" role="status"></div>
+                                            <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">Загрузка уведомлений...</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                @* Футер с золотой кнопкой *@
+                                <div class="notification-dropdown-footer bg-white dark:bg-gray-800 rounded-b-lg">
+                                    <a asp-controller="Notification" asp-action="Index"
+                                       class="gold-button text-sm inline-flex items-center justify-center w-full py-2">
+                                        <i class="fas fa-list"></i>
+                                        Все уведомления
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        @* Иконка "Добавить произведение" *@
+                        @if (SignInManager.IsSignedIn(User))
+                        {
+                            <a asp-controller="MyWorks" asp-action="AddWork" class="header-icon">
+                                <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                </svg>
+                            </a>
+                        }
+                    </div>
+
+                    @if (SignInManager.IsSignedIn(User))
+                    {
+                        @* Авторизованный пользователь: круг с инициалом. *@
+                        <div class="relative group">
+                            <button class="profile-icon-circle focus:outline-none"
+                                    aria-haspopup="true"
+                                    aria-expanded="false"
+                                    id="profileDropdownToggle">
+                                <span>@UserManager.GetUserName(User)?.FirstOrDefault().ToString().ToUpper()</span>
+                            </button>
+                            <div id="profileDropdownMenu"
+                                 class="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 dropdown-menu hidden group-hover:block focus-within:block"
+                                 role="menu"
+                                 aria-orientation="vertical"
+                                 aria-labelledby="profileDropdownToggle">
+                                <a asp-controller="Profile" asp-action="MyProfile" class="dropdown-item" role="menuitem">Мой профиль</a>
+                                <a asp-controller="Account" asp-action="Settings" class="dropdown-item" role="menuitem">Настройки</a>
+                                <a asp-controller="MyWorks" asp-action="Index" class="dropdown-item" role="menuitem">Мои произведения</a>
+                                <a asp-controller="Books" asp-action="Liked" class="dropdown-item" role="menuitem">Понравившиеся</a>
+                                <a asp-controller="Books" asp-action="Bookmarks" class="dropdown-item" role="menuitem">Закладки</a>
+                                @if ((await UserManager.GetUserAsync(User))?.AuthorProfile != null)
+                                {
+                                    <a asp-controller="Messages" asp-action="Index" class="dropdown-item" role="menuitem">Сообщения</a>
+                                }
+                                <form asp-controller="Account" asp-action="Logout" method="post" class="w-full">
+                                    <button type="submit" class="dropdown-item w-full text-left" role="menuitem">Выйти</button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        @* Неавторизованный пользователь: иконка SVG. *@
+                        <a asp-controller="Account" asp-action="Login" class="header-icon">
+                            <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                            </svg>
+                        </a>
+                    }
+
+                    <button id="themeToggle" class="theme-switch-btn" aria-label="Переключить тему" title="Переключить тему">
+                        <svg id="themeIcon" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+        }
+        else if (readingHeaderModel != null)
+        {
+            <!-- Новый хедер для чтения главы с полным названием и уменьшенными отступами -->
+            <header class="reading-header">
+                <!-- Левая часть: логотип MajorAuthor и кнопка "Книга" -->
+                <div class="header-left">
+                    <a asp-area="" asp-controller="Home" asp-action="Index" class="app-title" style="font-size: 1.4rem; margin-right: 0.5rem;">MajorAuthor</a>
+                    <a asp-action="ReadBook" asp-controller="Read" asp-route-id="@readingHeaderModel.Book.Id"
+                       class="text-[var(--header-text)] hover:text-[var(--accent-gold)] transition-colors text-sm flex items-center gap-1"
+                       title="Вернуться к книге">
+                        <i class="fas fa-book"></i>
+                        <span class="hidden md:inline">Книга</span>
+                    </a>
+                </div>
+
+                <!-- Центральная часть: название книги и выбор главы -->
+                <div class="header-center">
+                    <!-- Название книги -->
+                    <div class="book-title" title="@readingHeaderModel.Book.Title">
+                        @readingHeaderModel.Book.Title
+                    </div>
+
+                    <!-- Навигация по главам -->
+                    <div class="chapter-navigation">
+                        @if (readingHeaderModel.PreviousChapter != null)
+                        {
+                            <button class="nav-button" onclick="window.goToChapter(@readingHeaderModel.PreviousChapter.Id)" title="Предыдущая глава">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="nav-button" disabled title="Нет предыдущей главы">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                        }
+
+                        <select class="chapter-selector" id="chapterSelect" onchange="window.goToSelectedChapter()">
+                            @foreach (var chapter in readingHeaderModel.AllChapters)
+                            {
+                                var isSelected = chapter.Id == readingHeaderModel.CurrentChapter.Id;
+                                <option value="@chapter.Id" selected="@isSelected">
+                                    Глава @chapter.Order: @chapter.Title
+                                    @if (readingHeaderModel.ReadChapterIds.Contains(chapter.Id))
+                                    {
+                                        <text>✓</text>
+                                    }
+                                </option>
+                            }
+                        </select>
+
+                        @if (readingHeaderModel.NextChapter != null)
+                        {
+                            <button class="nav-button" onclick="window.goToChapter(@readingHeaderModel.NextChapter.Id)" title="Следующая глава">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        }
+                        else
+                        {
+                            <button class="nav-button" disabled title="Нет следующей главы">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+
+                <!-- Правая часть: только профиль и тема -->
+                <div class="header-right">
+                    <div class="header-icons">
+                        @if (SignInManager.IsSignedIn(User))
+                        {
+                            <!-- Авторизованный пользователь: круг с инициалом -->
+                            <div class="relative group">
+                                <button class="profile-icon-circle focus:outline-none"
+                                        aria-haspopup="true"
+                                        aria-expanded="false"
+                                        id="profileDropdownToggleRead">
+                                    <span>@UserManager.GetUserName(User)?.FirstOrDefault().ToString().ToUpper()</span>
+                                </button>
+                                <div id="profileDropdownMenuRead"
+                                     class="absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 dropdown-menu hidden group-hover:block focus-within:block"
+                                     role="menu"
+                                     aria-orientation="vertical"
+                                     aria-labelledby="profileDropdownToggleRead"
+                                     style="background-color: var(--header-bg); border-color: var(--border-color);">
+                                    <a asp-controller="Profile" asp-action="MyProfile" class="dropdown-item" role="menuitem" style="color: var(--header-text);">Мой профиль</a>
+                                    <a asp-controller="Account" asp-action="Settings" class="dropdown-item" role="menuitem" style="color: var(--header-text);">Настройки</a>
+                                    <a asp-controller="MyWorks" asp-action="Index" class="dropdown-item" role="menuitem" style="color: var(--header-text);">Мои произведения</a>
+                                    <a asp-controller="Books" asp-action="Liked" class="dropdown-item" role="menuitem" style="color: var(--header-text);">Понравившиеся</a>
+                                    <a asp-controller="Books" asp-action="Bookmarks" class="dropdown-item" role="menuitem" style="color: var(--header-text);">Закладки</a>
+                                    @if ((await UserManager.GetUserAsync(User))?.AuthorProfile != null)
+                                    {
+                                        <a asp-controller="Messages" asp-action="Index" class="dropdown-item" role="menuitem" style="color: var(--header-text);">Сообщения</a>
+                                    }
+                                    <form asp-controller="Account" asp-action="Logout" method="post" class="w-full">
+                                        <button type="submit" class="dropdown-item w-full text-left" role="menuitem" style="color: var(--header-text);">Выйти</button>
+                                    </form>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- Неавторизованный пользователь: иконка SVG -->
+                            <a asp-controller="Account" asp-action="Login" class="header-icon">
+                                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                    <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                                </svg>
+                            </a>
+                        }
+
+                        <!-- Кнопка переключения темы -->
+                        <button id="themeToggleRead" class="header-icon" aria-label="Переключить тему" title="Переключить тему">
+                            <svg id="themeIconRead" class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </header>
+        }
+
+        <main role="main" class="flex-grow">
+            <div class="main-content">
+                @RenderBody()
+            </div>
+        </main>
+
+        <footer class="text-center py-4 footer-header-bg">
+            <div class="container mx-auto">
+                &copy; @DateTime.Now.Year - MajorAuthor.Web - <a asp-area="" asp-controller="Home" asp-action="Privacy" class="text-[var(--header-text)] hover:text-[var(--accent-gold)] transition-colors">Политика конфиденциальности</a>
+            </div>
+        </footer>
+    </div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
@@ -339,92 +1756,1155 @@
     @await RenderSectionAsync("Scripts", required: false)
 
     <script>
-        // JavaScript для управления выпадающим меню профиля
         document.addEventListener('DOMContentLoaded', function () {
-            const toggleButton = document.getElementById('profileDropdownToggle');
-            const dropdownMenu = document.getElementById('profileDropdownMenu');
+            // Проверяем, находимся ли мы на странице чтения главы
+            const isReadChapterPage = @Json.Serialize(isReadChapterPage);
 
-            if (toggleButton && dropdownMenu) {
-                let timeout;
+            // Если это не страница чтения главы, инициализируем стандартный хедер
+            if (!isReadChapterPage) {
+                // ========== УПРАВЛЕНИЕ ПРОФИЛЕМ И ТЕМОЙ ==========
+                const toggleButton = document.getElementById('profileDropdownToggle');
+                const dropdownMenu = document.getElementById('profileDropdownMenu');
 
-                // Функция для показа выпадающего меню
-                function showDropdown() {
-                    clearTimeout(timeout); // Отменяем любое запланированное скрытие
-                    dropdownMenu.classList.remove('hidden'); // Показываем меню
-                    toggleButton.setAttribute('aria-expanded', 'true'); // Обновляем атрибут доступности
-                }
+                if (toggleButton && dropdownMenu) {
+                    let timeout;
 
-                // Функция для скрытия выпадающего меню с задержкой
-                function hideDropdown() {
-                    timeout = setTimeout(() => {
-                        // Проверяем, находится ли курсор внутри кнопки или меню перед скрытием
-                        if (!dropdownMenu.contains(document.activeElement) && !toggleButton.contains(document.activeElement)) {
-                            dropdownMenu.classList.add('hidden'); // Скрываем меню
-                            toggleButton.setAttribute('aria-expanded', 'false'); // Обновляем атрибут доступности
+                    function showDropdown() {
+                        clearTimeout(timeout);
+                        dropdownMenu.classList.remove('hidden');
+                        toggleButton.setAttribute('aria-expanded', 'true');
+                    }
+
+                    function hideDropdown() {
+                        timeout = setTimeout(() => {
+                            if (!dropdownMenu.contains(document.activeElement) && !toggleButton.contains(document.activeElement)) {
+                                dropdownMenu.classList.add('hidden');
+                                toggleButton.setAttribute('aria-expanded', 'false');
+                            }
+                        }, 200);
+                    }
+
+                    toggleButton.addEventListener('click', function(event) {
+                        event.stopPropagation();
+                        if (dropdownMenu.classList.contains('hidden')) {
+                            showDropdown();
+                        } else {
+                            hideDropdown();
                         }
-                    }, 200); // Небольшая задержка, чтобы позволить курсору перемещаться
+                    });
+
+                    toggleButton.addEventListener('mouseenter', showDropdown);
+                    dropdownMenu.addEventListener('mouseenter', showDropdown);
+                    toggleButton.addEventListener('mouseleave', hideDropdown);
+                    dropdownMenu.addEventListener('mouseleave', hideDropdown);
+                    setupProfileSearch();
+                    document.addEventListener('click', function(event) {
+                        if (!toggleButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                            dropdownMenu.classList.add('hidden');
+                            toggleButton.setAttribute('aria-expanded', 'false');
+                        }
+                    });
                 }
 
-                // Обработчик клика для переключения меню (добавлен для доступности и мобильных устройств)
-                toggleButton.addEventListener('click', function(event) {
-                    // Предотвращаем срабатывание document click listener сразу
-                    event.stopPropagation();
-                    if (dropdownMenu.classList.contains('hidden')) {
-                        showDropdown();
+                // Логика переключения темы
+                const themeToggle = document.getElementById('themeToggle');
+                const themeIcon = document.getElementById('themeIcon');
+                const body = document.body;
+
+                function setTheme(theme) {
+                    if (theme === 'dark') {
+                        body.classList.add('dark-theme');
+                        localStorage.setItem('theme', 'dark');
+                        if (themeIcon) themeIcon.innerHTML = '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>';
                     } else {
-                        hideDropdown();
+                        body.classList.remove('dark-theme');
+                        localStorage.setItem('theme', 'light');
+                        if (themeIcon) themeIcon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><path d="M12 1v2"></path><path d="M12 21v2"></path><path d="M4.22 4.22l1.42 1.42"></path><path d="M18.36 18.36l1.42 1.42"></path><path d="M1 12h2"></path><path d="M21 12h2"></path><path d="M4.22 19.78l1.42-1.42"></path><path d="M18.36 5.64l1.42-1.42"></path>';
                     }
-                });
-
-                // Обработчики наведения мыши для кнопки и меню (для десктопов)
-                toggleButton.addEventListener('mouseenter', showDropdown);
-                dropdownMenu.addEventListener('mouseenter', showDropdown); // Удерживать открытым при наведении на само меню
-
-                toggleButton.addEventListener('mouseleave', hideDropdown);
-                dropdownMenu.addEventListener('mouseleave', hideDropdown);
-
-                // Закрывать меню при клике вне его
-                document.addEventListener('click', function(event) {
-                    if (!toggleButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
-                        dropdownMenu.classList.add('hidden');
-                        toggleButton.setAttribute('aria-expanded', 'false');
-                    }
-                });
-            }
-
-            const themeToggle = document.getElementById('themeToggle');
-            const body = document.body;
-
-            // Функция для установки темы
-            function setTheme(theme) {
-                if (theme === 'dark') {
-                    body.classList.add('dark-theme');
-                    localStorage.setItem('theme', 'dark');
-                    themeToggle.textContent = 'Светлая тема';
-                } else {
-                    body.classList.remove('dark-theme');
-                    localStorage.setItem('theme', 'light');
-                    themeToggle.textContent = 'Тёмная тема';
                 }
-            }
 
-            // Проверка сохраненной темы при загрузке
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme) {
-                setTheme(savedTheme);
-            } else {
-                // Установить тему по умолчанию, если не сохранена (например, темная)
-                setTheme('dark');
-            }
-
-            // Переключение темы по клику
-            themeToggle.addEventListener('click', () => {
-                if (body.classList.contains('dark-theme')) {
-                    setTheme('light');
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme) {
+                    setTheme(savedTheme);
                 } else {
                     setTheme('dark');
                 }
-            });
+
+                themeToggle.addEventListener('click', () => {
+                    if (body.classList.contains('dark-theme')) {
+                        setTheme('light');
+                    } else {
+                        setTheme('dark');
+                    }
+                });
+
+                // ========== ОБНОВЛЕНИЕ СЧЕТЧИКА СООБЩЕНИЙ ==========
+                let messageUpdateInterval;
+                let isPageVisible = true;
+
+                async function updateUnreadMessagesCount() {
+                    if (!isPageVisible) return;
+
+                    try {
+                        const messagesIcon = document.getElementById('messagesIcon');
+                        if (!messagesIcon) return;
+
+                        const badge = document.getElementById('unreadMessagesBadge');
+                        if (badge) {
+                            badge.classList.add('updating');
+                        }
+
+                        const response = await fetch('@Url.Action("GetUnreadCount", "Messages")', {
+                            method: 'GET',
+                            headers: {
+                                'Cache-Control': 'no-cache',
+                                'Pragma': 'no-cache'
+                            }
+                        });
+
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                        const data = await response.json();
+
+                        if (badge && data.unreadCount !== undefined) {
+                            if (data.unreadCount > 0) {
+                                badge.textContent = data.unreadCount > 99 ? '99+' : data.unreadCount;
+                                badge.classList.remove('hidden');
+                                badge.classList.add('pulse');
+                                setTimeout(() => badge.classList.remove('pulse'), 600);
+                            } else {
+                                badge.classList.add('hidden');
+                            }
+                        }
+
+                        if (badge) {
+                            badge.classList.remove('updating');
+                        }
+
+                    } catch (error) {
+                        console.error('Ошибка при получении количества непрочитанных сообщений:', error);
+                        if (messageUpdateInterval) {
+                            clearInterval(messageUpdateInterval);
+                            messageUpdateInterval = setInterval(updateUnreadMessagesCount, 60000);
+                        }
+                    }
+                }
+
+                function handleVisibilityChange() {
+                    isPageVisible = !document.hidden;
+
+                    if (isPageVisible) {
+                        updateUnreadMessagesCount();
+                        if (messageUpdateInterval) {
+                            clearInterval(messageUpdateInterval);
+                        }
+                        messageUpdateInterval = setInterval(updateUnreadMessagesCount, 10000);
+                    } else {
+                        if (messageUpdateInterval) {
+                            clearInterval(messageUpdateInterval);
+                            messageUpdateInterval = setInterval(updateUnreadMessagesCount, 60000);
+                        }
+                    }
+                }
+
+                function initializeMessageSystem() {
+                    document.addEventListener('visibilitychange', handleVisibilityChange);
+                    updateUnreadMessagesCount();
+                    messageUpdateInterval = setInterval(updateUnreadMessagesCount, 10000);
+                    window.addEventListener('focus', () => {
+                        updateUnreadMessagesCount();
+                    });
+                }
+
+                // Функции для определения типа страницы
+                function isCatalogPage() {
+                    return window.location.pathname.toLowerCase().includes('/catalog/');
+                }
+
+                function isAllBooksPage() {
+                    return window.location.pathname.toLowerCase().includes('/catalog/allbooks');
+                }
+
+                function isAllBlogsPage() {
+                    return window.location.pathname.toLowerCase().includes('/catalog/allblogs');
+                }
+
+                function isAllPoemsPage() {
+                    return window.location.pathname.toLowerCase().includes('/catalog/allpoems');
+                }
+
+                function isProfilePage() {
+                    return window.location.pathname.toLowerCase().includes('/profile/');
+                }
+
+                function getCurrentProfileContext() {
+                    const path = window.location.pathname.toLowerCase();
+
+                    if (path.includes('/profile/myprofile')) {
+                        return { type: 'own_profile', id: 'current' };
+                    }
+                    else if (path.includes('/profile/userprofile/')) {
+                        const match = path.match(/\/profile\/userprofile\/(\d+)/);
+                        if (match) return { type: 'author_profile', id: match[1] };
+                    }
+                    else if (path.includes('/profile/readerprofile/')) {
+                        const match = path.match(/\/profile\/readerprofile\/([^/]+)/);
+                        if (match) return { type: 'reader_profile', id: match[1] };
+                    }
+
+                    return null;
+                }
+
+                function setupProfileSearch() {
+                    const profileContext = getCurrentProfileContext();
+                    if (profileContext) {
+                        // Устанавливаем контекст поиска для обеих форм
+                        $('#searchInProfile').val(JSON.stringify(profileContext));
+                        $('#searchInProfileMobile').val(JSON.stringify(profileContext));
+
+                        // Меняем placeholder для поиска в рамках профиля
+                        const placeholder = profileContext.type === 'own_profile'
+                            ? "Найти в моём профиле..."
+                            : "Найти в этом профиле...";
+
+                        $('#mainSearchInput').attr('placeholder', placeholder);
+                        $('#searchInputMobile').attr('placeholder', placeholder);
+                    }
+                }
+
+                // Запускаем при загрузке DOM
+                document.addEventListener('DOMContentLoaded', function() {
+                    initializeMessageSystem();
+
+                    document.addEventListener('click', function(e) {
+                        if (e.target.closest('#messagesIcon') || e.target.closest('[href*="Messages"]')) {
+                            setTimeout(updateUnreadMessagesCount, 1000);
+                        }
+                    });
+                });
+
+                // ========== УПРАВЛЕНИЕ ПОИСКОМ ==========
+                const searchToggleDesktop = document.getElementById('searchToggleDesktop');
+                const mainSearchCloseBtn = document.getElementById('mainSearchCloseBtn');
+                const mainSearchInputWrapper = document.getElementById('mainSearchInputWrapper');
+                const mainSearchInput = document.getElementById('mainSearchInput');
+
+                const searchToggleMobile = document.getElementById('searchToggleMobile');
+                const searchCloseBtnMobile = document.getElementById('searchCloseBtnMobile');
+                const searchWrapperMobile = document.getElementById('searchWrapperMobile');
+                const searchInputMobile = document.getElementById('searchInputMobile');
+
+                const desktopSearchIconContainer = document.querySelector('.search-toggle-desktop');
+
+                function showMainSearch() {
+                    if (window.innerWidth <= 768) return;
+
+                    mainSearchInputWrapper.classList.add('active');
+                    if (desktopSearchIconContainer) {
+                        desktopSearchIconContainer.classList.add('hidden-when-active');
+                    }
+                    mainSearchInput.focus();
+                }
+
+                function hideMainSearch() {
+                    mainSearchInputWrapper.classList.remove('active');
+                     if (desktopSearchIconContainer) {
+                        desktopSearchIconContainer.classList.remove('hidden-when-active');
+                    }
+                    mainSearchInput.value = '';
+                    hideAutocomplete();
+                }
+
+                function showMobileSearch() {
+                    searchWrapperMobile.classList.add('active');
+                    searchInputMobile.focus();
+                }
+
+                function hideMobileSearch() {
+                    searchWrapperMobile.classList.remove('active');
+                    searchInputMobile.value = '';
+                    hideAutocomplete();
+                }
+
+                if (searchToggleDesktop) {
+                    searchToggleDesktop.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        showMainSearch();
+                        hideMobileSearch();
+                    });
+                }
+
+                if (mainSearchCloseBtn) {
+                    mainSearchCloseBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        hideMainSearch();
+                    });
+                }
+
+                if (searchToggleMobile) {
+                    searchToggleMobile.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        showMobileSearch();
+                        hideMainSearch();
+                    });
+                }
+
+                if (searchCloseBtnMobile) {
+                    searchCloseBtnMobile.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        hideMobileSearch();
+                    });
+                }
+
+                // ========== ЖИВОЙ ПОИСК (AUTOCOMPLETE) - ОТКЛЮЧЕН ДЛЯ КАТАЛОГА И ПРОФИЛЯ ==========
+                let searchTimeout;
+                const autocompleteResults = document.getElementById('autocompleteResults');
+                const autocompleteResultsMobile = document.getElementById('autocompleteResultsMobile');
+
+                function hideAutocomplete() {
+                    if (autocompleteResults) autocompleteResults.style.display = 'none';
+                    if (autocompleteResultsMobile) autocompleteResultsMobile.style.display = 'none';
+                }
+
+                function showAutocomplete(container) {
+                    if (container) container.style.display = 'block';
+                }
+
+                function fetchAutocompleteResults(query, resultsContainer) {
+                    // ОТКЛЮЧАЕМ AUTОCOMPLETE НА СТРАНИЦАХ КАТАЛОГА И ПРОФИЛЯ
+                    if (isCatalogPage() || isProfilePage()) {
+                        hideAutocomplete();
+                        return;
+                    }
+
+                    if (query.length < 2) {
+                        hideAutocomplete();
+                        return;
+                    }
+
+                    fetch(`/Search/Autocomplete?query=${encodeURIComponent(query)}`)
+                        .then(response => {
+                            if (!response.ok) throw new Error('Network response was not ok');
+                            return response.json();
+                        })
+                        .then(data => {
+                            displayAutocompleteResults(data, resultsContainer);
+                        })
+                        .catch(error => {
+                            console.error('Error fetching autocomplete results:', error);
+                            hideAutocomplete();
+                        });
+                }
+
+                function displayAutocompleteResults(data, container) {
+                    // ОТКЛЮЧАЕМ AUTОCOMPLETE НА СТРАНИЦАХ КАТАЛОГА И ПРОФИЛЯ
+                    if (isCatalogPage() || isProfilePage()) {
+                        hideAutocomplete();
+                        return;
+                    }
+
+                    if (!container) return;
+
+                    const { works, authors } = data;
+
+                    if ((!works || works.length === 0) && (!authors || authors.length === 0)) {
+                        hideAutocomplete();
+                        return;
+                    }
+
+                    let html = '';
+
+                    if (works && works.length > 0) {
+                        html += '<div class="autocomplete-section-title">Популярные произведения</div>';
+                        works.forEach(work => {
+                            html += `
+                                <div class="autocomplete-item" data-type="work" data-id="${work.id}" data-action="${work.targetAction}">
+                                    <span class="autocomplete-work-type">${getWorkTypeLabel(work.type)}</span>
+                                    <div style="flex: 1;">
+                                        <div class="autocomplete-work-title">${escapeHtml(work.title)}</div>
+                                        <div class="autocomplete-work-author">${escapeHtml(work.authorName)}</div>
+                                        <div class="autocomplete-work-stats">
+                                            <div class="autocomplete-stat">
+                                                <i class="far fa-eye"></i>
+                                                <span>${work.viewsCount}</span>
+                                            </div>
+                                            <div class="autocomplete-stat">
+                                                <i class="fas fa-thumbs-up" style="color: #dc2626;"></i>
+                                                <span>${work.likesCount}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    if (authors && authors.length > 0 && (!works || works.length < 3)) {
+                        html += '<div class="autocomplete-section-title">Авторы</div>';
+                        authors.forEach(author => {
+                            html += `
+                                <div class="autocomplete-author-item" data-type="author" data-id="${author.id}">
+                                    <img src="${author.photoUrl || 'https://placehold.co/32x32/D4AF37/FFFFFF?text=А'}"
+                                         alt="Аватар" class="autocomplete-author-avatar"
+                                         onerror="this.src='https://placehold.co/32x32/D4AF37/FFFFFF?text=А'">
+                                    <div class="autocomplete-author-info">
+                                        <div class="autocomplete-author-name">${escapeHtml(author.name)}</div>
+                                        <div class="autocomplete-author-subscribers">
+                                            <i class="fas fa-users"></i>
+                                            <span>${author.subscribersCount} подписчиков</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        });
+                    }
+
+                    container.innerHTML = html;
+                    showAutocomplete(container);
+
+                    container.querySelectorAll('.autocomplete-item, .autocomplete-author-item').forEach(item => {
+                        item.addEventListener('click', function() {
+                            const type = this.getAttribute('data-type');
+                            const id = this.getAttribute('data-id');
+
+                            if (type === 'work') {
+                                const action = this.getAttribute('data-action');
+                                window.location.href = `/Read/${action}/${id}`;
+                            } else if (type === 'author') {
+                                window.location.href = `/Profile/UserProfile/${id}`;
+                            }
+                        });
+                    });
+                }
+
+                // Обработчики отправки формы поиска
+                const searchForms = document.querySelectorAll('#mainSearchForm, #mobileSearchForm');
+                searchForms.forEach(form => {
+                    form.addEventListener('submit', function (e) {
+                        // --- ИСПРАВЛЕНИЕ ДЛЯ ПОИСКА ПО ПРОФИЛЮ ---
+                        const searchInProfileInput = this.querySelector('input[name="searchInProfile"]');
+                        const searchInProfileValue = searchInProfileInput ? searchInProfileInput.value : null;
+
+                        if (searchInProfileValue && searchInProfileValue.length > 0) {
+                            // Если у нас есть контекст профиля, меняем action формы, чтобы она
+                            // отправилась на правильный метод контроллера.
+                            this.action = '@Url.Action("SearchInProfile", "Search")';
+                            // Мы *не* используем e.preventDefault(), мы позволяем форме
+                            // отправиться стандартно, но на новый URL.
+                        } else {
+                            // Убеждаемся, что action по умолчанию - это глобальный поиск
+                            this.action = '@Url.Action("Index", "Search")';
+                        }
+                        // --- КОНЕЦ ИСПРАВЛЕНИЯ ---
+
+                        const query = this.querySelector('input[type="text"]').value.trim();
+                        console.log('Search form submitted, query:', query, 'on page:', window.location.pathname);
+
+                        // Если находимся на странице каталога и есть запрос (AJAX логика)
+                        if (isCatalogPage() && query) {
+                            e.preventDefault(); // Предотвращаем отправку *только* для каталога
+                            console.log('Preventing default form submission, will use AJAX');
+
+                            // Вызываем соответствующую функцию поиска в зависимости от страницы
+                            if (isAllBooksPage() && typeof window.performBooksSearch === 'function') {
+                                console.log('Calling performBooksSearch');
+                                window.performBooksSearch(query);
+                            } else if (isAllBlogsPage() && typeof window.performBlogsSearch === 'function') {
+                                console.log('Calling performBlogsSearch');
+                                window.performBlogsSearch(query);
+                            } else if (isAllPoemsPage() && typeof window.performPoemsSearch === 'function') {
+                                console.log('Calling performPoemsSearch');
+                                window.performPoemsSearch(query);
+                            } else {
+                                console.log('No search function found, submitting normally');
+                                this.submit(); // Если функция не найдена, отправляем
+                            }
+
+                            // Закрываем поисковые формы
+                            hideMainSearch();
+                            hideMobileSearch();
+                        } else {
+                            // Для всех остальных страниц (включая профиль)
+                            // форма отправится обычным образом (e.preventDefault() не был вызван)
+                            console.log('Not on catalog page or empty query, submitting normally to:', this.action);
+                        }
+                    });
+                });
+
+                function getWorkTypeLabel(type) {
+                    const labels = {
+                        'Poem': 'Стих',
+                        'Book': 'Книга',
+                        'Blog': 'Блог'
+                    };
+                    return labels[type] || type;
+                }
+
+                function escapeHtml(unsafe) {
+                    return unsafe
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;")
+                        .replace(/'/g, "&#039;");
+                }
+
+                // Обработчики ввода для живого поиска
+                function setupSearchInput(inputElement, resultsContainer) {
+                    if (!inputElement) return;
+
+                    inputElement.addEventListener('input', function(e) {
+                        // ОТКЛЮЧАЕМ AUTОCOMPLETE НА СТРАНИЦАХ КАТАЛОГА И ПРОФИЛЯ
+                        if (isCatalogPage() || isProfilePage()) {
+                            hideAutocomplete();
+                            return;
+                        }
+
+                        clearTimeout(searchTimeout);
+                        const query = e.target.value.trim();
+
+                        searchTimeout = setTimeout(() => {
+                            fetchAutocompleteResults(query, resultsContainer);
+                        }, 300);
+                    });
+
+                    inputElement.addEventListener('focus', function(e) {
+                        // ОТКЛЮЧАЕМ AUTОCOMPLETE НА СТРАНИЦАХ КАТАЛОГА И ПРОФИЛЯ
+                        if (isCatalogPage() || isProfilePage()) {
+                            hideAutocomplete();
+                            return;
+                        }
+
+                        const query = e.target.value.trim();
+                        if (query.length >= 2) {
+                            fetchAutocompleteResults(query, resultsContainer);
+                        }
+                    });
+                }
+
+                // Настройка живого поиска для десктопной и мобильной версии
+                setupSearchInput(mainSearchInput, autocompleteResults);
+                setupSearchInput(searchInputMobile, autocompleteResultsMobile);
+
+                // Скрываем автодополнение при клике вне
+                document.addEventListener('click', function(e) {
+                    if (!e.target.closest('.main-search-input-wrapper') && !e.target.closest('.search-wrapper-mobile')) {
+                        hideAutocomplete();
+                    }
+                });
+
+                // Обработчики закрытия по ESC
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === "Escape") {
+                        if (mainSearchInputWrapper.classList.contains('active')) {
+                            hideMainSearch();
+                        }
+                        if (searchWrapperMobile.classList.contains('active')) {
+                            hideMobileSearch();
+                        }
+                        hideAutocomplete();
+                    }
+                });
+
+                document.addEventListener('click', function(e) {
+                    // Закрытие десктопного поиска
+                        if (mainSearchInputWrapper.classList.contains('active') &&
+                            !mainSearchInputWrapper.contains(e.target) &&
+                            !searchToggleDesktop.contains(e.target)) {
+                            hideMainSearch();
+                        }
+
+                    // Закрытие мобильного поиска
+                    if (searchWrapperMobile.classList.contains('active') &&
+                        !searchWrapperMobile.contains(e.target) &&
+                        !searchToggleMobile.contains(e.target)) {
+                        hideMobileSearch();
+                    }
+                });
+
+                // Инициализация системы сообщений
+                initializeMessageSystem();
+                setupProfileSearch();
+
+                // ========== ИНИЦИАЛИЗАЦИЯ СИСТЕМЫ УВЕДОМЛЕНИЙ ==========
+                // (Инициализация NotificationManager теперь здесь, после того как все элементы DOM готовы)
+
+            }
+            else if (isReadChapterPage) {
+                // Инициализация для страницы чтения главы
+                // Переключение темы
+                const themeToggleRead = document.getElementById('themeToggleRead');
+                const themeIconRead = document.getElementById('themeIconRead');
+                const body = document.body;
+
+                if (themeToggleRead && themeIconRead) {
+                    const savedTheme = localStorage.getItem('theme') || 'dark';
+                    if (savedTheme === 'dark') {
+                        body.classList.add('dark-theme');
+                        themeIconRead.innerHTML = '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>';
+                    } else {
+                        body.classList.remove('dark-theme');
+                        themeIconRead.innerHTML = '<circle cx="12" cy="12" r="5"></circle><path d="M12 1v2"></path><path d="M12 21v2"></path><path d="M4.22 4.22l1.42 1.42"></path><path d="M18.36 18.36l1.42 1.42"></path><path d="M1 12h2"></path><path d="M21 12h2"></path><path d="M4.22 19.78l1.42-1.42"></path><path d="M18.36 5.64l1.42-1.42"></path>';
+                    }
+
+                    themeToggleRead.addEventListener('click', () => {
+                        if (body.classList.contains('dark-theme')) {
+                            body.classList.remove('dark-theme');
+                            localStorage.setItem('theme', 'light');
+                            themeIconRead.innerHTML = '<circle cx="12" cy="12" r="5"></circle><path d="M12 1v2"></path><path d="M12 21v2"></path><path d="M4.22 4.22l1.42 1.42"></path><path d="M18.36 18.36l1.42 1.42"></path><path d="M1 12h2"></path><path d="M21 12h2"></path><path d="M4.22 19.78l1.42-1.42"></path><path d="M18.36 5.64l1.42-1.42"></path>';
+                        } else {
+                            body.classList.add('dark-theme');
+                            localStorage.setItem('theme', 'dark');
+                            themeIconRead.innerHTML = '<path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path>';
+                        }
+                    });
+                }
+
+                // Инициализация выпадающего меню профиля для страницы чтения
+                const toggleButton = document.getElementById('profileDropdownToggleRead');
+                const dropdownMenu = document.getElementById('profileDropdownMenuRead');
+
+                if (toggleButton && dropdownMenu) {
+                    let timeout;
+
+                    function showDropdown() {
+                        clearTimeout(timeout);
+                        dropdownMenu.classList.remove('hidden');
+                        toggleButton.setAttribute('aria-expanded', 'true');
+                    }
+
+                    function hideDropdown() {
+                        timeout = setTimeout(() => {
+                            if (!dropdownMenu.contains(document.activeElement) && !toggleButton.contains(document.activeElement)) {
+                                dropdownMenu.classList.add('hidden');
+                                toggleButton.setAttribute('aria-expanded', 'false');
+                            }
+                        }, 200);
+                    }
+
+                    toggleButton.addEventListener('click', function(event) {
+                        event.stopPropagation();
+                        if (dropdownMenu.classList.contains('hidden')) {
+                            showDropdown();
+                        } else {
+                            hideDropdown();
+                        }
+                    });
+
+                    toggleButton.addEventListener('mouseenter', showDropdown);
+                    dropdownMenu.addEventListener('mouseenter', showDropdown);
+                    toggleButton.addEventListener('mouseleave', hideDropdown);
+                    dropdownMenu.addEventListener('mouseleave', hideDropdown);
+
+                    document.addEventListener('click', function(event) {
+                        if (!toggleButton.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                            dropdownMenu.classList.add('hidden');
+                            toggleButton.setAttribute('aria-expanded', 'false');
+                        }
+                    });
+                }
+            }
+
+            // ========== УЛУЧШЕННАЯ СИСТЕМА УВЕДОМЛЕНИЙ ==========
+            class NotificationManager {
+                constructor() {
+                    this.container = document.getElementById('notificationContainer');
+                    this.toggle = document.getElementById('notificationToggle');
+                    this.dropdown = document.getElementById('notificationDropdown');
+                    this.badge = document.getElementById('notificationBadge');
+                    this.list = document.getElementById('notificationList');
+                    this.markAllBtn = document.getElementById('markAllAsRead');
+
+                    if (!this.container || !this.toggle || !this.dropdown || !this.badge || !this.list) {
+                        console.warn('Notification elements not found');
+                        return;
+                    }
+
+                    this.isOpen = false;
+                    this.notificationsLoaded = false;
+                    this.init();
+                }
+
+                init() {
+                    this.setupEventListeners();
+                    this.loadNotificationCount();
+                    this.setupAutoRefresh();
+
+                    // Предзагружаем уведомления сразу, чтобы они были готовы при наведении
+                    this.preloadNotifications();
+                }
+
+                setupEventListeners() {
+                    // Переключение видимости dropdown при клике
+                    this.toggle.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        this.toggleDropdown();
+                    });
+
+                    // Открытие dropdown при наведении на контейнер
+                    this.container.addEventListener('mouseenter', (e) => {
+                        this.showDropdownOnHover();
+                    });
+
+                    // Закрытие dropdown при уходе с контейнера
+                    this.container.addEventListener('mouseleave', (e) => {
+                        // Проверяем, не ушли ли мы в dropdown
+                        const relatedTarget = e.relatedTarget;
+                        if (!this.dropdown.contains(relatedTarget) && !this.toggle.contains(relatedTarget)) {
+                            this.hideDropdownOnHover();
+                        }
+                    });
+
+                    // Закрытие dropdown при уходе с самого dropdown
+                    this.dropdown.addEventListener('mouseleave', (e) => {
+                        const relatedTarget = e.relatedTarget;
+                        if (!this.container.contains(relatedTarget)) {
+                            this.hideDropdownOnHover();
+                        }
+                    });
+
+                    // Закрытие dropdown при клике вне
+                    document.addEventListener('click', (e) => {
+                        if (this.container && !this.container.contains(e.target) && !this.dropdown.contains(e.target)) {
+                            this.hideDropdown();
+                        }
+                    });
+
+                    // Отметить все как прочитанные
+                    if (this.markAllBtn) {
+                        this.markAllBtn.addEventListener('click', (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            this.markAllAsRead();
+                        });
+                    }
+
+                    // Обработка нажатия ESC
+                    document.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape' && this.isOpen) {
+                            this.hideDropdown();
+                        }
+                    });
+
+                    // Предотвращение закрытия при клике внутри dropdown
+                    if (this.dropdown) {
+                        this.dropdown.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                        });
+                    }
+                }
+
+                toggleDropdown() {
+                    if (this.isOpen) {
+                        this.hideDropdown();
+                    } else {
+                        this.showDropdown();
+                    }
+                }
+
+                showDropdownOnHover() {
+                    if (this.isOpen) return; // Если уже открыт, ничего не делаем
+
+                    this.dropdown.classList.remove('hidden');
+                    this.toggle.setAttribute('aria-expanded', 'true');
+                    this.isOpen = true;
+
+                    // Загружаем уведомления, если еще не загружены
+                    if (!this.notificationsLoaded) {
+                        this.loadNotifications();
+                    }
+
+                    // Добавляем анимацию появления
+                    this.dropdown.style.opacity = '0';
+                    this.dropdown.style.transform = 'translateY(-10px) scale(0.95)';
+
+                    requestAnimationFrame(() => {
+                        this.dropdown.style.transition = 'all 0.3s ease';
+                        this.dropdown.style.opacity = '1';
+                        this.dropdown.style.transform = 'translateY(0) scale(1)';
+                    });
+                }
+
+                hideDropdownOnHover() {
+                    if (!this.isOpen) return;
+
+                    this.dropdown.style.opacity = '0';
+                    this.dropdown.style.transform = 'translateY(-10px) scale(0.95)';
+
+                    setTimeout(() => {
+                        this.dropdown.classList.add('hidden');
+                        this.toggle.setAttribute('aria-expanded', 'false');
+                        this.isOpen = false;
+                        this.dropdown.style.transition = '';
+                        this.dropdown.style.opacity = '';
+                        this.dropdown.style.transform = '';
+                    }, 300);
+                }
+
+                showDropdown() {
+                    this.dropdown.classList.remove('hidden');
+                    this.toggle.setAttribute('aria-expanded', 'true');
+                    this.isOpen = true;
+                    this.loadNotifications();
+
+                    // Добавляем анимацию появления
+                    this.dropdown.style.opacity = '0';
+                    this.dropdown.style.transform = 'translateY(-10px) scale(0.95)';
+
+                    requestAnimationFrame(() => {
+                        this.dropdown.style.transition = 'all 0.3s ease';
+                        this.dropdown.style.opacity = '1';
+                        this.dropdown.style.transform = 'translateY(0) scale(1)';
+                    });
+                }
+
+                hideDropdown() {
+                    if (this.isOpen) {
+                        this.dropdown.style.opacity = '0';
+                        this.dropdown.style.transform = 'translateY(-10px) scale(0.95)';
+
+                        setTimeout(() => {
+                            this.dropdown.classList.add('hidden');
+                            this.toggle.setAttribute('aria-expanded', 'false');
+                            this.isOpen = false;
+                            this.dropdown.style.transition = '';
+                            this.dropdown.style.opacity = '';
+                            this.dropdown.style.transform = '';
+                        }, 300);
+                    }
+                }
+
+                async preloadNotifications() {
+                    // Предзагружаем уведомления в фоновом режиме
+                    try {
+                        await this.loadNotificationCount();
+                        // Не загружаем список уведомлений сразу, чтобы не нагружать сервер
+                        // Они загрузятся при наведении
+                    } catch (error) {
+                        console.error('Ошибка при предзагрузке уведомлений:', error);
+                    }
+                }
+
+                async loadNotificationCount() {
+                    try {
+                        const response = await fetch('/Notification/GetNotificationCount');
+                        if (!response.ok) throw new Error('Network response was not ok');
+
+                        const data = await response.json();
+                        this.updateBadge(data.unreadCount || 0);
+                    } catch (error) {
+                        console.error('Ошибка при загрузке счетчика уведомлений:', error);
+                        this.updateBadge(0);
+                    }
+                }
+
+                async loadNotifications() {
+                    try {
+                        // Показываем скелетон загрузки только если список пуст
+                        if (!this.notificationsLoaded) {
+                            this.list.innerHTML = this.getSkeletonLoader();
+                        }
+
+                        const response = await fetch('/Notification/GetRecentNotifications');
+                        if (!response.ok) throw new Error('Network response was not ok');
+
+                        const notifications = await response.json();
+                        this.notificationsLoaded = true;
+                        this.renderNotifications(notifications);
+                    } catch (error) {
+                        console.error('Ошибка при загрузке уведомлений:', error);
+                        this.renderError();
+                    }
+                }
+
+                getSkeletonLoader() {
+                    return `
+                        <div class="space-y-3 p-4">
+                            ${Array(3).fill().map(() => `
+                                <div class="animate-pulse">
+                                    <div class="flex items-start space-x-3">
+                                        <div class="w-2 h-2 bg-gray-300 dark:bg-gray-600 rounded-full mt-2"></div>
+                                        <div class="flex-1 space-y-2">
+                                            <div class="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4"></div>
+                                            <div class="h-3 bg-gray-300 dark:bg-gray-600 rounded w-1/2"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                renderNotifications(notifications) {
+                    if (!notifications || notifications.length === 0) {
+                        this.list.innerHTML = `
+                            <div class="notification-empty-state p-6">
+                                <div class="notification-empty-icon text-3xl mb-3">
+                                    <i class="fas fa-bell-slash"></i>
+                                </div>
+                                <p class="text-gray-500 dark:text-gray-400 text-sm">У вас пока нет уведомлений</p>
+                            </div>
+                        `;
+                        return;
+                    }
+
+                    this.list.innerHTML = notifications.map((notification, index) => `
+                        <div class="notification-item p-4 border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer transition-all duration-200 ${!notification.isRead ? 'unread' : ''}"
+                             data-notification-id="${notification.id}"
+                             data-target-url="${notification.targetUrl || ''}"
+                             style="animation-delay: ${index * 0.1}s">
+
+                            <div class="flex items-start justify-between mb-2">
+                                <div class="flex items-center gap-2">
+                                    ${!notification.isRead ? `
+                                        <span class="w-2 h-2 bg-amber-500 rounded-full animate-pulse flex-shrink-0 mt-1.5"
+                                              title="Не прочитано"></span>
+                                    ` : ''}
+
+                                    ${notification.type ? `
+                                        <span class="notification-type-badge text-xs">
+                                            ${this.getTypeIcon(notification.type)} ${this.getTypeLabel(notification.type)}
+                                        </span>
+                                    ` : ''}
+                                </div>
+
+                                <span class="notification-time text-xs flex-shrink-0">
+                                    <i class="far fa-clock mr-1"></i>${notification.formattedDate || ''}
+                                </span>
+                            </div>
+
+                            <p class="notification-message text-sm text-gray-800 dark:text-gray-200 ${!notification.isRead ? 'font-semibold' : ''}">
+                                ${this.escapeHtml(notification.message || '')}
+                            </p>
+
+                            ${notification.targetUrl ? `
+                                <div class="flex items-center gap-1 text-amber-600 dark:text-amber-400 text-xs font-medium mt-2">
+                                    <i class="fas fa-external-link-alt"></i>
+                                    <span>Перейти</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `).join('');
+
+                    // Добавляем обработчики кликов для каждого уведомления
+                    this.addNotificationClickHandlers();
+                }
+
+                addNotificationClickHandlers() {
+                    const notificationElements = this.list.querySelectorAll('.notification-item');
+                    notificationElements.forEach(element => {
+                        element.addEventListener('click', async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+
+                            const notificationId = element.getAttribute('data-notification-id');
+                            const targetUrl = element.getAttribute('data-target-url');
+
+                            // Отмечаем уведомление как прочитанное
+                            await this.markAsRead(notificationId);
+
+                            // Если есть ссылка, переходим по ней
+                            if (targetUrl && targetUrl.trim() !== '') {
+                                window.location.href = targetUrl;
+                            }
+                        });
+                    });
+                }
+
+                renderError() {
+                    this.list.innerHTML = `
+                        <div class="p-6 text-center">
+                            <div class="text-red-400 text-2xl mb-2">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <p class="text-red-500 dark:text-red-400 text-sm">Ошибка при загрузке уведомлений</p>
+                            <button onclick="notificationManager.loadNotifications()"
+                                    class="gold-button text-xs mt-2">
+                                <i class="fas fa-redo"></i>
+                                Попробовать снова
+                            </button>
+                        </div>
+                    `;
+                }
+
+                async markAsRead(notificationId) {
+                    try {
+                        const response = await fetch('/Notification/MarkAsRead', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                            },
+                            body: JSON.stringify({ id: notificationId })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Ошибка при отметке уведомления как прочитанного');
+                        }
+
+                        // Обновить счетчик
+                        this.loadNotificationCount();
+
+                        // Обновить визуальное состояние уведомления
+                        const notificationElement = this.list.querySelector(`[data-notification-id="${notificationId}"]`);
+                        if (notificationElement) {
+                            notificationElement.classList.remove('unread');
+                            const unreadDot = notificationElement.querySelector('.bg-amber-500');
+                            if (unreadDot) unreadDot.remove();
+
+                            const message = notificationElement.querySelector('.font-semibold');
+                            if (message) message.classList.remove('font-semibold');
+
+                            // Убираем анимацию пульсации для точки
+                            if (unreadDot) {
+                                unreadDot.classList.remove('animate-pulse');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Ошибка при отметке уведомления как прочитанного:', error);
+                        // Даже если произошла ошибка, покажем пользователю, что уведомление отмечено как прочитанное локально
+                        const notificationElement = this.list.querySelector(`[data-notification-id="${notificationId}"]`);
+                        if (notificationElement) {
+                            notificationElement.classList.remove('unread');
+                            const unreadDot = notificationElement.querySelector('.bg-amber-500');
+                            if (unreadDot) unreadDot.remove();
+
+                            const message = notificationElement.querySelector('.font-semibold');
+                            if (message) message.classList.remove('font-semibold');
+                        }
+                    }
+                }
+
+                async markAllAsRead() {
+                    try {
+                        const response = await fetch('/Notification/MarkAllAsRead', {
+                            method: 'POST',
+                            headers: {
+                                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                            }
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Ошибка при отметке всех уведомлений как прочитанных');
+                        }
+
+                        // Обновить счетчик и список
+                        this.loadNotificationCount();
+                        this.loadNotifications();
+
+                        // Показать подтверждение
+                        this.showToast('Все уведомления отмечены как прочитанные', 'success');
+                    } catch (error) {
+                        console.error('Ошибка при отметке всех уведомлений как прочитанных:', error);
+                        this.showToast('Ошибка при обновлении уведомлений', 'error');
+                    }
+                }
+
+                showToast(message, type = 'info') {
+                    const toast = document.createElement('div');
+                    toast.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg transition-all duration-300 transform translate-x-full ${
+                        type === 'success' ? 'bg-green-500 text-white' :
+                        type === 'error' ? 'bg-red-500 text-white' :
+                        'bg-blue-500 text-white'
+                    }`;
+                    toast.innerHTML = `
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation' : 'info'}"></i>
+                            <span>${message}</span>
+                        </div>
+                    `;
+
+                    document.body.appendChild(toast);
+
+                    requestAnimationFrame(() => {
+                        toast.style.transform = 'translateX(0)';
+                    });
+
+                    setTimeout(() => {
+                        toast.style.transform = 'translateX(100%)';
+                        setTimeout(() => {
+                            document.body.removeChild(toast);
+                        }, 300);
+                    }, 3000);
+                }
+
+                updateBadge(count) {
+                    if (!this.badge) return;
+
+                    if (count > 0) {
+                        this.badge.textContent = count > 99 ? '99+' : count;
+                        this.badge.classList.remove('hidden');
+
+                        // Анимация для нового уведомления
+                        const prevCount = parseInt(this.badge.getAttribute('data-prev-count') || '0');
+                        if (count > prevCount) {
+                            this.badge.classList.add('pulse');
+                            setTimeout(() => this.badge.classList.remove('pulse'), 600);
+                        }
+                        this.badge.setAttribute('data-prev-count', count);
+
+                        // Добавляем золотое свечение иконке
+                        this.toggle.classList.add('gold-accent');
+                    } else {
+                        this.badge.classList.add('hidden');
+                        this.toggle.classList.remove('gold-accent');
+                    }
+                }
+
+                getTypeLabel(type) {
+                    const labels = {
+                        'new_comment': 'Комментарий',
+                        'new_like': 'Лайк',
+                        'new_message': 'Сообщение',
+                        'system': 'Системное',
+                        'update': 'Обновление',
+                        'new_follower': 'Подписчик',
+                        'content_approved': 'Публикация',
+                        'content_rejected': 'Модерация'
+                    };
+                    return labels[type] || type;
+                }
+
+                getTypeIcon(type) {
+                    const icons = {
+                        'new_comment': 'fas fa-comment',
+                        'new_like': 'fas fa-heart',
+                        'new_message': 'fas fa-envelope',
+                        'system': 'fas fa-cog',
+                        'update': 'fas fa-sync',
+                        'new_follower': 'fas fa-user-plus',
+                        'content_approved': 'fas fa-check-circle',
+                        'content_rejected': 'fas fa-exclamation-circle'
+                    };
+                    return `<i class="${icons[type] || 'fas fa-bell'}"></i>`;
+                }
+
+                escapeHtml(unsafe) {
+                    if (!unsafe) return '';
+                    return unsafe
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;")
+                        .replace(/'/g, "&#039;");
+                }
+
+                setupAutoRefresh() {
+                    // Обновлять счетчик каждые 30 секунд
+                    setInterval(() => {
+                        this.loadNotificationCount();
+                    }, 30000);
+                }
+            }
+
+            // Инициализация менеджера уведомлений
+            let notificationManager;
+
+            // Инициализируем менеджер уведомлений только если мы на странице со стандартным хедером
+            // и элементы уведомлений существуют
+            if (!isReadChapterPage && document.getElementById('notificationContainer')) {
+                notificationManager = new NotificationManager();
+            }
         });
     </script>
 </body>

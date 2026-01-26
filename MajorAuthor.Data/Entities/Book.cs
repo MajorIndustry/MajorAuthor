@@ -11,94 +11,53 @@ namespace MajorAuthor.Data.Entities
     /// </summary>
     public class Book
     {
-        /// <summary>
-        /// Уникальный идентификатор книги.
-        /// </summary>
         [Key]
         public int Id { get; set; }
 
-        /// <summary>
-        /// Название книги.
-        /// </summary>
         [Required]
         [MaxLength(500)]
         public string Title { get; set; }
 
-        /// <summary>
-        /// Описание или аннотация книги.
-        /// </summary>
         public string Description { get; set; }
-
-        /// <summary>
-        /// Дата публикации книги.
-        /// </summary>
         public DateTime PublicationDate { get; set; } = DateTime.UtcNow;
 
-        /// <summary>
-        /// URL обложки книги (опционально).
-        /// </summary>
         [MaxLength(500)]
         public string? CoverImageUrl { get; set; }
 
-        /// <summary>
-        /// Количество лайков книги.
-        /// </summary>
-        public int LikesCount { get; set; }= 0;
-
-        /// <summary>
-        /// Количество прочтений книги.
-        /// </summary>
+        public int LikesCount { get; set; } = 0;
         public int ReadsCount { get; set; } = 0;
-
-        /// <summary>
-        /// Дата последнего обновления книги. Используется для "Недавно обновленных книг".
-        /// </summary>
         public DateTime LastUpdateTime { get; set; } = DateTime.UtcNow;
 
-        /// <summary>
-        /// Указывает, содержит ли книга контент 18+.
-        /// </summary>
         public bool IsAdultContent { get; set; } = false;
+        public bool IsPublic { get; set; } = false;
+        public bool EnableTTS { get; set; } = false;
+        public bool AllowDownload { get; set; } = false;
 
-        /// <summary>
-        /// Коллекция записей о прочтениях этой книги.
-        /// </summary>
+        // Внешние ключи
+        public int TypeId { get; set; }
+        public BookType Type { get; set; }
+
+        public int? CycleId { get; set; }
+        public BookCycle? Cycle { get; set; }
+
+        public int StatusId { get; set; } = 1;
+        public BookStatus Status { get; set; }
+        public double Rating { get; set; } = 0;
+        public double WeeklyRating { get; set; } = 0;
+        public double MonthlyRating { get; set; } = 0;
+        public double YearlyRating { get; set; } = 0;
+
+        // Навигационные свойства
         public ICollection<BookReading> Readings { get; set; } = new List<BookReading>();
-
-        /// <summary>
-        /// Коллекция лайков этой книги.
-        /// </summary>
         public ICollection<BookLike> Likes { get; set; } = new List<BookLike>();
-
-        /// <summary>
-        /// Коллекция связей с жанрами для этой книги (многие-ко-многим).
-        /// </summary>
         public ICollection<BookGenre> BookGenres { get; set; } = new List<BookGenre>();
-
-        /// <summary>
-        /// Коллекция связей с авторами, участвующими в написании книги (для совместного написания).
-        /// </summary>
         public ICollection<BookAuthor> BookAuthors { get; set; } = new List<BookAuthor>();
-
-        /// <summary>
-        /// Коллекция глав книги.
-        /// </summary>
         public ICollection<Chapter> Chapters { get; set; } = new List<Chapter>();
-
-        /// <summary>
-        /// Коллекция связей с тегами для этой книги (многие-ко-многим).
-        /// </summary>
         public ICollection<BookTag> BookTags { get; set; } = new List<BookTag>();
-
-        /// <summary>
-        /// Коллекция пользователей, добавивших эту книгу в избранное.
-        /// </summary>
         public ICollection<UserFavoriteBook> UserFavorites { get; set; } = new List<UserFavoriteBook>();
-        /// <summary>
-        /// Коллекция продвежения книг.
-        /// </summary>
         public ICollection<Promotion> Promotions { get; set; } = new List<Promotion>();
         public ICollection<BookInvitation> BookInvitations { get; set; } = new List<BookInvitation>();
         public ICollection<Comment> Comments { get; set; } = new List<Comment>();
+        public virtual ICollection<SimilarBook> SimilarBooks { get; set; }
     }
 }

@@ -11,10 +11,12 @@ namespace MajorAuthor.Services
     public class BlogService : IWorkService<Blog>
     {
         private readonly MajorAuthorDbContext _context;
+        private readonly INotificationService _notificationService;
 
-        public BlogService(MajorAuthorDbContext context)
+        public BlogService(MajorAuthorDbContext context, INotificationService notificationService)
         {
             _context = context;
+            _notificationService = notificationService;
         }
 
         public async Task<Blog> GetByIdAsync(int id)
@@ -33,6 +35,42 @@ namespace MajorAuthor.Services
         {
             _context.Blogs.Add(blog);
             await _context.SaveChangesAsync();
+            try
+            {
+                // Получаем имя автора
+                var author = await _context.Authors
+                    .Select(a => new { a.Id, a.PenName })
+                    .FirstOrDefaultAsync(a => a.Id == blog.AuthorId);
+
+                if (author != null)
+                {
+                    // Получаем ID всех подписчиков этого автора
+                    var followerUserIds = await _context.Followers
+                        .Where(f => f.AuthorId == blog.AuthorId)
+                        .Select(f => f.FollowerApplicationUserId)
+                        .ToListAsync();
+
+                    // Формируем сообщение и ссылку
+                    // Примечание: Убедитесь, что маршрут /Blog/Details/{id} существует в вашем контроллере блогов
+                    string message = $"Автор {author.PenName} опубликовал новый блог: «{blog.Title}»";
+                    string targetUrl = $"/Read/ReadBlog/{blog.Id}";
+                    // Отправляем уведомления
+                    foreach (var userId in followerUserIds)
+                    {
+                        await _notificationService.CreateNotificationAsync(
+                            userId,
+                            message,
+                            "Новый Блог", // Тип уведомления
+                            targetUrl
+                        );
+                    }
+                }
+            }
+            catch
+            {
+                // Логируем ошибку, но не прерываем работу, если уведомления не ушли.
+                // Пользователь не должен получать ошибку 500, если просто сломалась рассылка.
+            }
         }
 
         public async Task UpdateAsync(Blog blog)
@@ -54,6 +92,7 @@ namespace MajorAuthor.Services
             // в одном запросе, чтобы избежать N+1 проблемы.
             var blog = await _context.Blogs
                 .Include(p => p.Comments)
+                .ThenInclude(c => c.ApplicationUser)
                 .Include(p => p.Likes)
                 .SingleOrDefaultAsync(p => p.Id == id);
 

@@ -1,0 +1,1204 @@
+﻿@model MajorAuthor.Models.ChapterEditorViewModel
+@{
+    ViewData["Title"] = $"Редактор: {Model.ChapterTitle}";
+    Layout = "_Layout";
+}
+
+<!-- Стили редактора Quill -->
+<link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+<style>
+    /* ОСНОВНОЙ КОНТЕЙНЕР */
+    .editor-page-container {
+        height: calc(100vh - 80px);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background-color: var(--bg-primary);
+    }
+
+    /* Контейнер редактора */
+    .ql-container {
+        border-color: var(--border-color) !important;
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+        font-size: 1.15rem;
+        line-height: 1.6;
+        border-radius: 0.75rem;
+        height: 100%;
+        min-height: 400px;
+        font-family: 'Inter', sans-serif;
+        flex: 1;
+        border-top: none !important;
+    }
+
+    .ql-toolbar {
+        display: none !important;
+    }
+
+    /* Курсоры соавторов */
+    .ql-cursor {
+        position: absolute;
+        z-index: 100;
+        pointer-events: none;
+    }
+
+    .ql-editor {
+        font-size: 1.1rem;
+        line-height: 1.6;
+        padding: 1rem;
+        color: var(--text-primary);
+        min-height: 300px;
+    }
+
+    /* ГЛАВНЫЙ БЕЛЫЙ БЛОК - ДОЛЖЕН БЫТЬ СВЕТЛЫМ В СВЕТЛОЙ ТЕМЕ И ТЕМНЫМ В ТЕМНОЙ */
+    .white-block {
+        background-color: #ffffff !important;
+        border: 1px solid #e5e7eb !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    body.dark-theme .white-block {
+        background-color: #1f2937 !important;
+        border: 1px solid #374151 !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    /* Поле ввода заголовка - ЧЁРНЫЙ в светлой теме, БЕЛЫЙ в темной */
+    .chapter-title-input {
+        background-color: transparent !important;
+        color: #000000 !important; /* ЧЁРНЫЙ в светлой теме */
+        border: 1px solid transparent !important;
+        border-radius: 0.5rem;
+        padding: 0.5rem;
+        font-size: 1.25rem;
+        font-weight: 700;
+        transition: all 0.3s ease;
+        width: 100%;
+        font-family: 'Inter', sans-serif;
+    }
+
+    /* В темной теме БЕЛЫЙ текст */
+    body.dark-theme .chapter-title-input {
+        color: #ffffff !important; /* БЕЛЫЙ в темной теме */
+        background-color: transparent !important;
+    }
+
+    .chapter-title-input:hover {
+        border-color: #d1d5db !important;
+    }
+
+    body.dark-theme .chapter-title-input:hover {
+        border-color: #4b5563 !important;
+    }
+
+    .chapter-title-input:focus {
+        border-color: var(--accent-gold) !important;
+        outline: none;
+        background-color: rgba(0, 0, 0, 0.05) !important;
+    }
+
+    body.dark-theme .chapter-title-input:focus {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    /* Статусы - темно-серый в светлой теме, светло-серый в темной */
+    .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+        color: #4b5563 !important; /* Темно-серый на светлом фоне */
+    }
+
+    body.dark-theme .status-indicator {
+        color: #d1d5db !important; /* Светло-серый на темном фоне */
+    }
+
+    .status-online {
+        color: #10B981 !important;
+    }
+
+    .status-offline {
+        color: #EF4444 !important;
+    }
+
+    .status-saving {
+        color: #F59E0B !important;
+    }
+
+    .status-saved {
+        color: #10B981 !important;
+    }
+
+    /* Аватарки пользователей */
+    .user-avatar {
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        border: 2px solid #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        font-size: 0.8rem;
+        cursor: help;
+        transition: transform 0.2s;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    body.dark-theme .user-avatar {
+        border: 2px solid #1f2937;
+    }
+
+    .user-avatar:hover {
+        transform: scale(1.1);
+        z-index: 10;
+    }
+
+    /* Контейнер редактора */
+    .editor-wrapper {
+        background: var(--auth-block-bg);
+        border: 1px solid var(--auth-block-border);
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+
+    #editor-container {
+        min-height: 400px;
+        flex: 1;
+    }
+
+    /* Стили для загрузки изображений */
+    .image-upload-section {
+        background: var(--auth-block-bg);
+        border: 1px solid var(--auth-block-border);
+        border-radius: 0.75rem;
+        padding: 0.5rem;
+        margin-bottom: 0.5rem;
+        max-height: 120px;
+        overflow-y: auto;
+    }
+
+        /* Заголовок "Загрузка изображений" - БЕЛЫЙ в светлой теме, ЧЁРНЫЙ в темной */
+        .image-upload-section h3 {
+            color: #ffffff !important; /* БЕЛЫЙ в светлой теме */
+        }
+
+    body.dark-theme .image-upload-section h3 {
+        color: #000000 !important; /* ЧЁРНЫЙ в темной теме */
+    }
+
+    /* Подсказка - серый в светлой теме, темно-серый в темной */
+    .image-upload-section small {
+        color: #cbd5e0 !important;
+    }
+
+    body.dark-theme .image-upload-section small {
+        color: #4b5563 !important;
+    }
+
+    .image-upload-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .image-upload-item {
+        position: relative;
+        border: 2px dashed var(--border-color);
+        border-radius: 8px;
+        height: 80px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background-color: var(--bg-secondary);
+        border-width: 1px;
+    }
+
+        .image-upload-item:hover {
+            border-color: var(--accent-gold);
+            background-color: var(--bg-primary);
+        }
+
+        .image-upload-item i {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+
+        .image-upload-item input {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+    .image-preview {
+        position: relative;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 2px solid var(--border-color);
+        height: 80px;
+    }
+
+        .image-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+    .image-preview-remove {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background 0.3s;
+    }
+
+        .image-preview-remove:hover {
+            background: rgba(255,0,0,0.8);
+        }
+
+    .upload-progress {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: var(--border-color);
+    }
+
+    .upload-progress-bar {
+        height: 100%;
+        background: var(--accent-gold);
+        width: 0%;
+        transition: width 0.3s ease;
+    }
+
+    /* КНОПКИ - стрелка назад и "Назад к книге" - ЧЁРНЫЕ в светлой теме, БЕЛЫЕ в темной */
+    .auth-btn-secondary {
+        color: #000000 !important; /* ЧЁРНЫЙ в светлой теме */
+        background-color: transparent !important;
+        border: none !important;
+        padding: 0.5rem !important;
+    }
+
+    body.dark-theme .auth-btn-secondary {
+        color: #ffffff !important; /* БЕЛЫЙ в темной теме */
+        background-color: transparent !important;
+    }
+
+    .auth-btn-secondary:hover {
+        color: var(--accent-gold) !important;
+        background-color: rgba(0, 0, 0, 0.05) !important;
+    }
+
+    body.dark-theme .auth-btn-secondary:hover {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    /* Иконки внутри кнопок также наследуют цвет текста */
+    .auth-btn-secondary i {
+        color: inherit !important;
+    }
+
+    /* Кнопка опубликовать - всегда золотая с контрастным текстом */
+    .gold-button {
+        background: linear-gradient(135deg, var(--accent-gold), #b8860b) !important;
+        color: #ffffff !important; /* БЕЛЫЙ текст на золотом фоне */
+        font-weight: 600;
+        border: none !important;
+    }
+
+        /* Текст в кнопках - всегда белый на золотом */
+        .gold-button, .gold-button i {
+            color: #ffffff !important;
+        }
+
+    /* Разделитель */
+    .white-block .h-3.w-px {
+        background-color: #9ca3af !important;
+    }
+
+    body.dark-theme .white-block .h-3.w-px {
+        background-color: #6b7280 !important;
+    }
+
+    /* Адаптивность */
+    @@media (max-width: 768px) {
+        .editor-page-container {
+            height: calc(100vh - 60px);
+            padding: 0.25rem;
+        }
+
+        .chapter-title-input {
+            font-size: 1rem;
+        }
+
+        .image-upload-grid {
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        }
+    }
+
+    /* Дополнительные стили */
+    .image-page-number {
+        position: absolute;
+        bottom: 5px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        font-size: 12px;
+        padding: 2px;
+    }
+
+    .image-upload-item.uploading {
+        position: relative;
+        border-color: var(--accent-gold);
+    }
+
+    .upload-file-name {
+        font-size: 12px;
+        margin-top: 5px;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--text-secondary);
+    }
+</style>
+
+<div class="editor-page-container">
+    <!-- Панель управления -->
+    <div class="white-block mb-4 relative z-50 p-3">
+        <div class="flex flex-col md:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3 w-full md:w-auto flex-1 min-w-0">
+                <!-- СТРЕЛКА НАЗАД - БЕЛАЯ в светлой теме, ЧЁРНАЯ в темной -->
+                <a href="@Url.Action("BookDashboard", "MyWorks", new { id = Model.BookId })"
+                   class="auth-btn-secondary p-2 rounded-xl hover:text-[var(--accent-gold)] transition-colors">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+
+                <div class="flex-1 min-w-0">
+                    <!-- ЗАГОЛОВОК ГЛАВЫ - ВСЕГДА ЧЁРНЫЙ ТЕКСТ (даже в темной теме) -->
+                    <input type="text" id="chapterTitleInput" value="@Model.ChapterTitle"
+                           class="chapter-title-input" placeholder="Название главы..." autocomplete="off" />
+
+                    <div class="flex items-center gap-3 mt-1 ml-2">
+                        <!-- СТАТУСЫ - темно-серый в светлой теме, светло-серый в темной -->
+                        <div id="connectionStatus" class="status-indicator status-offline">
+                            <i class="fas fa-circle text-[6px]"></i> <span>Подключение...</span>
+                        </div>
+                        <div class="h-3 w-px bg-gray-300 dark:bg-gray-600"></div>
+                        <div id="saveStatus" class="status-indicator">
+                            <i class="fas fa-cloud"></i> <span>Ожидание</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+                <div id="activeUsersList" class="flex -space-x-2 mr-2"></div>
+
+                <div class="flex gap-2">
+                    <!-- КНОПКА "НАЗАД К КНИГЕ" - БЕЛАЯ в светлой теме, ЧЁРНАЯ в темной -->
+                    <button onclick="window.saveAndRedirect(false)" class="auth-btn-secondary px-3 py-2 text-sm rounded-xl whitespace-nowrap">
+                        <i class="fas fa-arrow-left mr-2"></i>Назад к книге
+                    </button>
+                    <!-- КНОПКА "ОПУБЛИКОВАТЬ ГЛАВУ" - всегда золотая с белым текстом -->
+                    <button onclick="window.publishChapter()" class="gold-button px-4 py-2 text-sm rounded-xl shadow-md whitespace-nowrap">
+                        <i class="fas fa-paper-plane mr-2"></i>Опубликовать главу
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Секция загрузки изображений -->
+    <div class="image-upload-section">
+        <!-- ЗАГОЛОВОК - БЕЛЫЙ в светлой теме, ЧЁРНЫЙ в темной -->
+        <h3 class="text-lg font-semibold mb-3">
+            <i class="fas fa-images mr-2"></i>Загрузка изображений
+            <small class="text-sm text-gray-500 dark:text-gray-400 ml-2">(будут добавлены как отдельные страницы)</small>
+        </h3>
+        <div class="image-upload-grid" id="imageUploadContainer">
+            <!-- Первый элемент для загрузки новых изображений -->
+            <div class="image-upload-item">
+                <i class="fas fa-plus"></i>
+                <input type="file" id="imageFileInput" accept="image/*" multiple>
+            </div>
+            <!-- Здесь будут появляться превью загруженных изображений -->
+        </div>
+        <div class="mt-3 text-sm text-gray-500">
+            <i class="fas fa-info-circle mr-1"></i>
+            Изображения автоматически конвертируются в WebP для оптимизации
+        </div>
+    </div>
+
+    <!-- Редактор текста -->
+    <div class="editor-wrapper">
+        <div id="editor-container"></div>
+    </div>
+</div>
+
+<!-- JavaScript код остается таким же как в предыдущем ответе -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+
+<script>
+    // Обработчик ошибок Firebase
+    window.addEventListener('unhandledrejection', event => {
+        if (event.reason?.message?.includes('auth/network-request-failed')) {
+            console.warn('Firebase network error, retrying...');
+            event.preventDefault();
+        }
+    });
+</script>
+<script type="module">
+    // ИМПОРТЫ
+    import * as Y from 'https://esm.sh/yjs@13.6.1';
+    import Quill from 'https://esm.sh/quill@1.3.7';
+    import { QuillBinding } from 'https://esm.sh/y-quill@1.0.0?deps=yjs@13.6.1,quill@1.3.7';
+    import * as awarenessProtocol from 'https://esm.sh/y-protocols@1.0.6/awareness?deps=yjs@13.6.1';
+    import QuillCursors from 'https://esm.sh/quill-cursors@3.0.0?deps=quill@1.3.7';
+
+    Quill.register('modules/cursors', QuillCursors);
+
+    const config = {
+        chapterId: "@Model.ChapterId",
+        bookId: @Model.BookId,
+        penName: "@Html.Raw(Model.CurrentUserPenName)",
+        userColor: "@Model.UserColor",
+        initialContent: @Json.Serialize(Model.Content ?? ""),
+        initialTitle: "@Html.Raw(Model.ChapterTitle ?? "")",
+        currentIsPublic: @Json.Serialize(Model.IsPublic)
+    };
+
+    console.log('Config loaded, initial content length:', config.initialContent.length, 'Current isPublic:', config.currentIsPublic);
+
+    // ГЛОБАЛЬНЫЕ ФЛАГИ
+    let isInitialized = false;
+    let isSaving = false;
+    let pendingSave = false;
+    let saveTimeout;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 10;
+
+    // 1. Инициализация Yjs для текста и метаданных
+    const ydoc = new Y.Doc();
+    const ytext = ydoc.getText('quill');
+    const ymap = ydoc.getMap('metadata');
+
+    const awareness = new awarenessProtocol.Awareness(ydoc);
+
+    // 2. Инициализация Quill
+    const quill = new Quill('#editor-container', {
+        modules: {
+            cursors: true,
+            history: {
+                userOnly: true
+            },
+            toolbar: false
+        },
+        placeholder: 'Начните писать текст главы...',
+        theme: 'snow'
+    });
+
+    // 3. Связка Yjs и Quill
+    const binding = new QuillBinding(ytext, quill, awareness);
+
+    // Установка данных пользователя для курсоров
+    awareness.setLocalStateField('user', {
+        name: config.penName,
+        color: config.userColor
+    });
+
+    // 4. ЭЛЕМЕНТЫ DOM
+    const els = {
+        status: document.getElementById('connectionStatus'),
+        saveStatus: document.getElementById('saveStatus'),
+        titleInput: document.getElementById('chapterTitleInput')
+    };
+
+    // 5. УТИЛИТЫ
+    function arrayBufferToBase64(buffer) {
+        let binary = '';
+        const bytes = new Uint8Array(buffer);
+        for (let i = 0; i < bytes.byteLength; i++) {
+            binary += String.fromCharCode(bytes[i]);
+        }
+        return window.btoa(binary);
+    }
+
+    function base64ToArrayBuffer(base64) {
+        try {
+            const binary_string = window.atob(base64);
+            const len = binary_string.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binary_string.charCodeAt(i);
+            }
+            return bytes;
+        } catch (e) {
+            console.error('Error decoding base64:', e);
+            return new Uint8Array();
+        }
+    }
+
+    function showToast(msg, type = 'info') {
+        console.log(`${type}: ${msg}`);
+        if (typeof window.showToast === 'function') {
+            window.showToast(msg, type);
+        }
+    }
+
+    function updateActiveUsersList() {
+        const list = document.getElementById('activeUsersList');
+        list.innerHTML = '';
+        const states = awareness.getStates();
+
+        states.forEach((state, clientId) => {
+            if (state.user && clientId !== awareness.clientID) {
+                const div = document.createElement('div');
+                div.className = "user-avatar shadow-sm";
+                div.style.backgroundColor = state.user.color;
+                div.title = state.user.name;
+                div.textContent = state.user.name[0].toUpperCase();
+                list.appendChild(div);
+            }
+        });
+    }
+
+    // 6. ФУНКЦИЯ ИНИЦИАЛИЗАЦИИ КОНТЕНТА
+    function initializeContent(content, title) {
+        if (isInitialized) {
+            console.log('Already initialized, skipping');
+            return;
+        }
+
+        console.log('Initializing content, length:', content.length);
+
+        // Используем транзакцию с уникальным origin, чтобы не вызывать update
+        ydoc.transact(() => {
+            // Очищаем текущий текст
+            ytext.delete(0, ytext.length);
+            // Вставляем новый контент
+            if (content && content.length > 0) {
+                ytext.insert(0, content);
+            }
+            // Устанавливаем заголовок
+            ymap.set('title', title || 'Новая глава');
+            // Устанавливаем текущий статус публикации
+            ymap.set('isPublic', config.currentIsPublic);
+        }, 'initialization');
+
+        isInitialized = true;
+
+        // Обновляем поле заголовка
+        if (els.titleInput) {
+            els.titleInput.value = ymap.get('title') || '';
+        }
+
+        console.log('Content initialized successfully, isPublic:', ymap.get('isPublic'));
+    }
+
+    // 7. ОБРАБОТЧИКИ YJS ДЛЯ СИНХРОНИЗАЦИИ
+    ydoc.on('update', (update, origin) => {
+         console.log('Y.js update received, origin:', origin, 'size:', update.length);
+
+         // Игнорируем обновления от инициализации и от сервера (remote)
+         // ИСПРАВЛЕНИЕ: origin !== 'local' может быть ложным, если origin - это объект QuillBinding
+         // Поэтому проверяем, что origin НЕ 'remote' и НЕ 'initialization'
+         if (origin !== 'remote' && origin !== 'initialization' &&
+             connection && connection.state === signalR.HubConnectionState.Connected) {
+
+             console.log('Sending local update to server');
+             const base64 = arrayBufferToBase64(update);
+             connection.invoke("SendUpdate", config.chapterId, base64)
+                 .catch(err => console.error("Send update error:", err));
+             triggerAutoSave();
+         }
+     });
+
+    // Обработчик изменений для заголовка в Y.js
+    ymap.observe(event => {
+        if (event.keysChanged.has('title')) {
+            const newTitle = ymap.get('title');
+            console.log('Title changed in Y.js:', newTitle);
+            if (els.titleInput && els.titleInput.value !== newTitle) {
+                els.titleInput.value = newTitle || '';
+                triggerAutoSave();
+            }
+        }
+        if (event.keysChanged.has('isPublic')) {
+            console.log('isPublic changed in Y.js:', ymap.get('isPublic'));
+        }
+    });
+
+    ydoc.on('error', (error) => {
+        console.error('Yjs error:', error);
+        showToast('Ошибка синхронизации документа. Попробуйте перезагрузить страницу.', 'error');
+    });
+
+    // Обработчик изменений осведомленности
+    awareness.on('update', ({ added, updated, removed }, origin) => {
+        console.log('Awareness update, origin:', origin);
+        if (origin !== 'remote' && origin !== connection && connection && connection.state === signalR.HubConnectionState.Connected) {
+            const changedClients = added.concat(updated).concat(removed);
+            const awarenessState = awarenessProtocol.encodeAwarenessUpdate(awareness, changedClients);
+            const awarenessBase64 = arrayBufferToBase64(awarenessState);
+            connection.invoke("SendAwarenessUpdate", config.chapterId, awarenessBase64)
+                .catch(err => console.error("Send awareness update error:", err));
+        }
+        updateActiveUsersList();
+    });
+
+    // 8. СИНХРОНИЗАЦИЯ ЗАГОЛОВКА
+    if (els.titleInput) {
+        // Устанавливаем начальное значение заголовка
+        els.titleInput.value = config.initialTitle || '';
+
+        // Отслеживаем изменения заголовка
+        els.titleInput.addEventListener('input', () => {
+            console.log('Title input changed:', els.titleInput.value);
+            ymap.set('title', els.titleInput.value);
+            triggerAutoSave();
+        });
+    }
+
+    // 9. АВТОСОХРАНЕНИЕ
+    function triggerAutoSave() {
+        if (els.saveStatus) {
+            els.saveStatus.innerHTML = '<i class="fas fa-pen"></i> <span>Печатает...</span>';
+            els.saveStatus.className = "status-indicator status-saving";
+        }
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            console.log('Auto-saving...');
+            window.saveSnapshot(false);
+        }, 4000);
+    }
+
+    // 10. SIGNALR СОЕДИНЕНИЕ
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/collaborativeChapterHub")
+        .withAutomaticReconnect({
+            nextRetryDelayInMilliseconds: retryContext => {
+                return Math.min(10000, Math.pow(2, retryContext.previousRetryCount) * 1000);
+            }
+        })
+        .configureLogging(signalR.LogLevel.Information)
+        .build();
+
+    // Обработчики SignalR для синхронизации
+    connection.on("InitializeFromContent", () => {
+        console.log("Initializing from DB content (First User)");
+        if (!isInitialized && config.initialContent !== undefined) {
+            setTimeout(() => {
+                initializeContent(config.initialContent, config.initialTitle);
+            }, 100);
+        }
+    });
+
+    connection.on("RequestState", (targetConnectionId) => {
+        console.log("Sharing state with new user:", targetConnectionId);
+        try {
+            // Убедимся, что у нас есть контент для синхронизации
+            if (!isInitialized && config.initialContent !== undefined) {
+                initializeContent(config.initialContent, config.initialTitle);
+            }
+
+            const state = Y.encodeStateAsUpdate(ydoc);
+            const base64 = arrayBufferToBase64(state);
+            console.log('Sending state to user:', targetConnectionId, 'state size:', state.length);
+            connection.invoke("SyncStateToUser", targetConnectionId, base64)
+                .catch(err => console.error("SyncStateToUser error:", err));
+        } catch (e) {
+            console.error("Error preparing state:", e);
+        }
+    });
+
+    connection.on("ReceiveSyncState", (stateBase64) => {
+        console.log("Received sync state from peer");
+        try {
+            const state = base64ToArrayBuffer(stateBase64);
+
+            // Применяем состояние от другого пользователя
+            Y.applyUpdate(ydoc, state, 'sync');
+
+            if (!isInitialized) {
+                isInitialized = true;
+
+                // Обновляем заголовок
+                if (els.titleInput && ymap.has('title')) {
+                    els.titleInput.value = ymap.get('title') || '';
+                }
+
+                // Синхронизируем Quill с Y.js
+                setTimeout(() => {
+                    const ytextContent = ytext.toString();
+                    const quillText = quill.getText();
+                    console.log('Syncing Quill with Y.js, Y.js length:', ytextContent.length, 'Quill length:', quillText.length);
+                    if (quillText.trim() !== ytextContent.trim()) {
+                        quill.setText(ytextContent);
+                    }
+                }, 50);
+            }
+
+            console.log('Sync state applied, Y.js text length:', ytext.length);
+        } catch (e) {
+            console.error("Error applying sync state:", e);
+        }
+    });
+
+    connection.on("ReceiveUpdate", (base64) => {
+        console.log("Received remote update");
+        try {
+            const update = base64ToArrayBuffer(base64);
+            // Применяем обновление от другого пользователя
+            Y.applyUpdate(ydoc, update, 'remote');
+        } catch (e) {
+            console.error("Error applying remote update:", e);
+        }
+    });
+
+    connection.on("ReceiveAwarenessUpdate", (base64) => {
+        try {
+            const update = base64ToArrayBuffer(base64);
+            awarenessProtocol.applyAwarenessUpdate(awareness, update, 'remote');
+        } catch (e) {
+            console.error("Error applying awareness update:", e);
+        }
+    });
+
+    connection.on("UserJoined", (info) => {
+        console.log("User joined:", info);
+        showToast(`${info.penName} подключился`);
+        updateActiveUsersList();
+    });
+
+    connection.on("UserLeft", (info) => {
+        console.log("User left:", info);
+        showToast(`${info.penName} отключился`, 'warning');
+        updateActiveUsersList();
+    });
+
+    connection.on("ReceiveImageUpdate", (updateType, dataJson) => {
+        console.log("Received image update:", updateType, dataJson);
+        try {
+            const data = JSON.parse(dataJson);
+            handleImageUpdate(updateType, data);
+        } catch (e) {
+            console.error("Error parsing image update:", e);
+        }
+    });
+
+    // Жизненный цикл соединения
+    connection.onreconnecting(async () => {
+        console.log('Connection reconnecting...');
+        if (els.status) {
+            els.status.innerHTML = '<i class="fas fa-sync fa-spin"></i> <span>Переподключение...</span>';
+            els.status.className = "status-indicator status-saving";
+        }
+    });
+
+    connection.onreconnected(async connectionId => {
+        console.log('Connection reestablished. Rejoining group...', connectionId);
+        try {
+            await connection.invoke("JoinChapterGroup", config.chapterId, config.penName, config.userColor);
+            if (els.status) {
+                els.status.innerHTML = '<i class="fas fa-circle text-[8px]"></i> <span>Онлайн</span>';
+                els.status.className = "status-indicator status-online";
+            }
+            reconnectAttempts = 0;
+        } catch (err) {
+            console.error('Rejoin failed', err);
+        }
+    });
+
+    connection.onclose(error => {
+        console.log('Connection closed.', error);
+        if (els.status) {
+            els.status.innerHTML = '<i class="fas fa-circle text-[8px]"></i> <span>Отключено</span>';
+            els.status.className = "status-indicator status-offline";
+        }
+    });
+
+    // 11. ФУНКЦИЯ ПОДКЛЮЧЕНИЯ
+    async function startConnection() {
+        try {
+            await connection.start();
+            console.log("SignalR Connected. Joining group...");
+
+            // Даем время на инициализацию
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            await connection.invoke("JoinChapterGroup", config.chapterId, config.penName, config.userColor);
+
+            if (els.status) {
+                els.status.innerHTML = '<i class="fas fa-circle text-[8px]"></i> <span>Онлайн</span>';
+                els.status.className = "status-indicator status-online";
+            }
+
+            reconnectAttempts = 0;
+
+            console.log('Successfully joined group');
+
+            // Если через 2 секунды не получили инициализацию, инициализируем сами
+            setTimeout(() => {
+                if (!isInitialized && config.initialContent !== undefined) {
+                    console.log('No initialization received, initializing manually');
+                    initializeContent(config.initialContent, config.initialTitle);
+                }
+            }, 2000);
+
+        } catch (err) {
+            console.error("Connection failed: ", err);
+            if (els.status) {
+                els.status.innerHTML = '<i class="fas fa-exclamation-triangle"></i> <span>Ошибка</span>';
+                els.status.className = "status-indicator status-offline";
+            }
+
+            if (reconnectAttempts < maxReconnectAttempts) {
+                reconnectAttempts++;
+                const delay = Math.min(10000, Math.pow(2, reconnectAttempts) * 1000);
+                console.log(`Reconnecting in ${delay}ms... Attempt ${reconnectAttempts}`);
+                setTimeout(startConnection, delay);
+            } else {
+                showToast('Не удалось подключиться к серверу. Пожалуйста, обновите страницу.', 'error');
+            }
+        }
+    }
+
+    // 12. ГЛОБАЛЬНЫЕ ФУНКЦИИ
+    window.saveSnapshot = async function(isPublic) {
+        if (isSaving) {
+            pendingSave = true;
+            return;
+        }
+
+        isSaving = true;
+        const textContent = quill.getText();
+        const title = ymap.get('title') || (els.titleInput ? els.titleInput.value : '');
+
+        console.log('Saving snapshot, text length:', textContent.length, 'title:', title, 'isPublic:', isPublic);
+
+        if (els.saveStatus) {
+            els.saveStatus.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Сохранение...</span>';
+        }
+
+        try {
+            const response = await fetch('@Url.Action("SaveCollaborativeSnapshot", "MyWorks")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    bookId: config.bookId,
+                    chapterId: parseInt(config.chapterId),
+                    chapterTitle: title,
+                    content: textContent,
+                    isPublic: isPublic
+                })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                if (els.saveStatus) {
+                    els.saveStatus.innerHTML = '<i class="fas fa-check"></i> <span>Сохранено</span>';
+                    els.saveStatus.className = "status-indicator status-saved";
+                }
+
+                console.log('Save successful, redirecting:', result.redirectUrl);
+                return result;
+            } else {
+                const errorText = await response.text();
+                throw new Error(`Server error: ${response.status} - ${errorText}`);
+            }
+        } catch (e) {
+            console.error('Save error:', e);
+            if (els.saveStatus) {
+                els.saveStatus.innerHTML = '<i class="fas fa-times"></i> <span>Ошибка</span>';
+                els.saveStatus.className = "status-indicator status-offline";
+            }
+            showToast('Ошибка сохранения: ' + e.message, 'error');
+            throw e;
+        } finally {
+            isSaving = false;
+            if (pendingSave) {
+                pendingSave = false;
+                setTimeout(() => window.saveSnapshot(isPublic), 500);
+            }
+        }
+    };
+
+    window.saveAndRedirect = async function(isPublic) {
+        try {
+            const result = await window.saveSnapshot(isPublic);
+            if (result && result.redirectUrl) {
+                showToast(isPublic ? 'Глава опубликована!' : 'Изменения сохранены', 'success');
+                setTimeout(() => {
+                    window.location.href = result.redirectUrl;
+                }, 1000);
+            }
+        } catch (e) {
+            console.error('Save and redirect error:', e);
+        }
+    };
+
+    window.publishChapter = function() {
+        if (confirm("Опубликовать главу? Она станет доступна читателям.")) {
+            window.saveAndRedirect(true);
+        }
+    };
+
+    window.checkSync = function() {
+        console.log('=== SYNC CHECK ===');
+        console.log('Y.js text length:', ytext.length);
+        console.log('Quill text length:', quill.getText().length);
+        console.log('Title in Y.js:', ymap.get('title'));
+        console.log('isPublic in Y.js:', ymap.get('isPublic'));
+        console.log('Images:', uploadedImages.length);
+        console.log('Connection state:', connection.state);
+        console.log('isInitialized:', isInitialized);
+    };
+
+    // 13. ИЗОБРАЖЕНИЯ (без Y.js, только SignalR)
+    let uploadedImages = @Json.Serialize(Model.ImagePages ?? new List<ChapterImagePage>());
+
+    function renderUploadedImages() {
+        const container = document.getElementById('imageUploadContainer');
+        if (!container) {
+            console.error('Image upload container not found');
+            return;
+        }
+
+        const uploadElement = container.firstElementChild;
+        container.innerHTML = '';
+        if (uploadElement) container.appendChild(uploadElement);
+
+        console.log('Rendering images:', uploadedImages.length);
+
+        uploadedImages.forEach((image, index) => {
+            const previewDiv = document.createElement('div');
+            previewDiv.className = 'image-preview';
+            previewDiv.dataset.pageId = image.id;
+            previewDiv.innerHTML = `
+                <img src="${image.imageUrl}" alt="Изображение ${index + 1}" loading="lazy">
+                <button class="image-preview-remove" onclick="removeImage(${image.id})" title="Удалить изображение">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="image-page-number">Страница ${image.pageNumber}</div>
+            `;
+            container.appendChild(previewDiv);
+        });
+    }
+
+    function createUploadProgressItem(fileName) {
+        const container = document.getElementById('imageUploadContainer');
+        if (!container) return null;
+
+        const progressDiv = document.createElement('div');
+        progressDiv.className = 'image-upload-item uploading';
+        progressDiv.innerHTML = `
+            <div class="upload-progress">
+                <div class="upload-progress-bar"></div>
+            </div>
+            <i class="fas fa-spinner fa-spin"></i>
+            <div class="upload-file-name">${fileName}</div>
+        `;
+        container.appendChild(progressDiv);
+        return progressDiv;
+    }
+
+    function syncImageAdded(imageId, imageUrl, fileName) {
+        if (connection && connection.state === signalR.HubConnectionState.Connected) {
+            console.log('Syncing image added:', imageId, fileName);
+            connection.invoke("SendImageUpdate", config.chapterId, "add", JSON.stringify({
+                id: imageId,
+                url: imageUrl,
+                fileName: fileName
+            })).catch(err => console.error("Send image update error:", err));
+        }
+    }
+
+    function syncImageRemoved(pageId) {
+        if (connection && connection.state === signalR.HubConnectionState.Connected) {
+            console.log('Syncing image removed:', pageId);
+            connection.invoke("SendImageUpdate", config.chapterId, "remove", JSON.stringify({
+                pageId: parseInt(pageId)
+            })).catch(err => console.error("Send image remove error:", err));
+        }
+    }
+
+    function handleImageUpdate(updateType, data) {
+        console.log('Handling image update:', updateType, data);
+
+        if (updateType === "add") {
+            // Проверяем, нет ли уже такого изображения
+            if (!uploadedImages.some(img => img.id === data.id)) {
+                uploadedImages.push({
+                    id: data.id,
+                    imageUrl: data.url,
+                    pageNumber: uploadedImages.length + 1,
+                    fileName: data.fileName
+                });
+                renderUploadedImages();
+                showToast(`Соавтор добавил изображение: ${data.fileName}`, 'info');
+            }
+        } else if (updateType === "remove") {
+            uploadedImages = uploadedImages.filter(img => img.id !== data.pageId);
+            renderUploadedImages();
+            showToast(`Соавтор удалил изображение`, 'info');
+        }
+    }
+
+    window.removeImage = async function(pageId) {
+        if (!confirm('Удалить это изображение?')) return;
+
+        try {
+            const response = await fetch('@Url.Action("RemoveChapterImage", "MyWorks", new { pageId = "__pageId__" })'.replace('__pageId__', pageId), {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            console.log('Delete response status:', response.status);
+
+            if (response.ok) {
+                uploadedImages = uploadedImages.filter(img => img.id !== pageId);
+                renderUploadedImages();
+                syncImageRemoved(pageId);
+                showToast('Изображение удалено', 'success');
+            } else {
+                const errorText = await response.text();
+                throw new Error(`Ошибка удаления: ${response.status} - ${errorText}`);
+            }
+        } catch (error) {
+            console.error('Error removing image:', error);
+            showToast(`Ошибка при удалении: ${error.message}`, 'error');
+        }
+    };
+
+    // Обработчик загрузки изображений
+    const imageFileInput = document.getElementById('imageFileInput');
+    if (imageFileInput) {
+        imageFileInput.addEventListener('change', async function(e) {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (!file.type.startsWith('image/')) {
+                    showToast('Пожалуйста, выбирайте только изображения', 'error');
+                    continue;
+                }
+
+                const progressItem = createUploadProgressItem(file.name);
+                try {
+                    const formData = new FormData();
+                    formData.append('image', file);
+                    formData.append('chapterId', config.chapterId);
+                    formData.append('bookId', config.bookId);
+
+                    const response = await fetch('@Url.Action("UploadChapterImage", "MyWorks")', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        console.log('Image upload result:', result);
+
+                        uploadedImages.push({
+                            id: result.id,
+                            imageUrl: result.url,
+                            pageNumber: uploadedImages.length,
+                            fileName: file.name
+                        });
+
+                        renderUploadedImages();
+                        syncImageAdded(result.id, result.url, file.name);
+                        showToast(`Изображение "${file.name}" успешно загружено`, 'success');
+                    } else {
+                        const error = await response.json();
+                        throw new Error(error.error || 'Ошибка загрузки');
+                    }
+                } catch (error) {
+                    console.error('Error uploading image:', error);
+                    showToast(`Ошибка при загрузке "${file.name}": ${error.message}`, 'error');
+                } finally {
+                    if (progressItem) progressItem.remove();
+                }
+            }
+            e.target.value = '';
+        });
+    }
+
+    // 14. ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Initial images from model:', uploadedImages);
+        renderUploadedImages();
+        updateActiveUsersList();
+
+        // Добавляем кнопку для отладки
+        const debugDiv = document.createElement('div');
+        debugDiv.className = 'fixed bottom-4 right-4 flex gap-2 z-50';
+        debugDiv.innerHTML = `
+            <button onclick="window.checkSync()" class="bg-blue-500 text-white p-2 rounded" title="Проверить синхронизацию">
+                <i class="fas fa-search"></i>
+            </button>
+        `;
+        document.body.appendChild(debugDiv);
+
+        // Запускаем соединение
+        startConnection();
+    });
+
+    // 15. ОЧИСТКА ПРИ ВЫХОДЕ
+    window.addEventListener('beforeunload', function(e) {
+        if (quill.getText().trim().length > 0 || ymap.get('title')) {
+            console.log('Saving before unload');
+            window.saveSnapshot(false);
+        }
+    });
+
+    window.addEventListener('unload', function() {
+        if (connection) {
+            connection.stop().catch(console.error);
+        }
+        if (binding) {
+            binding.destroy();
+        }
+        if (awareness) {
+            awareness.destroy();
+        }
+    });
+</script>

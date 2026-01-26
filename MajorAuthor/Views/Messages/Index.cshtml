@@ -1,0 +1,988 @@
+﻿@using System.Security.Claims
+@model MajorAuthor.Models.MessagesViewModel
+@{
+    ViewData["Title"] = "Мои сообщения";
+    var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+}
+
+<div class="container mx-auto px-2 py-2 flex flex-col" style="height: calc(100vh - 120px);">
+    <!-- Заголовок -->
+    <header class="text-center mb-2">
+        <h1 class="text-lg sm:text-xl font-bold section-title decorative-title">
+            @ViewData["Title"]
+        </h1>
+        <p class="text-[var(--text-secondary)] mt-1 text-sm">Общайтесь с другими авторами</p>
+    </header>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="bg-red-500 text-white p-1 rounded-lg mb-2 text-sm">
+            @TempData["Error"]
+        </div>
+    }
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-2 flex-grow" style="height: calc(100% - 40px);">
+        <!-- Список диалогов -->
+        <div class="lg:col-span-1 flex flex-col">
+            <div class="white-block p-2 rounded-xl h-full flex flex-col">
+                <div class="flex justify-between items-center mb-1">
+                    <h2 class="text-sm sm:text-base font-semibold text-[var(--accent-gold)] pr-2">Диалоги</h2>
+                </div>
+
+                @if (Model.RecentConversations != null && Model.RecentConversations.Any())
+                {
+                    <div class="space-y-1 flex-grow overflow-y-auto custom-scrollbar" id="conversationsList">
+                        @foreach (var conversation in Model.RecentConversations)
+                        {
+                            var otherUser = conversation.SenderId == currentUserId
+                            ? conversation.Receiver
+                            : conversation.Sender;
+                            var isUnread = !conversation.IsRead && conversation.ReceiverId == currentUserId;
+                            var displayName = otherUser.AuthorProfile?.PenName ?? otherUser.UserName;
+
+                            <div class="conversation-item p-1 rounded-lg bg-[var(--bg-secondary)] cursor-pointer transition-all duration-200 hover:bg-[var(--accent-gold)] hover:bg-opacity-20 @(isUnread ? "border-l-2 border-[var(--accent-gold)]" : "")"
+                                 data-user-id="@otherUser.Id"
+                                 data-user-name="@displayName"
+                                 data-is-unread="@isUnread.ToString().ToLower()">
+                                <div class="flex items-center space-x-1">
+                                    <div class="relative">
+                                        <div class="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[var(--accent-gold)] flex items-center justify-center text-[var(--header-bg)] font-semibold text-sm">
+                                            @displayName[0].ToString().ToUpper()
+                                        </div>
+                                        @if (isUnread)
+                                        {
+                                            <div class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border border-white unread-dot"></div>
+                                        }
+                                    </div>
+                                    <div class="flex-grow min-w-0">
+                                        <div class="flex justify-between items-start">
+                                            <div class="font-medium text-[var(--text-primary)] truncate text-sm flex-grow pr-1 @(isUnread ? "font-bold" : "")">
+                                                @displayName
+                                            </div>
+                                            <div class="text-sm text-[var(--text-secondary)] whitespace-nowrap">
+                                                @conversation.SentDate.ToString("HH:mm")
+                                            </div>
+                                        </div>
+                                        <div class="text-sm text-[var(--text-primary)] opacity-80 truncate">
+                                            @if (conversation.SenderId == currentUserId)
+                                            {
+                                                <span class="text-[var(--accent-gold)]">Вы: </span>
+                                            }
+                                            @conversation.Content
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-2 flex-grow flex items-center justify-center">
+                        <div>
+                            <i class="fas fa-envelope-open-text text-xl sm:text-2xl text-[var(--text-secondary)] mb-1"></i>
+                            <p class="text-[var(--text-primary)] text-sm">У вас пока нет сообщений</p>
+                            <p class="text-sm text-[var(--text-secondary)] mt-1">Начните общение с другими авторами</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Область чата -->
+        <div class="lg:col-span-3 flex flex-col">
+            <div class="white-block p-2 rounded-xl h-full flex flex-col" id="chatContainer">
+                <div class="flex flex-col h-full">
+                    <div id="quickChatHeader" class="mb-2 hidden">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-1">
+                                <div id="quickChatAvatar" class="w-7 h-7 rounded-full bg-[var(--accent-gold)] flex items-center justify-center text-[var(--header-bg)] font-semibold text-sm"></div>
+                                <div class="min-w-0">
+                                    <h3 id="quickChatUserName" class="text-sm font-semibold text-[var(--accent-gold)] truncate"></h3>
+                                    <p class="text-sm text-[var(--text-secondary)]">Автор</p>
+                                </div>
+                            </div>
+                            <button id="openFullChatBtn" class="px-2 py-1 rounded-lg text-sm border border-[var(--accent-gold)] text-[var(--accent-gold)] hover:bg-[var(--accent-gold)] hover:bg-opacity-10 transition-all duration-200">
+                                <i class="fas fa-expand mr-1"></i>
+                                <span class="hidden sm:inline">Полный чат</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Область быстрых сообщений -->
+                    <div id="quickMessagesContainer" class="flex-grow overflow-y-auto mb-2 custom-scrollbar messages-area">
+                        <!-- Сообщения будут загружаться здесь -->
+                    </div>
+
+                    <!-- Уведомление о новом сообщении -->
+                    <div id="newMessageAlert" class="hidden mb-1">
+                        <div class="text-center">
+                            <div class="inline-flex items-center px-2 py-0.5 bg-[var(--accent-gold)] bg-opacity-20 text-[var(--accent-gold)] rounded-full text-sm cursor-pointer hover:bg-opacity-30 transition-all duration-200" id="newMessageAlertButton">
+                                <i class="fas fa-chevron-down mr-0.5"></i>
+                                <span>Новое сообщение</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Форма быстрой отправки -->
+                    <div id="quickSendForm" class="hidden">
+                        <form id="quickMessageForm" class="space-y-1">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" id="quickReceiverId" />
+                            <div class="flex space-x-1 items-end">
+                                <div class="flex-grow">
+                                    <textarea id="quickMessageContent"
+                                              class="w-full px-2 py-1 border border-[var(--border-color)] rounded-lg bg-[var(--bg-primary)] text-[var(--text-primary)] resize-none text-sm min-h-[40px] max-h-[80px] custom-scrollbar"
+                                              placeholder="Введите сообщение... (Enter для отправки, Shift+Enter для новой строки)"
+                                              rows="1"
+                                              maxlength="1000"></textarea>
+                                    <div class="text-right text-sm text-[var(--text-primary)] mt-0.5">
+                                        <span id="quickCharCount">0</span>/1000
+                                    </div>
+                                </div>
+                                <button type="submit"
+                                        class="auth-btn-primary px-3 py-1 rounded-lg font-semibold transition-all duration-200 disabled:opacity-50 text-sm h-fit min-w-[40px] flex items-center justify-center"
+                                        id="quickSendButton">
+                                    <i class="fas fa-paper-plane text-sm"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Заглушка при отсутствии выбранного диалога -->
+                    <div id="noChatSelected" class="text-center py-4 flex-grow flex items-center justify-center">
+                        <div>
+                            <i class="fas fa-comments text-2xl text-[var(--text-secondary)] mb-2"></i>
+                            <p class="text-[var(--text-primary)] text-sm">Выберите диалог для просмотра сообщений</p>
+                            <p class="text-sm text-[var(--text-secondary)] mt-0.5">Или начните новый диалог из профиля другого автора</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Убираем скролл со всей страницы */
+    html, body {
+        overflow: hidden;
+        height: 100%;
+    }
+
+    /* Фиксированные размеры контейнеров */
+    .container.mx-auto.px-2.py-2.flex.flex-col {
+        height: calc(100vh - 120px) !important;
+        min-height: 350px;
+        overflow: hidden;
+    }
+
+    /* Фиксированная высота области сообщений */
+    .messages-area {
+        height: calc(100vh - 320px) !important;
+        max-height: calc(100vh - 320px) !important;
+        min-height: 250px;
+        flex-shrink: 0;
+    }
+
+    /* Красная точка */
+    .unread-dot {
+        width: 8px !important;
+        height: 8px !important;
+        box-shadow: 0 0 2px rgba(239, 68, 68, 0.8);
+    }
+
+    /* Кастомный скроллбар только для нужных элементов */
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: var(--bg-secondary);
+        border-radius: 2px;
+    }
+
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: var(--accent-gold);
+        border-radius: 2px;
+    }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-light);
+        }
+
+    /* Гарантируем, что элементы не меняют размеры */
+    #quickMessagesContainer,
+    #noChatSelected,
+    #quickSendForm,
+    #quickChatHeader {
+        transition: none !important;
+        transform: none !important;
+        flex-shrink: 0;
+    }
+
+    /* Предотвращаем изменение размеров при добавлении контента */
+    .white-block {
+        flex-shrink: 0;
+    }
+
+    /* Адаптивные исправления */
+    @@media (max-width: 1024px) {
+        .container.mx-auto.px-2.py-2.flex.flex-col {
+            height: calc(100vh - 110px) !important;
+        }
+
+        .messages-area {
+            height: calc(100vh - 340px) !important;
+            max-height: calc(100vh - 340px) !important;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .container.mx-auto.px-2.py-2.flex.flex-col {
+            height: calc(100vh - 100px) !important;
+        }
+
+        .messages-area {
+            height: calc(100vh - 360px) !important;
+            max-height: calc(100vh - 360px) !important;
+        }
+
+        .unread-dot {
+            width: 6px !important;
+            height: 6px !important;
+        }
+    }
+
+    @@media (max-width: 640px) {
+        .container.mx-auto.px-2.py-2.flex.flex-col {
+            height: calc(100vh - 90px) !important;
+        }
+
+        .messages-area {
+            height: calc(100vh - 380px) !important;
+            max-height: calc(100vh - 380px) !important;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const currentUserId = '@currentUserId';
+
+        let selectedUserId = null;
+        let selectedUserName = null;
+        let pollingInterval = null;
+        let isAtBottom = true;
+        let hasUnreadMessages = false;
+        let lastMessageTime = 0;
+        let oldestMessageTime = 0; // Для отслеживания самых старых сообщений
+        let unreadMessagesInConversation = 0;
+        let isMarkingAsRead = false;
+        let isLoadingOlderMessages = false;
+
+        // Элементы DOM
+        const elements = {
+            quickChatHeader: document.getElementById('quickChatHeader'),
+            quickMessagesContainer: document.getElementById('quickMessagesContainer'),
+            quickSendForm: document.getElementById('quickSendForm'),
+            noChatSelected: document.getElementById('noChatSelected'),
+            quickChatAvatar: document.getElementById('quickChatAvatar'),
+            quickChatUserName: document.getElementById('quickChatUserName'),
+            openFullChatBtn: document.getElementById('openFullChatBtn'),
+            quickMessageForm: document.getElementById('quickMessageForm'),
+            quickMessageContent: document.getElementById('quickMessageContent'),
+            quickCharCount: document.getElementById('quickCharCount'),
+            quickSendButton: document.getElementById('quickSendButton'),
+            quickReceiverId: document.getElementById('quickReceiverId'),
+            newMessageAlert: document.getElementById('newMessageAlert'),
+            newMessageAlertButton: document.getElementById('newMessageAlertButton'),
+            conversationsList: document.getElementById('conversationsList')
+        };
+
+        // Функция для обновления последнего сообщения в левой панели
+        function updateConversationInLeftPanel(userId, lastMessage, isOwnMessage = false) {
+            const conversationItem = document.querySelector(`.conversation-item[data-user-id="${userId}"]`);
+            if (!conversationItem) return;
+
+            const contentElement = conversationItem.querySelector('.text-sm.opacity-80');
+            const timeElement = conversationItem.querySelector('.whitespace-nowrap');
+
+            if (contentElement) {
+                const prefix = isOwnMessage ? 'Вы: ' : '';
+                const displayMessage = lastMessage.length > 50 ? lastMessage.substring(0, 47) + '...' : lastMessage;
+                contentElement.textContent = prefix + displayMessage;
+            }
+
+            if (timeElement) {
+                const now = new Date();
+                timeElement.textContent = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+            }
+
+            // Перемещаем диалог наверх
+            const conversationsContainer = document.getElementById('conversationsList');
+            if (conversationsContainer && conversationItem.parentNode === conversationsContainer) {
+                conversationsContainer.insertBefore(conversationItem, conversationsContainer.firstChild);
+            }
+        }
+
+        // Функция для обновления красной точки в левой панели
+        function updateLeftPanelUnreadDot(userId, shouldShow) {
+            const conversationItem = document.querySelector(`.conversation-item[data-user-id="${userId}"]`);
+            if (!conversationItem) return;
+
+            let unreadDot = conversationItem.querySelector('.unread-dot');
+
+            if (shouldShow) {
+                if (!unreadDot) {
+                    const avatarContainer = conversationItem.querySelector('.relative');
+                    unreadDot = document.createElement('div');
+                    unreadDot.className = 'absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full border border-white unread-dot';
+                    avatarContainer.appendChild(unreadDot);
+                }
+                conversationItem.classList.add('border-l-2', 'border-[var(--accent-gold)]');
+                conversationItem.setAttribute('data-is-unread', 'true');
+
+                const nameElement = conversationItem.querySelector('.font-medium');
+                if (nameElement) nameElement.classList.add('font-bold');
+            } else {
+                if (unreadDot) {
+                    unreadDot.remove();
+                }
+                conversationItem.classList.remove('border-l-2', 'border-[var(--accent-gold)]');
+                conversationItem.setAttribute('data-is-unread', 'false');
+
+                const nameElement = conversationItem.querySelector('.font-medium');
+                if (nameElement) nameElement.classList.remove('font-bold');
+            }
+        }
+
+        // Проверка, находится ли пользователь внизу контейнера
+        function checkIfAtBottom() {
+            const container = elements.quickMessagesContainer;
+            if (!container) return true;
+
+            const threshold = 50;
+            const scrollTop = container.scrollTop;
+            const scrollHeight = container.scrollHeight;
+            const clientHeight = container.clientHeight;
+
+            isAtBottom = Math.abs(scrollHeight - scrollTop - clientHeight) <= threshold;
+            return isAtBottom;
+        }
+
+        // Проверка, находится ли пользователь вверху контейнера
+        function checkIfAtTop() {
+            const container = elements.quickMessagesContainer;
+            if (!container) return false;
+
+            const threshold = 50;
+            const scrollTop = container.scrollTop;
+            return scrollTop <= threshold;
+        }
+
+        // Прокрутка к самому низу (к новым сообщениям)
+        function scrollToBottom() {
+            if (!elements.quickMessagesContainer) return;
+
+            elements.quickMessagesContainer.scrollTop = elements.quickMessagesContainer.scrollHeight;
+            isAtBottom = true;
+            hideNewMessageAlert();
+
+            if (selectedUserId && unreadMessagesInConversation > 0 && !isMarkingAsRead) {
+                markConversationAsRead(selectedUserId);
+            }
+        }
+
+        // Показать уведомление о новом сообщении
+        function showNewMessageAlert() {
+            if (!isAtBottom && elements.newMessageAlert) {
+                elements.newMessageAlert.classList.remove('hidden');
+                hasUnreadMessages = true;
+            }
+        }
+
+        // Скрыть уведомление о новом сообщении
+        function hideNewMessageAlert() {
+            if (elements.newMessageAlert) {
+                elements.newMessageAlert.classList.add('hidden');
+                hasUnreadMessages = false;
+            }
+        }
+
+        // Обработчик прокрутки
+        if (elements.quickMessagesContainer) {
+            elements.quickMessagesContainer.addEventListener('scroll', function() {
+                const wasAtBottom = checkIfAtBottom();
+                const wasAtTop = checkIfAtTop();
+
+                if (wasAtBottom && hasUnreadMessages) {
+                    hideNewMessageAlert();
+                }
+
+                if (wasAtBottom && selectedUserId && unreadMessagesInConversation > 0 && !isMarkingAsRead) {
+                    markConversationAsRead(selectedUserId);
+                }
+
+                // Если пользователь прокрутил до самого верха, загружаем более старые сообщения
+                if (wasAtTop && selectedUserId && oldestMessageTime > 0 && !isLoadingOlderMessages) {
+                    loadOlderMessages(selectedUserId);
+                }
+            });
+        }
+
+        // Клик по уведомлению о новом сообщении
+        if (elements.newMessageAlertButton) {
+            elements.newMessageAlertButton.addEventListener('click', function() {
+                scrollToBottom();
+            });
+        }
+
+        // Автоматическое изменение высоты текстового поля
+        if (elements.quickMessageContent) {
+            elements.quickMessageContent.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+            });
+        }
+
+        // Обработчики кликов на диалоги
+        document.querySelectorAll('.conversation-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const userId = this.getAttribute('data-user-id');
+                const userName = this.getAttribute('data-user-name');
+                const isUnread = this.getAttribute('data-is-unread') === 'true';
+
+                if (userId && userName) {
+                    selectConversation(userId, userName, isUnread);
+                }
+            });
+        });
+
+        // Кнопка открытия полного чата
+        if (elements.openFullChatBtn) {
+            elements.openFullChatBtn.addEventListener('click', function() {
+                if (selectedUserId) {
+                    window.location.href = '@Url.Action("Conversation", "Messages")?userId=' + selectedUserId;
+                }
+            });
+        }
+
+        // Выбор диалога
+        function selectConversation(userId, userName, hasUnread) {
+            selectedUserId = userId;
+            selectedUserName = userName;
+
+            updateChatUI(userName);
+            loadRecentMessages(userId);
+            startPolling(userId);
+
+            hideNewMessageAlert();
+            hasUnreadMessages = false;
+            lastMessageTime = 0;
+            oldestMessageTime = 0;
+            unreadMessagesInConversation = 0;
+
+            if (hasUnread && !isMarkingAsRead) {
+                markConversationAsRead(userId);
+            }
+        }
+
+        // Обновление интерфейса чата
+        function updateChatUI(userName) {
+            if (elements.noChatSelected) {
+                elements.noChatSelected.classList.add('hidden');
+            }
+
+            if (elements.quickChatHeader) elements.quickChatHeader.classList.remove('hidden');
+            if (elements.quickMessagesContainer) {
+                elements.quickMessagesContainer.classList.remove('hidden');
+            }
+            if (elements.quickSendForm) elements.quickSendForm.classList.remove('hidden');
+
+            if (elements.quickChatAvatar) elements.quickChatAvatar.textContent = userName[0].toUpperCase();
+            if (elements.quickChatUserName) elements.quickChatUserName.textContent = userName;
+            if (elements.quickReceiverId) elements.quickReceiverId.value = selectedUserId;
+
+            if (elements.quickMessageContent) {
+                elements.quickMessageContent.value = '';
+                elements.quickMessageContent.style.height = 'auto';
+            }
+            if (elements.quickCharCount) elements.quickCharCount.textContent = '0';
+            if (elements.quickSendButton) elements.quickSendButton.disabled = true;
+        }
+
+        // Загрузка последних сообщений - ИСПРАВЛЕННАЯ ВЕРСИЯ
+        async function loadRecentMessages(userId) {
+            try {
+                const response = await fetch('@Url.Action("GetRecentMessages", "Messages")?otherUserId=' + userId + '&count=50');
+                if (!response.ok) throw new Error('Ошибка загрузки сообщений');
+
+                const messages = await response.json();
+
+                // ИСПРАВЛЕНИЕ: Сообщения должны быть отсортированы от старых к новым
+                messages.sort((a, b) => new Date(a.sentDate) - new Date(b.sentDate));
+
+                displayRecentMessages(messages);
+
+                if (messages && messages.length > 0) {
+                    lastMessageTime = Math.max(...messages.map(m => new Date(m.sentDate).getTime()));
+                    oldestMessageTime = Math.min(...messages.map(m => new Date(m.sentDate).getTime()));
+
+                    unreadMessagesInConversation = messages.filter(m =>
+                        m.senderId !== currentUserId && !m.isRead
+                    ).length;
+
+                    if (unreadMessagesInConversation > 0) {
+                        showUnreadIndicatorInChat();
+                    }
+                }
+
+                // Скроллим к самым новым сообщениям (вниз)
+                setTimeout(scrollToBottom, 100);
+            } catch (error) {
+                console.error('Ошибка загрузки сообщений:', error);
+                if (elements.quickMessagesContainer) {
+                    elements.quickMessagesContainer.innerHTML = '<p class="text-[var(--text-primary)] text-center py-2 text-sm">Ошибка загрузки сообщений</p>';
+                }
+            }
+        }
+
+        // Загрузка более старых сообщений
+           async function loadOlderMessages(userId) {
+                isLoadingOlderMessages = true; // <-- ДОБАВИТЬ ЭТУ СТРОКУ
+
+                try {
+                    const response = await fetch('@Url.Action("GetOlderMessages", "Messages")?otherUserId=' + userId + '&olderThan=' + oldestMessageTime + '&count=50');
+    if (!response.ok) throw new Error('Ошибка загрузки старых сообщений');
+
+                    const olderMessages = await response.json();
+    if (olderMessages && olderMessages.length > 0) {
+                        // Сообщения должны быть отсортированы от старых к новым
+                        olderMessages.sort((a, b) => new Date(a.sentDate) - new Date(b.sentDate));
+    // Сохраняем текущую позицию скролла
+                        const oldScrollHeight = elements.quickMessagesContainer.scrollHeight;
+    // Добавляем старые сообщения в начало
+                        displayOlderMessages(olderMessages);
+    // Обновляем время самого старого сообщения
+                        oldestMessageTime = Math.min(...olderMessages.map(m => new Date(m.sentDate).getTime()));
+    // Восстанавливаем позицию скролла
+                        const newScrollHeight = elements.quickMessagesContainer.scrollHeight;
+    elements.quickMessagesContainer.scrollTop = newScrollHeight - oldScrollHeight;
+                    }
+                } catch (error) {
+                    console.error('Ошибка загрузки старых сообщений:', error);
+    } finally {
+                    isLoadingOlderMessages = false; // <-- ДОБАВИТЬ ЭТОТ БЛОК
+                }
+            }
+
+        // Отображение старых сообщений в начало
+        function displayOlderMessages(messages) {
+            if (!elements.quickMessagesContainer) return;
+
+            let messagesHTML = '';
+
+            messages.forEach(message => {
+                const isOwn = message.senderId === currentUserId;
+    const timeString = formatMessageDate(message.sentDate);
+
+                messagesHTML += `
+                    <div class="flex ${isOwn ? 'justify-end' : 'justify-start'} mb-2" data-message-id="${message.id}" data-is-read="${message.isRead}">
+                        <div class="max-w-[80%] sm:max-w-[70%] ${isOwn ? 'bg-[var(--accent-gold)] bg-opacity-20' : 'bg-[var(--bg-secondary)]'} p-2 rounded-lg ${!isOwn && !message.isRead ? 'border border-[var(--accent-gold)] border-opacity-70' : ''}">
+                            <div class="text-sm text-[var(--text-primary)] whitespace-pre-wrap break-words">${escapeHtml(message.content)}</div>
+                            <div class="text-sm text-[var(--text-primary)] opacity-70 mt-0.5 text-right">
+                                ${timeString}
+                                ${!isOwn && !message.isRead ? '<span class="ml-1 text-[var(--accent-gold)] text-sm unread-dot-indicator">●</span>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            // Добавляем старые сообщения в начало контейнера
+            elements.quickMessagesContainer.innerHTML = messagesHTML + elements.quickMessagesContainer.innerHTML;
+        }
+
+        // Отображение последних сообщений
+        function displayRecentMessages(messages) {
+            if (!elements.quickMessagesContainer) return;
+
+            if (!messages || messages.length === 0) {
+                elements.quickMessagesContainer.innerHTML = '<p class="text-[var(--text-primary)] text-center py-2 text-sm">Нет сообщений</p>';
+                return;
+            }
+
+            let messagesHTML = '';
+
+            messages.forEach(message => {
+                const isOwn = message.senderId === currentUserId;
+                const timeString = formatMessageDate(message.sentDate);
+
+                messagesHTML += `
+                    <div class="flex ${isOwn ? 'justify-end' : 'justify-start'} mb-2" data-message-id="${message.id}" data-is-read="${message.isRead}">
+                        <div class="max-w-[80%] sm:max-w-[70%] ${isOwn ? 'bg-[var(--accent-gold)] bg-opacity-20' : 'bg-[var(--bg-secondary)]'} p-2 rounded-lg ${!isOwn && !message.isRead ? 'border border-[var(--accent-gold)] border-opacity-70' : ''}">
+                            <div class="text-sm text-[var(--text-primary)] whitespace-pre-wrap break-words">${escapeHtml(message.content)}</div>
+                            <div class="text-sm text-[var(--text-primary)] opacity-70 mt-0.5 text-right">
+                                ${timeString}
+                                ${!isOwn && !message.isRead ? '<span class="ml-1 text-[var(--accent-gold)] text-sm unread-dot-indicator">●</span>' : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            elements.quickMessagesContainer.innerHTML = messagesHTML;
+        }
+
+        // Показать индикатор непрочитанных сообщений в чате
+        function showUnreadIndicatorInChat() {
+            const existingIndicator = document.querySelector('.unread-messages-indicator');
+            if (existingIndicator) {
+                existingIndicator.remove();
+            }
+
+            const unreadIndicator = document.createElement('div');
+            unreadIndicator.className = 'unread-messages-indicator';
+            unreadIndicator.innerHTML = `
+                <div class="text-center py-1">
+                    <div class="inline-flex items-center px-2 py-0.5 bg-[var(--accent-gold)] bg-opacity-20 text-[var(--accent-gold)] rounded-full text-sm cursor-pointer hover:bg-opacity-30 transition-all duration-200">
+                        <i class="fas fa-chevron-down mr-0.5"></i>
+                        <span>Непрочитанные сообщения</span>
+                    </div>
+                </div>
+            `;
+
+            unreadIndicator.querySelector('div').addEventListener('click', function() {
+                scrollToUnreadMessages();
+            });
+
+            if (elements.quickMessagesContainer) {
+                elements.quickMessagesContainer.insertBefore(unreadIndicator, elements.quickMessagesContainer.firstChild);
+            }
+        }
+
+        // Прокрутка к непрочитанным сообщениям
+        function scrollToUnreadMessages() {
+            const firstUnreadMessage = elements.quickMessagesContainer?.querySelector('[data-is-read="false"]');
+            if (firstUnreadMessage) {
+                firstUnreadMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                setTimeout(() => {
+                    if (!isMarkingAsRead) {
+                        markConversationAsRead(selectedUserId);
+                    }
+                }, 1000);
+            }
+        }
+
+        // Опрос новых сообщений
+        function startPolling(userId) {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+
+            pollingInterval = setInterval(async () => {
+                if (!selectedUserId) return;
+
+                try {
+                    const response = await fetch('@Url.Action("GetNewMessages", "Messages")?otherUserId=' + userId + '&lastMessageTime=' + lastMessageTime);
+                    if (!response.ok) throw new Error('Ошибка опроса');
+
+                    const newMessages = await response.json();
+                    if (newMessages && newMessages.length > 0) {
+                        let hasUnread = false;
+
+                        // Сортируем новые сообщения по времени
+                        newMessages.sort((a, b) => new Date(a.sentDate) - new Date(b.sentDate));
+
+                        newMessages.forEach(message => {
+                            if (!isMessageDisplayed(message.id)) {
+                                addMessageToQuickChat(message);
+                                const messageTime = new Date(message.sentDate).getTime();
+                                if (messageTime > lastMessageTime) {
+                                    lastMessageTime = messageTime;
+                                }
+
+                                if (message.senderId !== currentUserId && !message.isRead) {
+                                    hasUnread = true;
+                                    unreadMessagesInConversation++;
+                                    updateLeftPanelUnreadDot(userId, true);
+                                    updateConversationInLeftPanel(userId, message.content, false);
+                                } else if (message.senderId === currentUserId) {
+                                    updateConversationInLeftPanel(userId, message.content, true);
+                                }
+                            }
+                        });
+
+                        if (hasUnread && isAtBottom && !isMarkingAsRead) {
+                            await markConversationAsRead(userId);
+                        } else if (hasUnread) {
+                            showNewMessageAlert();
+                        }
+                    }
+                } catch (error) {
+                    console.error('Ошибка опроса:', error);
+                }
+            }, 3000);
+        }
+
+        function isMessageDisplayed(messageId) {
+            return elements.quickMessagesContainer?.querySelector(`[data-message-id="${messageId}"]`) !== null;
+        }
+
+        function addMessageToQuickChat(message) {
+            if (!elements.quickMessagesContainer) return;
+
+            const isOwn = message.senderId === currentUserId;
+    const timeString = formatMessageDate(message.sentDate);
+
+            const messageElement = document.createElement('div');
+            messageElement.className = `flex ${isOwn ? 'justify-end' : 'justify-start'} mb-2`;
+            messageElement.setAttribute('data-message-id', message.id);
+            messageElement.setAttribute('data-is-read', message.isRead);
+
+            messageElement.innerHTML = `
+                <div class="max-w-[80%] sm:max-w-[70%] ${isOwn ? 'bg-[var(--accent-gold)] bg-opacity-20' : 'bg-[var(--bg-secondary)]'} p-2 rounded-lg ${!isOwn && !message.isRead ? 'border border-[var(--accent-gold)] border-opacity-70' : ''}">
+                    <div class="text-sm text-[var(--text-primary)] whitespace-pre-wrap break-words">${escapeHtml(message.content)}</div>
+                    <div class="text-sm text-[var(--text-primary)] opacity-70 mt-0.5 text-right">
+                        ${timeString}
+                        ${!isOwn && !message.isRead ? '<span class="ml-1 text-[var(--accent-gold)] text-sm unread-dot-indicator">●</span>' : ''}
+                    </div>
+                </div>
+            `;
+
+            elements.quickMessagesContainer.appendChild(messageElement);
+
+            const wasAtBottom = checkIfAtBottom();
+
+            if (wasAtBottom || isOwn) {
+                setTimeout(scrollToBottom, 10);
+            } else if (!isOwn && !message.isRead) {
+                showNewMessageAlert();
+            }
+        }
+
+        // Обработка формы быстрой отправки
+        if (elements.quickMessageContent) {
+            elements.quickMessageContent.addEventListener('input', function() {
+                const count = this.value.length;
+                if (elements.quickCharCount) elements.quickCharCount.textContent = count;
+                if (elements.quickSendButton) elements.quickSendButton.disabled = count === 0 || count > 1000;
+            });
+
+            elements.quickMessageContent.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    if (e.shiftKey) {
+                        return;
+                    } else {
+                        e.preventDefault();
+                        if (elements.quickSendButton && !elements.quickSendButton.disabled) {
+                            elements.quickMessageForm.dispatchEvent(new Event('submit'));
+                        }
+                    }
+                }
+            });
+        }
+
+        if (elements.quickMessageForm) {
+            elements.quickMessageForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const content = elements.quickMessageContent?.value.trim();
+                if (!content || content.length > 1000) {
+                    showNotification('Сообщение не может быть пустым или превышать 1000 символов', 'error');
+                    return;
+                }
+
+                if (elements.quickSendButton) {
+                    elements.quickSendButton.disabled = true;
+                    elements.quickSendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                }
+                if (elements.quickMessageContent) {
+                    elements.quickMessageContent.disabled = true;
+                }
+
+                try {
+                    const response = await fetch('@Url.Action("SendMessage", "Messages")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                        },
+                        body: JSON.stringify({
+                            receiverId: selectedUserId,
+                            content: content
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        if (elements.quickMessageContent) {
+                            elements.quickMessageContent.value = '';
+                            elements.quickMessageContent.style.height = 'auto';
+                        }
+                        if (elements.quickCharCount) {
+                            elements.quickCharCount.textContent = '0';
+                        }
+
+                        const message = {
+                            id: result.messageId,
+                            senderId: currentUserId,
+                            content: content,
+                            sentDate: new Date().toISOString(),
+                            isRead: true
+                        };
+                        addMessageToQuickChat(message);
+
+                        updateConversationInLeftPanel(selectedUserId, content, true);
+
+                        lastMessageTime = new Date().getTime();
+
+                        showNotification('Сообщение отправлено', 'success');
+                    } else {
+                        showNotification(result.message || 'Ошибка при отправке сообщения', 'error');
+                    }
+                } catch (error) {
+                    console.error('Ошибка при отправке сообщения:', error);
+                    showNotification('Произошла ошибка при отправке', 'error');
+                } finally {
+                    if (elements.quickSendButton) {
+                        elements.quickSendButton.disabled = false;
+                        elements.quickSendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
+                    }
+                    if (elements.quickMessageContent) {
+                        elements.quickMessageContent.disabled = false;
+                        elements.quickMessageContent.focus();
+                    }
+                }
+            });
+        }
+
+        // Пометить диалог как прочитанный
+        async function markConversationAsRead(userId) {
+            if (isMarkingAsRead) {
+                return;
+            }
+
+            try {
+                isMarkingAsRead = true;
+
+                const response = await fetch('@Url.Action("MarkConversationAsRead", "Messages")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    },
+                    body: JSON.stringify({
+                        otherUserId: userId
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    if (result.success) {
+                        updateUnreadIndicators(userId);
+                        unreadMessagesInConversation = 0;
+                    }
+                }
+            } catch (error) {
+                console.error('Ошибка при отметке диалога как прочитанного:', error);
+            } finally {
+                isMarkingAsRead = false;
+            }
+        }
+
+        // Обновление индикаторов непрочитанных сообщений в UI
+        function updateUnreadIndicators(userId) {
+            const messageElements = elements.quickMessagesContainer?.querySelectorAll('[data-is-read="false"]');
+            if (messageElements) {
+                messageElements.forEach(element => {
+                    element.setAttribute('data-is-read', 'true');
+                    const messageDiv = element.querySelector('div');
+                    if (messageDiv) {
+                        messageDiv.classList.remove('border', 'border-[var(--accent-gold)]', 'border-opacity-70');
+                        const unreadIndicator = messageDiv.querySelector('.unread-dot-indicator');
+                        if (unreadIndicator) {
+                            unreadIndicator.remove();
+                        }
+                    }
+                });
+            }
+
+            updateLeftPanelUnreadDot(userId, false);
+
+            const unreadIndicator = document.querySelector('.unread-messages-indicator');
+            if (unreadIndicator) {
+                unreadIndicator.remove();
+            }
+        }
+
+        // Вспомогательные функции
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 z-50 px-3 py-1 rounded-lg text-sm ${
+                type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+            }`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 3000);
+        }
+        // Вспомогательная функция для форматирования даты и времени
+        function formatMessageDate(dateString) {
+            const messageDate = new Date(dateString);
+            const now = new Date();
+
+            const isToday = messageDate.getDate() === now.getDate() &&
+                            messageDate.getMonth() === now.getMonth() &&
+                            messageDate.getFullYear() === now.getFullYear();
+
+            // 'ru-RU' для формата ДД.ММ.ГГГГ и 24-часового времени
+            const time = messageDate.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+
+            if (isToday) {
+                return time; // "14:30"
+            }
+
+            // Проверяем, было ли это вчера
+            const yesterday = new Date(now);
+            yesterday.setDate(now.getDate() - 1);
+            const isYesterday = messageDate.getDate() === yesterday.getDate() &&
+                                messageDate.getMonth() === yesterday.getMonth() &&
+                                messageDate.getFullYear() === yesterday.getFullYear();
+
+            if (isYesterday) {
+                return `Вчера, ${time}`; // "Вчера, 14:30"
+            }
+
+            // Все, что было раньше
+            const date = messageDate.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            return `${date}, ${time}`; // "07.11.2025, 14:30"
+        }
+
+        // Очистка при разгрузке страницы
+        window.addEventListener('beforeunload', function() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+        });
+
+        console.log('Messages system initialized, currentUserId:', currentUserId);
+    });
+</script>

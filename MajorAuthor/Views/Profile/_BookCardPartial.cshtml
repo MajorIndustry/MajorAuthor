@@ -1,0 +1,124 @@
+﻿@model MajorAuthor.Models.MyProfileViewModel.BookDisplayModel
+
+<div class="white-block group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl book-item"
+     data-href="@Url.Action("ReadBook", "Read", new { id = Model.Id })">
+    <div class="relative overflow-hidden rounded-t-xl">
+        @if (!string.IsNullOrEmpty(Model.CoverImageUrl))
+        {
+            <img src="@Model.CoverImageUrl" alt="Обложка книги"
+                 class="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
+                 onerror="handleImgError(this)">
+        }
+        else
+        {
+            <div class="w-full h-48 bg-gradient-to-br from-[var(--border-color)] to-gray-300 flex items-center justify-center">
+                <i class="fas fa-book text-4xl text-secondary-custom opacity-50"></i>
+            </div>
+        }
+        @if (Model.IsAdultContent)
+        {
+            <span class="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold">18+</span>
+        }
+        <div class="absolute top-2 right-2 bg-[var(--accent-gold)] text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg flex items-center">
+            <i class="fas fa-star mr-1"></i>@Model.Rating.ToString("0.0")
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+            <div class="flex justify-between items-end text-white">
+                <div>
+                    <div class="flex items-center text-sm">
+                        <i class="fas fa-eye mr-1"></i>
+                        <span>@Model.ReadsCount.ToString("N0")</span>
+                    </div>
+                    <div class="flex items-center text-sm mt-1">
+                        <i class="fas fa-heart mr-1 text-red-400"></i>
+                        <span>@Model.LikesCount.ToString("N0")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="p-4">
+        <h3 class="font-semibold text-lg text-[var(--auth-block-text)] line-clamp-2 mb-2 group-hover:text-[var(--accent-gold)] transition-colors">
+            @Model.Title
+        </h3>
+
+        <!-- Авторы -->
+        @if (Model.Authors != null && Model.Authors.Any())
+        {
+            <div class="flex flex-wrap gap-1 mb-3">
+                @foreach (var author in Model.Authors.Take(3))
+                {
+                    <span class="text-xs author-badge px-2 py-1 rounded-full">
+                        @author
+                    </span>
+                }
+                @if (Model.Authors.Count > 3)
+                {
+                    <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                        +@(Model.Authors.Count - 3)
+                    </span>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="flex flex-wrap gap-1 mb-3">
+                <span class="text-xs author-badge px-2 py-1 rounded-full">
+                    @Model.AuthorName
+                </span>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.Description))
+        {
+            <p class="text-sm text-[var(--auth-block-text)] opacity-90 line-clamp-2 mb-3">
+                @Model.Description
+            </p>
+        }
+
+        <!-- Жанры с белым текстом -->
+        @if (Model.Genres != null && Model.Genres.Any())
+        {
+            <div class="flex flex-wrap gap-1 mb-3">
+                @foreach (var genre in Model.Genres.Take(3))
+                {
+                    <span class="text-xs genre-badge px-2 py-1 rounded-full">
+                        @genre
+                    </span>
+                }
+                @if (Model.Genres.Count > 3)
+                {
+                    <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                        +@(Model.Genres.Count - 3)
+                    </span>
+                }
+            </div>
+        }
+
+        <!-- Теги с темно-желтым текстом -->
+        @if (Model.Tags != null && Model.Tags.Any())
+        {
+            <div class="flex flex-wrap gap-1 mb-3">
+                @foreach (var tag in Model.Tags.Take(3))
+                {
+                    <span class="text-xs tag-badge px-2 py-1 rounded-full">
+                        #@tag.TrimStart('#')
+                    </span>
+                }
+                @if (Model.Tags.Count > 3)
+                {
+                    <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                        +@(Model.Tags.Count - 3)
+                    </span>
+                }
+            </div>
+        }
+
+        <div class="flex items-center justify-between text-xs text-[var(--auth-block-text)] opacity-70 mt-3 pt-3 border-t border-[var(--auth-block-border)]">
+            <span class="content-type-badge">
+                <i class="fas fa-book"></i>Книга
+            </span>
+            <span>@Model.PublicationDate.ToString("dd.MM.yyyy")</span>
+        </div>
+    </div>
+</div>

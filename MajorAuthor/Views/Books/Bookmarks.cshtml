@@ -1,0 +1,440 @@
+﻿@model List<MajorAuthor.Data.Entities.UserFavoriteBook>
+
+@{
+    ViewData["Title"] = "Мои закладки";
+    var bookCount = Model?.Count ?? 0;
+    var bookWord = GetBookWord(bookCount);
+}
+
+@functions {
+    private string GetBookWord(int count)
+    {
+        if (count % 10 == 1 && count % 100 != 11)
+            return "книга";
+        else if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20))
+            return "книги";
+        else
+            return "книг";
+    }
+}
+
+<div class="container mx-auto px-4 py-8">
+    <!-- Заголовок страницы -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold mb-2" style="color: var(--text-primary);">@ViewData["Title"]</h1>
+        <p class="text-lg" style="color: var(--text-secondary);">
+            @if (bookCount > 0)
+            {
+                <span>У вас @bookCount @bookWord в закладках</span>
+            }
+            else
+            {
+                <span>Здесь появятся книги, которые вы добавите в закладки</span>
+            }
+        </p>
+    </div>
+
+    @if (bookCount > 0)
+    {
+        <!-- Сетка книг -->
+        <div id="bookmarksGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            @foreach (var favorite in Model)
+            {
+                var book = favorite.Book;
+                <div class="bookmark-card white-block hover:shadow-xl transition-all duration-300 cursor-pointer group relative"
+                     data-book-id="@book.Id">
+
+                    <!-- Кнопка удаления из закладок -->
+                    <button class="bookmark-remove-btn absolute top-3 right-3 z-10 p-2 rounded-full hover:scale-110 transition-transform duration-200"
+                            data-book-id="@book.Id"
+                            title="Удалить из закладок"
+                            aria-label="Удалить книгу '@book.Title' из закладок">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                    </button>
+
+                    <!-- Обложка книги -->
+                    <div class="book-cover mb-4 overflow-hidden rounded-lg">
+                        @if (!string.IsNullOrEmpty(book.CoverImageUrl))
+                        {
+                            <img src="@book.CoverImageUrl"
+                                 alt="Обложка книги: @book.Title"
+                                 class="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                                 loading="lazy"
+                                 onerror="this.src='https://placehold.co/400x300/2D3748/D4AF37?text=Обложка+книги'" />
+                        }
+                        else
+                        {
+                            <div class="bg-gradient-to-br from-[var(--accent-gold)] to-[var(--accent-light)] h-48 rounded-lg flex items-center justify-center">
+                                <div class="text-center" style="color: var(--header-bg);">
+                                    <svg class="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                              d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                                    </svg>
+                                    <p class="text-sm font-medium truncate px-2">@book.Title</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- Информация о книге -->
+                    <div class="book-info">
+                        <!-- Название книги -->
+                        <h3 class="book-title font-bold text-lg mb-2 group-hover:text-[var(--accent-gold)] transition-colors duration-200"
+                            style="color: var(--auth-block-text);">
+                            @book.Title
+                        </h3>
+
+                        <!-- Авторы -->
+                        @if (book.BookAuthors?.Any() == true)
+                        {
+                            <div class="book-authors mb-3">
+                                <p class="text-sm" style="color: var(--text-secondary);">
+                                    <span class="font-medium">Автор@(book.BookAuthors.Count > 1 ? "ы" : ""):</span>
+                                    <span class="authors-list">@string.Join(", ", book.BookAuthors.Select(ba => ba.Author?.PenName))</span>
+                                </p>
+                            </div>
+                        }
+
+                        <!-- Статистика -->
+                        <div class="book-stats flex items-center gap-4 mb-3">
+                            <div class="stat-item flex items-center gap-1" style="color: var(--text-secondary);">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                                    <path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path>
+                                </svg>
+                                <span class="text-sm">@book.ReadsCount</span>
+                            </div>
+                            <div class="stat-item flex items-center gap-1" style="color: #dc2626;">
+                                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"></path>
+                                </svg>
+                                <span class="text-sm">@book.LikesCount</span>
+                            </div>
+                            @if (book.Chapters?.Any() == true)
+                            {
+                                <div class="stat-item flex items-center gap-1" style="color: var(--text-secondary);">
+                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                    </svg>
+                                    <span class="text-sm">@book.Chapters.Count(c => c.IsPublic) гл.</span>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Дата добавления -->
+                        <div class="book-added-date pt-3 border-t" style="border-color: var(--border-color);">
+                            <p class="text-xs" style="color: var(--text-secondary);">
+                                Добавлено: @favorite.AddedDate.ToString("dd.MM.yyyy")
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <!-- Состояние пустых закладок -->
+        <div class="empty-state text-center py-16">
+            <div class="empty-state-icon mb-6">
+                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full mb-4"
+                     style="background: linear-gradient(135deg, var(--accent-gold), var(--accent-light));">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--header-bg);">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold mb-2" style="color: var(--text-primary);">Здесь пока пусто</h3>
+                <p class="mb-6 max-w-md mx-auto" style="color: var(--text-secondary);">
+                    Добавляйте книги в закладки, чтобы легко вернуться к ним позже
+                </p>
+            </div>
+            <a href="@Url.Action("Index", "Home")"
+               class="inline-flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all duration-300 hover:scale-105"
+               style="background: linear-gradient(135deg, var(--accent-gold), var(--accent-light)); color: var(--header-bg);">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                Найти книги
+            </a>
+        </div>
+    }
+</div>
+
+<!-- Toast для уведомлений -->
+<div id="toastContainer" class="fixed bottom-4 right-4 z-50 hidden">
+    <div id="toast" class="flex items-center gap-3 p-4 rounded-lg shadow-lg min-w-[300px] max-w-md transition-all duration-300 transform translate-y-full opacity-0">
+        <div id="toastIcon" class="flex-shrink-0">
+            <!-- Иконка будет вставлена через JavaScript -->
+        </div>
+        <div id="toastMessage" class="flex-1 text-sm font-medium"></div>
+        <button id="toastClose" class="flex-shrink-0 ml-2 hover:opacity-70 transition-opacity">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Класс для управления закладками
+        class BookmarksManager {
+            constructor() {
+                this.bookmarksGrid = document.getElementById('bookmarksGrid');
+                this.toastContainer = document.getElementById('toastContainer');
+                this.toast = document.getElementById('toast');
+                this.toastIcon = document.getElementById('toastIcon');
+                this.toastMessage = document.getElementById('toastMessage');
+                this.toastClose = document.getElementById('toastClose');
+                this.csrfToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+                this.initEventHandlers();
+                this.initCardAnimations();
+                this.initToast();
+            }
+
+            // Инициализация тоста
+            initToast() {
+                // Стилизация тоста с учетом текущей темы
+                this.toast.style.backgroundColor = 'var(--auth-block-bg)';
+                this.toast.style.color = 'var(--auth-block-text)';
+                this.toast.style.border = '1px solid var(--auth-block-border)';
+
+                // Обработчик закрытия тоста
+                this.toastClose.addEventListener('click', () => {
+                    this.hideToast();
+                });
+            }
+
+            // Показать тост
+            showToast(message, type = 'success') {
+                // Очищаем предыдущий тост
+                this.hideToast();
+
+                // Устанавливаем иконку в зависимости от типа
+                let iconHtml = '';
+                let iconColor = '';
+
+                if (type === 'success') {
+                    iconHtml = `
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>`;
+                    iconColor = '#10B981'; // Зеленый для успеха
+                } else {
+                    iconHtml = `
+                        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                        </svg>`;
+                    iconColor = '#EF4444'; // Красный для ошибки
+                }
+
+                this.toastIcon.innerHTML = iconHtml;
+                this.toastIcon.style.color = iconColor;
+                this.toastMessage.textContent = message;
+
+                // Показываем тост
+                this.toastContainer.classList.remove('hidden');
+
+                // Анимация появления
+                requestAnimationFrame(() => {
+                    this.toast.style.transform = 'translateY(0)';
+                    this.toast.style.opacity = '1';
+                });
+
+                // Автоматическое скрытие через 4 секунды
+                this.toastTimeout = setTimeout(() => {
+                    this.hideToast();
+                }, 4000);
+            }
+
+            // Скрыть тост
+            hideToast() {
+                if (this.toastTimeout) {
+                    clearTimeout(this.toastTimeout);
+                }
+
+                this.toast.style.transform = 'translateY(100%)';
+                this.toast.style.opacity = '0';
+
+                setTimeout(() => {
+                    this.toastContainer.classList.add('hidden');
+                }, 300);
+            }
+
+            // Удаление книги из закладок
+            async removeFromFavorites(bookId, buttonElement) {
+                const card = buttonElement.closest('.bookmark-card');
+
+                try {
+                    // Показываем состояние загрузки
+                    this.showLoadingState(card, buttonElement);
+
+                    // Отправляем запрос на сервер с правильной структурой JSON
+                    const response = await fetch('@Url.Action("RemoveFromFavorites", "Books")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': this.csrfToken
+                        },
+                        body: JSON.stringify({
+                            bookId: bookId
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.removeBookmarkCard(card);
+                        this.showToast(result.message, 'success');
+                        this.updateBookCount();
+                    } else {
+                        throw new Error(result.message || 'Ошибка при удалении');
+                    }
+                } catch (error) {
+                    console.error('Ошибка:', error);
+                    this.restoreCardState(card, buttonElement);
+                    this.showToast(error.message || 'Не удалось удалить книгу. Пожалуйста, попробуйте еще раз.', 'error');
+                }
+            }
+
+            // Показать состояние загрузки
+            showLoadingState(card, buttonElement) {
+                card.style.opacity = '0.6';
+                card.style.pointerEvents = 'none';
+
+                buttonElement.innerHTML = `
+                    <svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>`;
+                buttonElement.style.pointerEvents = 'none';
+            }
+
+            // Восстановить состояние карточки
+            restoreCardState(card, buttonElement) {
+                card.style.opacity = '1';
+                card.style.pointerEvents = 'auto';
+
+                buttonElement.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>`;
+                buttonElement.style.pointerEvents = 'auto';
+            }
+
+            // Удалить карточку с анимацией
+            removeBookmarkCard(card) {
+                card.style.transition = 'all 0.3s ease';
+                card.style.transform = 'translateX(100%)';
+                card.style.opacity = '0';
+                card.style.margin = '0';
+                card.style.height = '0';
+                card.style.padding = '0';
+                card.style.border = '0';
+
+                setTimeout(() => {
+                    card.remove();
+
+                    // Проверяем, остались ли еще книги
+                    const remainingBooks = document.querySelectorAll('.bookmark-card').length;
+
+                    if (remainingBooks === 0) {
+                        // Перезагружаем страницу для показа пустого состояния
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 300);
+                    }
+
+                    this.updateBookCount();
+                }, 300);
+            }
+
+            // Обновить счетчик книг в заголовке
+            updateBookCount() {
+                const remainingBooks = document.querySelectorAll('.bookmark-card').length;
+                const bookCountElement = document.querySelector('p.text-lg span');
+
+                if (bookCountElement && remainingBooks > 0) {
+                    const bookWord = this.getBookWord(remainingBooks);
+                    bookCountElement.textContent = `У вас ${remainingBooks} ${bookWord} в закладках`;
+                }
+            }
+
+            // Получить правильное склонение слова "книга"
+            getBookWord(count) {
+                if (count % 10 === 1 && count % 100 !== 11) {
+                    return 'книга';
+                } else if (count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20)) {
+                    return 'книги';
+                } else {
+                    return 'книг';
+                }
+            }
+
+            // Инициализация анимации появления карточек
+            initCardAnimations() {
+                const cards = document.querySelectorAll('.bookmark-card');
+                cards.forEach((card, index) => {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(20px)';
+
+                    setTimeout(() => {
+                        card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                    }, index * 100);
+                });
+            }
+
+            // Инициализация обработчиков событий
+            initEventHandlers() {
+                // Обработчики для клика по карточкам (для перехода к книге)
+                document.querySelectorAll('.bookmark-card').forEach(card => {
+                    card.addEventListener('click', (e) => {
+                        // Проверяем, был ли клик по кнопке удаления
+                        if (e.target.closest('.bookmark-remove-btn')) {
+                            return;
+                        }
+
+                        // Находим ID книги
+                        const bookId = card.getAttribute('data-book-id');
+                        if (bookId) {
+                            window.location.href = `/Read/ReadBook/${bookId}`;
+                        }
+                    });
+                });
+
+                // Обработчики для кнопок удаления
+                document.querySelectorAll('.bookmark-remove-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        e.preventDefault();
+
+                        const bookId = button.getAttribute('data-book-id');
+                        if (bookId) {
+                            this.removeFromFavorites(parseInt(bookId), button);
+                        }
+                    });
+                });
+            }
+        }
+
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            const bookmarksManager = new BookmarksManager();
+
+            // Экспортируем методы для глобального доступа (если нужно)
+            window.bookmarksManager = bookmarksManager;
+        });
+    </script>
+}

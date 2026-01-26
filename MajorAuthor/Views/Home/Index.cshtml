@@ -1,289 +1,195 @@
 ﻿@model MajorAuthor.Models.HomeViewModel
+@using MajorAuthor.Data
+@using Microsoft.AspNetCore.Identity
+@using MajorAuthor.Data.Entities
+@inject UserManager<ApplicationUser> UserManager
+@inject MajorAuthorDbContext DbContext
 @{
     ViewData["Title"] = "Главная";
+    var currentUser = await UserManager.GetUserAsync(User);
+    var isAuthor = false;
+
+    if (currentUser != null)
+    {
+        await DbContext.Entry(currentUser)
+            .Reference(u => u.AuthorProfile)
+            .LoadAsync();
+        isAuthor = currentUser.AuthorProfile != null;
+    }
+
+    // Функция для получения случайных книг
+    var random = new Random();
+    var promotedBooks = Model.PromotedBooks?.Where(b => b.IsPublic).OrderBy(x => random.Next()).Take(5).ToList() ?? new List<HomeViewModel.BookDisplayModel>();
 }
 
-<div class="min-h-screen flex flex-col items-center py-8 w-full">
-    <div class="max-w-7xl w-full mx-auto ">
-
-        <!-- Секция популярных книг -->
-        <section class="mb-12 p-6">
-            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Популярные книги</h2>
-            @if (Model.PopularBooks != null && Model.PopularBooks.Any())
-            {
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    @foreach (var book in Model.PopularBooks)
-                    {
-                        <div class="card p-4 rounded-lg border-2 book-item">
-                            <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/D4AF37/FFFFFF?text=Книга';">
-                            <div>
-                                <h3 class="text-xl font-semibold">@book.Title</h3>
-                                <p class="text-sm text-gray-500">Автор: @book.AuthorName</p>
-                                <p class="text-xs text-gray-400">Прочтений: @(book.ReadsCount.ToString("N0")), Лайков: @(book.LikesCount.ToString("N0"))</p>
-                                @if (book.IsAdultContent)
-                                {
-                                    <span class="text-xs text-red-500 font-bold">18+</span>
-                                }
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <p class="text-center text-secondary">Книги не найдены в этом разделе.</p>
-            }
-        </section>
-
-        <!-- НОВАЯ Секция: Популярные стихи -->
-        <section class="mb-12 p-6">
-            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Популярные стихи</h2>
-            @if (Model.PopularPoems != null && Model.PopularPoems.Any())
-            {
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    @foreach (var poem in Model.PopularPoems)
-                    {
-                        <div ondblclick="window.location.href = '@Url.Action("ReadPoem", "Read", new { id = poem.Id })'" class="card p-4 rounded-lg border-2 poem-item">
-                            <div>
-                                <h3 class="text-xl font-semibold">@poem.Title</h3>
-                                <p class="text-sm text-gray-500">Автор: @poem.AuthorName</p>
-                                <p class="text-xs text-gray-400">Прочтений: @(poem.ReadsCount.ToString("N0")), Лайков: @(poem.LikesCount.ToString("N0")), Комментариев: @(poem.CommentsCount.ToString("N0"))</p>
-                                <p class="text-sm text-gray-600 mt-2 italic">@poem.ContentSnippet...</p>
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <p class="text-center text-secondary">Стихи не найдены в этом разделе.</p>
-            }
-        </section>
-
-        <!-- НОВАЯ Секция: Новые стихи (которым меньше дня) -->
-        <section class="mb-12 p-6">
-            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Новые стихи</h2>
-            @if (Model.NewPoems != null && Model.NewPoems.Any())
-            {
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    @foreach (var poem in Model.NewPoems)
-                    {
-                        <div ondblclick="window.location.href = '@Url.Action("ReadPoem", "Read", new { id = poem.Id })'" class="card p-4 rounded-lg border-2 poem-item">
-                            <div>
-                                <h3 class="text-xl font-semibold">@poem.Title</h3>
-                                <p class="text-sm text-gray-500">Автор: @poem.AuthorName</p>
-                                <p class="text-xs text-gray-400">Опубликовано: @poem.CreationInfo</p>
-                                <p class="text-sm text-gray-600 mt-2 italic">@poem.ContentSnippet...</p>
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <p class="text-center text-secondary">Новые стихи не найдены.</p>
-            }
-        </section>
-
-        <!-- НОВАЯ Секция: Обсуждают сегодня (Топ 10 самых популярных блогов) -->
-        <section class="mb-12 p-6">
-            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Обсуждают сегодня</h2>
-            @if (Model.PopularBlogs != null && Model.PopularBlogs.Any())
-            {
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    @foreach (var blog in Model.PopularBlogs)
-                    {
-                        <div ondblclick="window.location.href = '@Url.Action("ReadBlog", "Read", new { id = blog.Id})'" class="card p-4 rounded-lg border-2 blog-item">
-                            <div>
-                                <h3 class="text-xl font-semibold">@blog.Title</h3>
-                                <p class="text-sm text-gray-500">Автор: @blog.AuthorName</p>
-                                <p class="text-xs text-gray-400">Комментариев: @(blog.CommentsCount.ToString("N0"))</p>
-                                <p class="text-sm text-gray-600 mt-2 italic">@blog.ContentSnippet...</p>
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <p class="text-center text-secondary">Блоги не найдены в этом разделе.</p>
-            }
-        </section>
-
-        <!-- Секция популярных авторов -->
-        <section class="mb-12 p-6">
-            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Популярные авторы</h2>
-            @if (Model.PopularAuthors != null && Model.PopularAuthors.Any())
-            {
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    @foreach (var author in Model.PopularAuthors)
-                    {
-                        <div ondblclick="window.location.href = '@Url.Action("UserProfile", "Profile", new { id = author.Id})'" class="card p-4 rounded-lg border-2 author-item">
-                            <img src="@author.PhotoUrl" alt="Аватар автора" class="author-avatar" onerror="this.onerror=null;this.src='https://placehold.co/60x60/D4AF37/FFFFFF?text=А';">
-                            <div>
-                                <h3 class="text-xl font-semibold">@author.Name</h3>
-                                <p class="text-sm text-gray-500">Книг: @author.BooksCount, Прочтений: @(author.TotalReadsCount.ToString("N0"))</p>
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <p class="text-center text-secondary">Авторы не найдены в этом разделе.</p>
-            }
-        </section>
-
-        <!-- Секция недавно обновленных книг -->
-        <section class="mb-12 p-6">
-            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Недавно обновлённые книги</h2>
-            @if (Model.RecentlyUpdatedBooks != null && Model.RecentlyUpdatedBooks.Any())
-            {
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    @foreach (var book in Model.RecentlyUpdatedBooks)
-                    {
-                        <div ondblclick="window.location.href = '@Url.Action("ReadBook", "Read", new { id = book.Id })'" class="card p-4 rounded-lg border-2 book-item">
-                            <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/A79273/FFFFFF?text=Книга';">
-                            <div>
-                                <h3 class="text-xl font-semibold">@book.Title</h3>
-                                <p class="text-sm text-gray-500">Автор: @book.AuthorName</p>
-                                <p class="text-xs text-gray-400">@book.UpdateInfo</p>
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <p class="text-center text-secondary">Книги не найдены в этом разделе.</p>
-            }
-        </section>
-
-        <!-- Секция новые популярные книги -->
-        <section class="mb-12 p-6">
-            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Новые популярные книги (Топ 10)</h2>
-            @if (Model.NewPopularBooks != null && Model.NewPopularBooks.Any())
-            {
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    @foreach (var book in Model.NewPopularBooks)
-                    {
-                        <div ondblclick="window.location.href = '@Url.Action("ReadBook", "Read", new { id = book.Id })'" class="card p-4 rounded-lg border-2 book-item">
-                            <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/D4AF37/FFFFFF?text=Книга';">
-                            <div>
-                                <h3 class="text-xl font-semibold">@book.Title</h3>
-                                <p class="text-sm text-gray-500">Автор: @book.AuthorName</p>
-                                <p class="text-xs text-gray-400">Прочтений: @book.ReadsCount.ToString("N0"), Лайков: @book.LikesCount.ToString("N0")</p>
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <p class="text-center text-secondary">Книги не найдены в этом разделе.</p>
-            }
-        </section>
-
-        <!-- Секция новые популярные авторы -->
-        <section class="mb-12 p-6">
-            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Новые популярные авторы (Топ 10)</h2>
-            @if (Model.NewPopularAuthors != null && Model.NewPopularAuthors.Any())
-            {
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    @foreach (var author in Model.NewPopularAuthors)
-                    {
-                        <div class="card p-4 rounded-lg border-2 author-item">
-                            <img src="@author.PhotoUrl" alt="Аватар автора" class="author-avatar" onerror="this.onerror=null;this.src='https://placehold.co/60x60/D4AF37/FFFFFF?text=А';">
-                            <div>
-                                <h3 class="text-xl font-semibold">@author.Name</h3>
-                                <p class="text-sm text-gray-500">@author.RegistrationInfo, Прочтений: @(author.TotalReadsCount.ToString("N0"))</p>
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <p class="text-center text-secondary">Авторы не найдены в этом разделе.</p>
-            }
-        </section>
-
-        <!-- НОВАЯ Секция: Продвигающиеся книги -->
-        <section class="mb-12 p-6">
-            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Продвигающиеся книги</h2>
-            @if (Model.PromotedBooks != null && Model.PromotedBooks.Any())
-            {
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    @foreach (var book in Model.PromotedBooks)
-                    {
-                        <div class="card p-4 rounded-lg border-2 book-item">
-                            <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/D4AF37/FFFFFF?text=Книга';">
-                            <div>
-                                <h3 class="text-xl font-semibold">@book.Title</h3>
-                                <p class="text-sm text-gray-500">Автор: @book.AuthorName</p>
-                                <p class="text-xs text-gray-400">Прочтений: @(book.ReadsCount.ToString("N0")), Лайков: @(book.LikesCount.ToString("N0"))</p>
-                                @if (book.IsAdultContent)
-                                {
-                                    <span class="text-xs text-red-500 font-bold">18+</span>
-                                }
-                            </div>
-                        </div>
-                    }
-                </div>
-            }
-            else
-            {
-                <p class="text-center text-secondary">Продвигающиеся книги не найдены в этом разделе.</p>
-            }
-        </section>
-
-        <!-- Секция Книги по жанрам -->
-        <section class="mb-12 p-6">
-            <h2 class="text-3xl font-semibold mb-6 section-title text-center">Книги по жанрам</h2>
-            <div class="flex items-center justify-center mb-6">
-                <label for="genreSelect" class="mr-4 text-lg font-medium text-secondary">Выберите жанр:</label>
-                <select id="genreSelect"
-                        class="form-select mt-1 block w-auto pl-3 pr-10 py-2 text-base border-gray-300
-                               focus:outline-none focus:ring-accent-gold focus:border-accent-gold sm:text-sm
-                               rounded-md bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-                    <option value="">Все жанры</option>
-                    @foreach (var genre in Model.AvailableGenres)
-                    {
-                        <option value="@genre.Id">@genre.Name</option>
-                    }
-                </select>
+<div class="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] to-[var(--bg-secondary)]">
+    <!-- Hero Section -->
+    <section class="relative py-12 sm:py-16 lg:py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold text-[var(--text-primary)] mb-6">
+                Добро пожаловать в
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-[var(--accent-gold)] to-[var(--accent-light)]">
+                    MajorAuthor
+                </span>
+            </h1>
+            <p class="text-xl sm:text-2xl text-[var(--text-primary)] max-w-3xl mx-auto mb-8">
+                Платформа для авторов и читателей. Откройте для себя уникальные произведения,
+                находите талантливых авторов и делитесь своим творчеством.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <a href="#popular" class="auth-btn-primary px-8 py-3 text-lg">
+                    <i class="fas fa-fire mr-2"></i>Популярное
+                </a>
+                <a href="#new" class="auth-btn-secondary px-8 py-3 text-lg">
+                    <i class="fas fa-star mr-2"></i>Новинки
+                </a>
             </div>
-            <div id="booksByGenreContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                @* Начальный список книг по жанру (если есть SelectedGenreId и BooksBySelectedGenre заполнен)
-                    Или заглушка, которая будет заменена AJAX-ом *@
-                @if (Model.BooksBySelectedGenre != null && Model.BooksBySelectedGenre.Any())
-                {
-                    @Html.Partial("_BookListPartial", Model.BooksBySelectedGenre)
-                }
-                else
-                {
-                    <p class="text-center text-secondary col-span-full">Выберите жанр, чтобы увидеть книги.</p>
-                }
+        </div>
+    </section>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Popular Books Section -->
+        <section id="popular" class="mb-12">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] flex items-center">
+                    <i class="fas fa-fire text-[var(--accent-gold)] mr-3"></i>
+                    Популярные книги
+                </h2>
+                <div class="flex space-x-2">
+                    <button class="rating-period-btn active" data-period="all">Все время</button>
+                    <button class="rating-period-btn" data-period="week">За неделю</button>
+                    <button class="rating-period-btn" data-period="month">За месяц</button>
+                    <button class="rating-period-btn" data-period="year">За год</button>
+                </div>
             </div>
-        </section>
 
-
-        <!-- Секция советы (появляется только для зарегистрированных пользователей) -->
-        @if (Model.IsUserLoggedIn)
-        {
-            <section class="mb-12 p-6">
-                <h2 class="text-3xl font-semibold mb-6 section-title text-center">Рекомендации для вас</h2>
-                @if (Model.RecommendedBooks != null && Model.RecommendedBooks.Any())
+            <!-- Все время -->
+            <div class="rating-period-content active" id="rating-period-all">
+                @if (Model.PopularBooks != null && Model.PopularBooks.Any(b => b.IsPublic))
                 {
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        @foreach (var book in Model.RecommendedBooks)
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+                        @{
+                            var popularBooks = Model.PopularBooks.Where(b => b.IsPublic).Take(8).ToList();
+                        }
+                        @foreach (var book in popularBooks)
                         {
-                            <div class="card p-4 rounded-lg border-2 book-item">
-                                <img src="@book.CoverImageUrl" alt="Обложка книги" class="book-cover" onerror="this.onerror=null;this.src='https://placehold.co/60x90/D4AF37/FFFFFF?text=Книга';">
-                                <div>
-                                    <h3 class="text-xl font-semibold">@book.Title</h3>
-                                    <p class="text-sm text-gray-500">Автор: @book.AuthorName</p>
-                                    <p class="text-xs text-gray-400">@book.RecommendationReason</p>
+                            <div class="white-block group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl book-item"
+                                 data-href="@Url.Action("ReadBook", "Read", new { id = book.Id })">
+                                <div class="relative overflow-hidden rounded-t-xl">
+                                    @if (!string.IsNullOrEmpty(book.CoverImageUrl))
+                                    {
+                                        <img src="@book.CoverImageUrl" alt="Обложка книги"
+                                             class="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
+                                             onerror="handleImgError(this)">
+                                    }
+                                    else
+                                    {
+                                        <div class="w-full h-48 bg-gradient-to-br from-[var(--border-color)] to-gray-300 flex items-center justify-center">
+                                            <i class="fas fa-book text-4xl text-secondary-custom opacity-50"></i>
+                                        </div>
+                                    }
+                                    @if (book.IsAdultContent)
+                                    {
+                                        <span class="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold">18+</span>
+                                    }
+                                    <div class="absolute top-2 right-2 bg-[var(--accent-gold)] text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg flex items-center">
+                                        <i class="fas fa-star mr-1"></i>@book.Rating.ToString("0.0")
+                                    </div>
+                                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                                        <div class="flex justify-between items-end text-white">
+                                            <div>
+                                                <div class="flex items-center text-sm">
+                                                    <i class="fas fa-eye mr-1"></i>
+                                                    <span>@book.ReadsCount.ToString("N0")</span>
+                                                </div>
+                                                <div class="flex items-center text-sm mt-1">
+                                                    <i class="fas fa-heart mr-1 text-red-400"></i>
+                                                    <span>@book.LikesCount.ToString("N0")</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-semibold text-lg text-[var(--auth-block-text)] line-clamp-2 mb-2 group-hover:text-[var(--accent-gold)] transition-colors">
+                                        @book.Title
+                                    </h3>
+
+                                    <!-- Авторы -->
+                                    @if (book.Authors != null && book.Authors.Any())
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            @foreach (var author in book.Authors.Take(3))
+                                            {
+                                                <span class="text-xs author-badge px-2 py-1 rounded-full">
+                                                    @author
+                                                </span>
+                                            }
+                                            @if (book.Authors.Count > 3)
+                                            {
+                                                <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                    +@(book.Authors.Count - 3)
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            <span class="text-xs author-badge px-2 py-1 rounded-full">
+                                                @book.AuthorName
+                                            </span>
+                                        </div>
+                                    }
+
+                                    @if (!string.IsNullOrEmpty(book.Description))
+                                    {
+                                        <p class="text-sm text-[var(--auth-block-text)] opacity-90 line-clamp-2 mb-3">
+                                            @book.Description
+                                        </p>
+                                    }
+
+                                    <!-- Жанры с белым текстом -->
+                                    <div class="flex flex-wrap gap-1 mb-3">
+                                        @foreach (var genre in book.Genres.Take(3))
+                                        {
+                                            <span class="text-xs genre-badge px-2 py-1 rounded-full">
+                                                @genre
+                                            </span>
+                                        }
+                                        @if (book.Genres.Count > 3)
+                                        {
+                                            <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                +@(book.Genres.Count - 3)
+                                            </span>
+                                        }
+                                    </div>
+
+                                    <!-- Теги с темно-желтым текстом -->
+                                    @if (book.Tags != null && book.Tags.Any())
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            @foreach (var tag in book.Tags.Take(3))
+                                            {
+                                                <span class="text-xs tag-badge px-2 py-1 rounded-full">
+                                                    #@tag.TrimStart('#')
+                                                </span>
+                                            }
+                                            @if (book.Tags.Count > 3)
+                                            {
+                                                <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                    +@(book.Tags.Count - 3)
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+
+                                    <div class="flex items-center justify-between text-xs text-[var(--auth-block-text)] opacity-70 mt-3 pt-3 border-t border-[var(--auth-block-border)]">
+                                        <span class="content-type-badge">
+                                            <i class="fas fa-book"></i>Книга
+                                        </span>
+                                        <span>@book.PublicationDate.ToString("dd.MM.yyyy")</span>
+                                    </div>
                                 </div>
                             </div>
                         }
@@ -291,51 +197,1808 @@
                 }
                 else
                 {
-                    <p class="text-center text-secondary">Рекомендации пока не найдены.</p>
+                    <div class="white-block text-center py-12">
+                        <i class="fas fa-book text-4xl text-[var(--auth-block-text)] opacity-70 mb-4"></i>
+                        <p class="text-[var(--auth-block-text)]">Популярные книги появятся здесь</p>
+                        <p class="text-sm text-[var(--auth-block-text)] opacity-70 mt-2">Читайте и оценивайте произведения</p>
+                    </div>
+                }
+            </div>
+
+            <!-- За неделю -->
+            <div class="rating-period-content" id="rating-period-week">
+                @if (Model.WeeklyPopularBooks != null && Model.WeeklyPopularBooks.Any(b => b.IsPublic))
+                {
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+                        @{
+                            var weeklyBooks = Model.WeeklyPopularBooks.Where(b => b.IsPublic).Take(8).ToList();
+                        }
+                        @foreach (var book in weeklyBooks)
+                        {
+                            <div class="white-block group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl book-item"
+                                 data-href="@Url.Action("ReadBook", "Read", new { id = book.Id })">
+                                <div class="relative overflow-hidden rounded-t-xl">
+                                    @if (!string.IsNullOrEmpty(book.CoverImageUrl))
+                                    {
+                                        <img src="@book.CoverImageUrl" alt="Обложка книги"
+                                             class="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
+                                             onerror="handleImgError(this)">
+                                    }
+                                    else
+                                    {
+                                        <div class="w-full h-48 bg-gradient-to-br from-[var(--border-color)] to-gray-300 flex items-center justify-center">
+                                            <i class="fas fa-book text-4xl text-secondary-custom opacity-50"></i>
+                                        </div>
+                                    }
+                                    @if (book.IsAdultContent)
+                                    {
+                                        <span class="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold">18+</span>
+                                    }
+                                    <div class="absolute top-2 right-2 bg-[var(--accent-gold)] text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg flex items-center">
+                                        <i class="fas fa-star mr-1"></i>@book.WeeklyRating.ToString("0.0")
+                                    </div>
+                                    <div class="absolute top-2 left-12 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                                        Неделя
+                                    </div>
+                                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                                        <div class="flex justify-between items-end text-white">
+                                            <div>
+                                                <div class="flex items-center text-sm">
+                                                    <i class="fas fa-eye mr-1"></i>
+                                                    <span>@book.ReadsCount.ToString("N0")</span>
+                                                </div>
+                                                <div class="flex items-center text-sm mt-1">
+                                                    <i class="fas fa-heart mr-1 text-red-400"></i>
+                                                    <span>@book.LikesCount.ToString("N0")</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-semibold text-lg text-[var(--auth-block-text)] line-clamp-2 mb-2 group-hover:text-[var(--accent-gold)] transition-colors">
+                                        @book.Title
+                                    </h3>
+
+                                    <!-- Авторы -->
+                                    @if (book.Authors != null && book.Authors.Any())
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            @foreach (var author in book.Authors.Take(3))
+                                            {
+                                                <span class="text-xs author-badge px-2 py-1 rounded-full">
+                                                    @author
+                                                </span>
+                                            }
+                                            @if (book.Authors.Count > 3)
+                                            {
+                                                <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                    +@(book.Authors.Count - 3)
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            <span class="text-xs author-badge px-2 py-1 rounded-full">
+                                                @book.AuthorName
+                                            </span>
+                                        </div>
+                                    }
+
+                                    @if (!string.IsNullOrEmpty(book.Description))
+                                    {
+                                        <p class="text-sm text-[var(--auth-block-text)] opacity-90 line-clamp-2 mb-3">
+                                            @book.Description
+                                        </p>
+                                    }
+
+                                    <!-- Жанры с белым текстом -->
+                                    <div class="flex flex-wrap gap-1 mb-3">
+                                        @foreach (var genre in book.Genres.Take(3))
+                                        {
+                                            <span class="text-xs genre-badge px-2 py-1 rounded-full">
+                                                @genre
+                                            </span>
+                                        }
+                                        @if (book.Genres.Count > 3)
+                                        {
+                                            <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                +@(book.Genres.Count - 3)
+                                            </span>
+                                        }
+                                    </div>
+
+                                    <!-- Теги с темно-желтым текстом -->
+                                    @if (book.Tags != null && book.Tags.Any())
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            @foreach (var tag in book.Tags.Take(3))
+                                            {
+                                                <span class="text-xs tag-badge px-2 py-1 rounded-full">
+                                                    #@tag.TrimStart('#')
+                                                </span>
+                                            }
+                                            @if (book.Tags.Count > 3)
+                                            {
+                                                <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                    +@(book.Tags.Count - 3)
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+
+                                    <div class="flex items-center justify-between text-xs text-[var(--auth-block-text)] opacity-70 mt-3 pt-3 border-t border-[var(--auth-block-border)]">
+                                        <span class="content-type-badge">
+                                            <i class="fas fa-book"></i>Книга
+                                        </span>
+                                        <span>@book.PublicationDate.ToString("dd.MM.yyyy")</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="white-block text-center py-12">
+                        <i class="fas fa-calendar-week text-4xl text-[var(--auth-block-text)] opacity-70 mb-4"></i>
+                        <p class="text-[var(--auth-block-text)]">Популярные книги за неделю появятся здесь</p>
+                        <p class="text-sm text-[var(--auth-block-text)] opacity-70 mt-2">Читайте и оценивайте произведения</p>
+                    </div>
+                }
+            </div>
+
+            <!-- За месяц -->
+            <div class="rating-period-content" id="rating-period-month">
+                @if (Model.MonthlyPopularBooks != null && Model.MonthlyPopularBooks.Any(b => b.IsPublic))
+                {
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+                        @{
+                            var monthlyBooks = Model.MonthlyPopularBooks.Where(b => b.IsPublic).Take(8).ToList();
+                        }
+                        @foreach (var book in monthlyBooks)
+                        {
+                            <div class="white-block group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl book-item"
+                                 data-href="@Url.Action("ReadBook", "Read", new { id = book.Id })">
+                                <div class="relative overflow-hidden rounded-t-xl">
+                                    @if (!string.IsNullOrEmpty(book.CoverImageUrl))
+                                    {
+                                        <img src="@book.CoverImageUrl" alt="Обложка книги"
+                                             class="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
+                                             onerror="handleImgError(this)">
+                                    }
+                                    else
+                                    {
+                                        <div class="w-full h-48 bg-gradient-to-br from-[var(--border-color)] to-gray-300 flex items-center justify-center">
+                                            <i class="fas fa-book text-4xl text-secondary-custom opacity-50"></i>
+                                        </div>
+                                    }
+                                    @if (book.IsAdultContent)
+                                    {
+                                        <span class="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold">18+</span>
+                                    }
+                                    <div class="absolute top-2 right-2 bg-[var(--accent-gold)] text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg flex items-center">
+                                        <i class="fas fa-star mr-1"></i>@book.MonthlyRating.ToString("0.0")
+                                    </div>
+                                    <div class="absolute top-2 left-12 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                                        Месяц
+                                    </div>
+                                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                                        <div class="flex justify-between items-end text-white">
+                                            <div>
+                                                <div class="flex items-center text-sm">
+                                                    <i class="fas fa-eye mr-1"></i>
+                                                    <span>@book.ReadsCount.ToString("N0")</span>
+                                                </div>
+                                                <div class="flex items-center text-sm mt-1">
+                                                    <i class="fas fa-heart mr-1 text-red-400"></i>
+                                                    <span>@book.LikesCount.ToString("N0")</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-semibold text-lg text-[var(--auth-block-text)] line-clamp-2 mb-2 group-hover:text-[var(--accent-gold)] transition-colors">
+                                        @book.Title
+                                    </h3>
+
+                                    <!-- Авторы -->
+                                    @if (book.Authors != null && book.Authors.Any())
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            @foreach (var author in book.Authors.Take(3))
+                                            {
+                                                <span class="text-xs author-badge px-2 py-1 rounded-full">
+                                                    @author
+                                                </span>
+                                            }
+                                            @if (book.Authors.Count > 3)
+                                            {
+                                                <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                    +@(book.Authors.Count - 3)
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            <span class="text-xs author-badge px-2 py-1 rounded-full">
+                                                @book.AuthorName
+                                            </span>
+                                        </div>
+                                    }
+
+                                    @if (!string.IsNullOrEmpty(book.Description))
+                                    {
+                                        <p class="text-sm text-[var(--auth-block-text)] opacity-90 line-clamp-2 mb-3">
+                                            @book.Description
+                                        </p>
+                                    }
+
+                                    <!-- Жанры с белым текстом -->
+                                    <div class="flex flex-wrap gap-1 mb-3">
+                                        @foreach (var genre in book.Genres.Take(3))
+                                        {
+                                            <span class="text-xs genre-badge px-2 py-1 rounded-full">
+                                                @genre
+                                            </span>
+                                        }
+                                        @if (book.Genres.Count > 3)
+                                        {
+                                            <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                +@(book.Genres.Count - 3)
+                                            </span>
+                                        }
+                                    </div>
+
+                                    <!-- Теги с темно-желтым текстом -->
+                                    @if (book.Tags != null && book.Tags.Any())
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            @foreach (var tag in book.Tags.Take(3))
+                                            {
+                                                <span class="text-xs tag-badge px-2 py-1 rounded-full">
+                                                    #@tag.TrimStart('#')
+                                                </span>
+                                            }
+                                            @if (book.Tags.Count > 3)
+                                            {
+                                                <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                    +@(book.Tags.Count - 3)
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+
+                                    <div class="flex items-center justify-between text-xs text-[var(--auth-block-text)] opacity-70 mt-3 pt-3 border-t border-[var(--auth-block-border)]">
+                                        <span class="content-type-badge">
+                                            <i class="fas fa-book"></i>Книга
+                                        </span>
+                                        <span>@book.PublicationDate.ToString("dd.MM.yyyy")</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="white-block text-center py-12">
+                        <i class="fas fa-calendar-alt text-4xl text-[var(--auth-block-text)] opacity-70 mb-4"></i>
+                        <p class="text-[var(--auth-block-text)]">Популярные книги за месяц появятся здесь</p>
+                        <p class="text-sm text-[var(--auth-block-text)] opacity-70 mt-2">Читайте и оценивайте произведения</p>
+                    </div>
+                }
+            </div>
+
+            <!-- За год -->
+            <div class="rating-period-content" id="rating-period-year">
+                @if (Model.YearlyPopularBooks != null && Model.YearlyPopularBooks.Any(b => b.IsPublic))
+                {
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+                        @{
+                            var yearlyBooks = Model.YearlyPopularBooks.Where(b => b.IsPublic).Take(8).ToList();
+                        }
+                        @foreach (var book in yearlyBooks)
+                        {
+                            <div class="white-block group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl book-item"
+                                 data-href="@Url.Action("ReadBook", "Read", new { id = book.Id })">
+                                <div class="relative overflow-hidden rounded-t-xl">
+                                    @if (!string.IsNullOrEmpty(book.CoverImageUrl))
+                                    {
+                                        <img src="@book.CoverImageUrl" alt="Обложка книги"
+                                             class="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
+                                             onerror="handleImgError(this)">
+                                    }
+                                    else
+                                    {
+                                        <div class="w-full h-48 bg-gradient-to-br from-[var(--border-color)] to-gray-300 flex items-center justify-center">
+                                            <i class="fas fa-book text-4xl text-secondary-custom opacity-50"></i>
+                                        </div>
+                                    }
+                                    @if (book.IsAdultContent)
+                                    {
+                                        <span class="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold">18+</span>
+                                    }
+                                    <div class="absolute top-2 right-2 bg-[var(--accent-gold)] text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg flex items-center">
+                                        <i class="fas fa-star mr-1"></i>@book.YearlyRating.ToString("0.0")
+                                    </div>
+                                    <div class="absolute top-2 left-12 bg-purple-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                                        Год
+                                    </div>
+                                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                                        <div class="flex justify-between items-end text-white">
+                                            <div>
+                                                <div class="flex items-center text-sm">
+                                                    <i class="fas fa-eye mr-1"></i>
+                                                    <span>@book.ReadsCount.ToString("N0")</span>
+                                                </div>
+                                                <div class="flex items-center text-sm mt-1">
+                                                    <i class="fas fa-heart mr-1 text-red-400"></i>
+                                                    <span>@book.LikesCount.ToString("N0")</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-semibold text-lg text-[var(--auth-block-text)] line-clamp-2 mb-2 group-hover:text-[var(--accent-gold)] transition-colors">
+                                        @book.Title
+                                    </h3>
+
+                                    <!-- Авторы -->
+                                    @if (book.Authors != null && book.Authors.Any())
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            @foreach (var author in book.Authors.Take(3))
+                                            {
+                                                <span class="text-xs author-badge px-2 py-1 rounded-full">
+                                                    @author
+                                                </span>
+                                            }
+                                            @if (book.Authors.Count > 3)
+                                            {
+                                                <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                    +@(book.Authors.Count - 3)
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            <span class="text-xs author-badge px-2 py-1 rounded-full">
+                                                @book.AuthorName
+                                            </span>
+                                        </div>
+                                    }
+
+                                    @if (!string.IsNullOrEmpty(book.Description))
+                                    {
+                                        <p class="text-sm text-[var(--auth-block-text)] opacity-90 line-clamp-2 mb-3">
+                                            @book.Description
+                                        </p>
+                                    }
+
+                                    <!-- Жанры с белым текстом -->
+                                    <div class="flex flex-wrap gap-1 mb-3">
+                                        @foreach (var genre in book.Genres.Take(3))
+                                        {
+                                            <span class="text-xs genre-badge px-2 py-1 rounded-full">
+                                                @genre
+                                            </span>
+                                        }
+                                        @if (book.Genres.Count > 3)
+                                        {
+                                            <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                +@(book.Genres.Count - 3)
+                                            </span>
+                                        }
+                                    </div>
+
+                                    <!-- Теги с темно-желтым текстом -->
+                                    @if (book.Tags != null && book.Tags.Any())
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            @foreach (var tag in book.Tags.Take(3))
+                                            {
+                                                <span class="text-xs tag-badge px-2 py-1 rounded-full">
+                                                    #@tag.TrimStart('#')
+                                                </span>
+                                            }
+                                            @if (book.Tags.Count > 3)
+                                            {
+                                                <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                    +@(book.Tags.Count - 3)
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+
+                                    <div class="flex items-center justify-between text-xs text-[var(--auth-block-text)] opacity-70 mt-3 pt-3 border-t border-[var(--auth-block-border)]">
+                                        <span class="content-type-badge">
+                                            <i class="fas fa-book"></i>Книга
+                                        </span>
+                                        <span>@book.PublicationDate.ToString("dd.MM.yyyy")</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="white-block text-center py-12">
+                        <i class="fas fa-calendar text-4xl text-[var(--auth-block-text)] opacity-70 mb-4"></i>
+                        <p class="text-[var(--auth-block-text)]">Популярные книги за год появятся здесь</p>
+                        <p class="text-sm text-[var(--auth-block-text)] opacity-70 mt-2">Читайте и оценивайте произведения</p>
+                    </div>
+                }
+            </div>
+
+            <div class="text-center mt-8">
+                <a href="@Url.Action("AllBooks", "Catalog")" class="auth-btn-primary">
+                    <i class="fas fa-book-open mr-2"></i>Все книги
+                </a>
+            </div>
+        </section>
+
+        <!-- Two Columns Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column - Poems and Blogs -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- Popular Poems -->
+                <section>
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl sm:text-2xl font-bold text-[var(--text-primary)] flex items-center">
+                            <i class="fas fa-feather text-[var(--accent-gold)] mr-3"></i>
+                            Популярные стихи
+                        </h2>
+                        <div class="flex space-x-2">
+                            <button class="poem-rating-period-btn active" data-period="poems-all">Все</button>
+                            <button class="poem-rating-period-btn" data-period="poems-week">Неделя</button>
+                            <button class="poem-rating-period-btn" data-period="poems-month">Месяц</button>
+                        </div>
+                    </div>
+
+                    <div class="poem-rating-period-content active" id="poem-rating-period-all">
+                        @if (Model.PopularPoems != null && Model.PopularPoems.Any())
+                        {
+                            <div class="poems-container grid grid-cols-1 md:grid-cols-2 gap-4">
+                                @{
+                                    var popularPoems = Model.PopularPoems.Take(5).ToList();
+                                }
+                                @for (int i = 0; i < popularPoems.Count; i++)
+                                {
+                                    var poem = popularPoems[i];
+                                    var position = i + 1;
+                                    <div class="white-block group cursor-pointer transform transition-all duration-300 hover:scale-102 relative poem-item"
+                                         onclick="window.location.href = '@Url.Action("ReadPoem", "Read", new { id = poem.Id })'">
+                                        @if (poem.IsNew)
+                                        {
+                                            <span class="absolute top-3 left-3 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">Новое</span>
+                                        }
+                                        <div class="absolute top-3 right-3 bg-[var(--accent-gold)] text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg flex items-center">
+                                            <i class="fas fa-star mr-1"></i>@poem.Rating.ToString("0.0")
+                                        </div>
+                                        <div class="p-4">
+                                            <h3 class="font-semibold text-[var(--auth-block-text)] line-clamp-2 mb-2 group-hover:text-[var(--accent-gold)] transition-colors">
+                                                @poem.Title
+                                            </h3>
+                                            <p class="text-sm text-[var(--auth-block-text)] opacity-70 mb-3">@poem.AuthorName</p>
+                                            <p class="text-sm text-[var(--auth-block-text)] line-clamp-3 mb-4 italic opacity-90">
+                                                @poem.ContentSnippet...
+                                            </p>
+                                            <div class="flex items-center justify-between text-xs text-[var(--auth-block-text)] opacity-70">
+                                                <div class="flex items-center space-x-4">
+                                                    <span class="flex items-center">
+                                                        <i class="fas fa-eye mr-1"></i>
+                                                        @poem.ReadsCount.ToString("N0")
+                                                    </span>
+                                                    <span class="flex items-center">
+                                                        <i class="fas fa-heart mr-1 text-red-400"></i>
+                                                        @poem.LikesCount.ToString("N0")
+                                                    </span>
+                                                    <span class="text-[var(--accent-gold)] font-semibold">
+                                                        Место #@position
+                                                    </span>
+                                                </div>
+                                                <span class="content-type-badge">
+                                                    <i class="fas fa-feather"></i>Стих
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="white-block text-center py-8">
+                                <i class="fas fa-feather text-3xl text-[var(--auth-block-text)] opacity-70 mb-3"></i>
+                                <p class="text-[var(--auth-block-text)]">Популярных стихов пока нет</p>
+                                <p class="text-sm text-[var(--auth-block-text)] opacity-70 mt-2">Читайте и оценивайте стихи, чтобы они появились здесь</p>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="poem-rating-period-content" id="poem-rating-period-week">
+                        @if (Model.WeeklyPopularPoems != null && Model.WeeklyPopularPoems.Any())
+                        {
+                            <div class="poems-container grid grid-cols-1 md:grid-cols-2 gap-4">
+                                @{
+                                    var weeklyPoems = Model.WeeklyPopularPoems.Take(5).ToList();
+                                }
+                                @for (int i = 0; i < weeklyPoems.Count; i++)
+                                {
+                                    var poem = weeklyPoems[i];
+                                    var position = i + 1;
+                                    <div class="white-block group cursor-pointer transform transition-all duration-300 hover:scale-102 relative poem-item"
+                                         onclick="window.location.href = '@Url.Action("ReadPoem", "Read", new { id = poem.Id })'">
+                                        <div class="absolute top-3 right-3 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg flex items-center">
+                                            <i class="fas fa-star mr-1"></i>@poem.WeeklyRating.ToString("0.0")
+                                        </div>
+                                        <div class="absolute top-3 left-3 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                                            Неделя
+                                        </div>
+                                        <div class="p-4">
+                                            <h3 class="font-semibold text-[var(--auth-block-text)] line-clamp-2 mb-2 group-hover:text-[var(--accent-gold)] transition-colors">
+                                                @poem.Title
+                                            </h3>
+                                            <p class="text-sm text-[var(--auth-block-text)] opacity-70 mb-3">@poem.AuthorName</p>
+                                            <p class="text-sm text-[var(--auth-block-text)] line-clamp-3 mb-4 italic opacity-90">
+                                                @poem.ContentSnippet...
+                                            </p>
+                                            <div class="flex items-center justify-between text-xs text-[var(--auth-block-text)] opacity-70">
+                                                <div class="flex items-center space-x-4">
+                                                    <span class="flex items-center">
+                                                        <i class="fas fa-eye mr-1"></i>
+                                                        @poem.ReadsCount.ToString("N0")
+                                                    </span>
+                                                    <span class="flex items-center">
+                                                        <i class="fas fa-heart mr-1 text-red-400"></i>
+                                                        @poem.LikesCount.ToString("N0")
+                                                    </span>
+                                                    <span class="text-blue-500 font-semibold">
+                                                        Место #@position
+                                                    </span>
+                                                </div>
+                                                <span class="bg-blue-500 bg-opacity-20 text-blue-500 px-2 py-1 rounded-full">
+                                                    <i class="fas fa-calendar-week mr-1"></i>За неделю
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="white-block text-center py-8">
+                                <i class="fas fa-calendar-week text-3xl text-[var(--auth-block-text)] opacity-70 mb-3"></i>
+                                <p class="text-[var(--auth-block-text)]">Популярных стихов за неделю пока нет</p>
+                                <p class="text-sm text-[var(--auth-block-text)] opacity-70 mt-2">Читайте и оценивайте стихи</p>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="poem-rating-period-content" id="poem-rating-period-month">
+                        @if (Model.MonthlyPopularPoems != null && Model.MonthlyPopularPoems.Any())
+                        {
+                            <div class="poems-container grid grid-cols-1 md:grid-cols-2 gap-4">
+                                @{
+                                    var monthlyPoems = Model.MonthlyPopularPoems.Take(5).ToList();
+                                }
+                                @for (int i = 0; i < monthlyPoems.Count; i++)
+                                {
+                                    var poem = monthlyPoems[i];
+                                    var position = i + 1;
+                                    <div class="white-block group cursor-pointer transform transition-all duration-300 hover:scale-102 relative poem-item"
+                                         onclick="window.location.href = '@Url.Action("ReadPoem", "Read", new { id = poem.Id })'">
+                                        <div class="absolute top-3 right-3 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg flex items-center">
+                                            <i class="fas fa-star mr-1"></i>@poem.MonthlyRating.ToString("0.0")
+                                        </div>
+                                        <div class="absolute top-3 left-3 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                                            Месяц
+                                        </div>
+                                        <div class="p-4">
+                                            <h3 class="font-semibold text-[var(--auth-block-text)] line-clamp-2 mb-2 group-hover:text-[var(--accent-gold)] transition-colors">
+                                                @poem.Title
+                                            </h3>
+                                            <p class="text-sm text-[var(--auth-block-text)] opacity-70 mb-3">@poem.AuthorName</p>
+                                            <p class="text-sm text-[var(--auth-block-text)] line-clamp-3 mb-4 italic opacity-90">
+                                                @poem.ContentSnippet...
+                                            </p>
+                                            <div class="flex items-center justify-between text-xs text-[var(--auth-block-text)] opacity-70">
+                                                <div class="flex items-center space-x-4">
+                                                    <span class="flex items-center">
+                                                        <i class="fas fa-eye mr-1"></i>
+                                                        @poem.ReadsCount.ToString("N0")
+                                                    </span>
+                                                    <span class="flex items-center">
+                                                        <i class="fas fa-heart mr-1 text-red-400"></i>
+                                                        @poem.LikesCount.ToString("N0")
+                                                    </span>
+                                                    <span class="bg-green-500 bg-opacity-20 text-green-500 px-2 py-1 rounded-full">
+                                                        <i class="fas fa-calendar-alt mr-1"></i>За месяц
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="white-block text-center py-8">
+                                <i class="fas fa-calendar-alt text-3xl text-[var(--auth-block-text)] opacity-70 mb-3"></i>
+                                <p class="text-[var(--auth-block-text)]">Популярных стихов за месяц пока нет</p>
+                                <p class="text-sm text-[var(--auth-block-text)] opacity-70 mt-2">Читайте и оценивайте стихи</p>
+                            </div>
+                        }
+                    </div>
+                    <div class="text-center mt-8">
+                        <a href="@Url.Action("AllPoems", "Catalog")" class="auth-btn-primary">
+                            <i class="fas fa-feather mr-2"></i>Все стихи
+                        </a>
+                    </div>
+                </section>
+
+                <!-- Popular Blogs -->
+                <section>
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl sm:text-2xl font-bold text-[var(--text-primary)] flex items-center">
+                            <i class="fas fa-comments text-[var(--accent-gold)] mr-3"></i>
+                            Обсуждают сегодня
+                        </h2>
+                        <a href="@Url.Action("AllBlogs", "Catalog")" class="text-[var(--accent-gold)] hover:text-[var(--accent-light)] transition-colors text-sm">
+                            Все блоги
+                        </a>
+                    </div>
+
+                    @if (Model.PopularBlogs != null && Model.PopularBlogs.Any())
+                    {
+                        <div class="blogs-container grid grid-cols-1 gap-4">
+                            @{
+                                var popularBlogs = Model.PopularBlogs.Take(5).ToList();
+                            }
+                            @for (int i = 0; i < popularBlogs.Count; i++)
+                            {
+                                var blog = popularBlogs[i];
+                                var position = i + 1;
+                                <div class="white-block group cursor-pointer transform transition-all duration-300 hover:scale-102 relative blog-item"
+                                     onclick="window.location.href = '@Url.Action("ReadBlog", "Read", new { id = blog.Id })'">
+                                    @if (blog.IsNew)
+                                    {
+                                        <span class="absolute top-3 left-3 bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">Новое</span>
+                                    }
+                                    <div class="absolute top-3 right-3 bg-[var(--accent-gold)] text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg flex items-center">
+                                        <i class="fas fa-star mr-1"></i>@blog.Rating.ToString("0.0")
+                                    </div>
+                                    <div class="p-4">
+                                        <h3 class="font-semibold text-[var(--auth-block-text)] line-clamp-2 mb-2 group-hover:text-[var(--accent-gold)] transition-colors">
+                                            @blog.Title
+                                        </h3>
+                                        <p class="text-sm text-[var(--auth-block-text)] opacity-70 mb-3">@blog.AuthorName</p>
+                                        <p class="text-sm text-[var(--auth-block-text)] line-clamp-2 mb-4 opacity-90">
+                                            @blog.ContentSnippet...
+                                        </p>
+                                        <div class="flex items-center justify-between text-xs text-[var(--auth-block-text)] opacity-70">
+                                            <div class="flex items-center space-x-4">
+                                                <span class="flex items-center">
+                                                    <i class="fas fa-comment mr-1"></i>
+                                                    @blog.CommentsCount.ToString("N0") комментариев
+                                                </span>
+                                                <span class="flex items-center">
+                                                    <i class="fas fa-eye mr-1"></i>
+                                                    @blog.ViewsCount.ToString("N0")
+                                                </span>
+                                                <span class="text-[var(--accent-gold)] font-semibold">
+                                                    Место #@position
+                                                </span>
+                                            </div>
+                                            <span class="content-type-badge">
+                                                <i class="fas fa-blog"></i>Блог
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="white-block text-center py-8">
+                            <i class="fas fa-comments text-3xl text-[var(--auth-block-text)] opacity-70 mb-3"></i>
+                            <p class="text-[var(--auth-block-text)]">Популярных блогов пока нет</p>
+                            <p class="text-sm text-[var(--auth-block-text)] opacity-70 mt-2">Обсуждайте произведения, чтобы они появились здесь</p>
+                        </div>
+                    }
+                </section>
+            </div>
+
+            <!-- Right Column - Authors and Quick Actions -->
+            <div class="space-y-8">
+                <!-- Popular Authors -->
+                <section>
+                    <h2 class="text-xl sm:text-2xl font-bold text-[var(--text-primary)] flex items-center mb-6">
+                        <i class="fas fa-users text-[var(--accent-gold)] mr-3"></i>
+                        Популярные авторы
+                    </h2>
+
+                    @if (Model.PopularAuthors != null && Model.PopularAuthors.Any())
+                    {
+                        <div class="authors-container space-y-4">
+                            @{
+                                var popularAuthors = Model.PopularAuthors.Take(5).ToList();
+                            }
+                            @for (int i = 0; i < popularAuthors.Count; i++)
+                            {
+                                var author = popularAuthors[i];
+                                var position = i + 1;
+                                <div class="white-block group cursor-pointer transform transition-all duration-300 hover:scale-102 author-item"
+                                     onclick="window.location.href = '@Url.Action("UserProfile", "Profile", new { id = author.Id })'">
+                                    <div class="flex items-center space-x-4 p-3">
+                                        <div class="relative">
+                                            @if (string.IsNullOrEmpty(author.PhotoUrl))
+                                            {
+                                                <div class="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--accent-gold)] to-[var(--accent-light)] flex items-center justify-center border-2 border-[var(--accent-gold)] shadow-lg">
+                                                    <span class="text-white font-bold text-lg">@author.Name?.FirstOrDefault()</span>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <img src="@author.PhotoUrl" alt="Аватар автора"
+                                                     class="w-12 h-12 rounded-full object-cover border-2 border-[var(--accent-gold)] shadow-lg"
+                                                     onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'w-12 h-12 rounded-full bg-gradient-to-br from-[var(--accent-gold)] to-[var(--accent-light)] flex items-center justify-center border-2 border-[var(--accent-gold)] shadow-lg\'><span class=\'text-white font-bold text-lg\'>@author.Name?.FirstOrDefault()</span></div>'">
+                                            }
+                                            @if (author.IsNew)
+                                            {
+                                                <span class="absolute -top-1 -right-1 bg-green-500 text-white text-xs px-1 py-0.5 rounded-full font-bold shadow">Новый</span>
+                                            }
+                                            <div class="absolute -bottom-1 -right-1 bg-[var(--accent-gold)] text-white text-xs px-1 py-0.5 rounded-full font-bold shadow flex items-center">
+                                                <i class="fas fa-star text-[8px] mr-0.5"></i>@author.Rating.ToString("0.0")
+                                            </div>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <h3 class="font-semibold text-[var(--auth-block-text)] truncate group-hover:text-[var(--accent-gold)] transition-colors">
+                                                @author.Name
+                                            </h3>
+                                            <p class="text-sm text-[var(--auth-block-text)] opacity-70 truncate">
+                                                <i class="fas fa-book mr-1"></i>@author.BooksCount книг •
+                                                <i class="fas fa-eye mr-1"></i>@author.TotalReadsCount.ToString("N0") прочтений
+                                            </p>
+                                            <p class="text-xs text-[var(--accent-gold)] mt-1">
+                                                <i class="fas fa-heart mr-1"></i>@author.TotalLikesCount.ToString("N0") лайков
+                                            </p>
+                                            <p class="text-xs text-blue-500 font-semibold mt-1">
+                                                Место в рейтинге: #@position
+                                            </p>
+                                        </div>
+                                        <i class="fas fa-chevron-right text-[var(--auth-block-text)] opacity-70 group-hover:text-[var(--accent-gold)] transition-colors"></i>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="white-block text-center py-8">
+                            <i class="fas fa-users text-3xl text-[var(--auth-block-text)] opacity-70 mb-3"></i>
+                            <p class="text-[var(--auth-block-text)]">Популярных авторов пока нет</p>
+                            <p class="text-sm text-[var(--auth-block-text)] opacity-70 mt-2">Авторы появятся здесь, когда наберут популярность</p>
+                        </div>
+                    }
+                </section>
+
+                <!-- Quick Actions -->
+                @if (Model.IsUserLoggedIn)
+                {
+                    <section>
+                        <h2 class="text-xl sm:text-2xl font-bold text-[var(--text-primary)] flex items-center mb-6">
+                            <i class="fas fa-bolt text-[var(--accent-gold)] mr-3"></i>
+                            Быстрые действия
+                        </h2>
+                        <div class="white-block space-y-3">
+                            <a href="@Url.Action("AddWork", "MyWorks")" class="flex items-center justify-between p-3 rounded-lg hover:bg-[var(--bg-primary)] transition-colors group">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-green-500 bg-opacity-20 rounded-lg flex items-center justify-center mr-3">
+                                        <i class="fas fa-plus text-green-500"></i>
+                                    </div>
+                                    <span class="text-[var(--auth-block-text)] group-hover:text-green-500 transition-colors">Добавить произведение</span>
+                                </div>
+                                <i class="fas fa-chevron-right text-[var(--auth-block-text)] opacity-70"></i>
+                            </a>
+
+                            @if (isAuthor)
+                            {
+                                <a href="@Url.Action("Index", "Messages")" class="flex items-center justify-between p-3 rounded-lg hover:bg-[var(--bg-primary)] transition-colors group">
+                                    <div class="flex items-center">
+                                        <div class="w-10 h-10 bg-blue-500 bg-opacity-20 rounded-lg flex items-center justify-center mr-3">
+                                            <i class="fas fa-envelope text-blue-500"></i>
+                                        </div>
+                                        <span class="text-[var(--auth-block-text)] group-hover:text-blue-500 transition-colors">Сообщения</span>
+                                    </div>
+                                    <i class="fas fa-chevron-right text-[var(--auth-block-text)] opacity-70"></i>
+                                </a>
+                            }
+
+                            <a href="@Url.Action("MyProfile", "Profile")" class="flex items-center justify-between p-3 rounded-lg hover:bg-[var(--bg-primary)] transition-colors group">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-purple-500 bg-opacity-20 rounded-lg flex items-center justify-center mr-3">
+                                        <i class="fas fa-user text-purple-500"></i>
+                                    </div>
+                                    <span class="text-[var(--auth-block-text)] group-hover:text-purple-500 transition-colors">Мой профиль</span>
+                                </div>
+                                <i class="fas fa-chevron-right text-[var(--auth-block-text)] opacity-70"></i>
+                            </a>
+
+                            <a href="@Url.Action("Index", "MyWorks")" class="flex items-center justify-between p-3 rounded-lg hover:bg-[var(--bg-primary)] transition-colors group">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-orange-500 bg-opacity-20 rounded-lg flex items-center justify-center mr-3">
+                                        <i class="fas fa-pen-fancy text-orange-500"></i>
+                                    </div>
+                                    <span class="text-[var(--auth-block-text)] group-hover:text-orange-500 transition-colors">Мои произведения</span>
+                                </div>
+                                <i class="fas fa-chevron-right text-[var(--auth-block-text)] opacity-70"></i>
+                            </a>
+
+                            <a href="@Url.Action("Bookmarks", "Books")" class="flex items-center justify-between p-3 rounded-lg hover:bg-[var(--bg-primary)] transition-colors group">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-red-500 bg-opacity-20 rounded-lg flex items-center justify-center mr-3">
+                                        <i class="fas fa-bookmark text-red-500"></i>
+                                    </div>
+                                    <span class="text-[var(--auth-block-text)] group-hover:text-red-500 transition-colors">Закладки</span>
+                                </div>
+                                <i class="fas fa-chevron-right text-[var(--auth-block-text)] opacity-70"></i>
+                            </a>
+                        </div>
+                    </section>
+                }
+            </div>
+        </div>
+
+        <!-- New Content Tabs Section -->
+        <section id="new" class="mt-12">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] flex items-center">
+                    <i class="fas fa-star text-[var(--accent-gold)] mr-3"></i>
+                    Новинки и обновления
+                </h2>
+            </div>
+
+            <!-- Tabs Navigation -->
+            <div class="border-b border-[var(--border-color)] mb-6">
+                <div class="flex space-x-8">
+                    <button class="tab-button active" data-tab="new-content">
+                        <i class="fas fa-star mr-2"></i>Новинки
+                    </button>
+                    <button class="tab-button" data-tab="updated-content">
+                        <i class="fas fa-sync mr-2"></i>Обновлённые
+                    </button>
+                    <button class="tab-button" data-tab="promoted-content">
+                        <i class="fas fa-rocket mr-2"></i>Продвигаются
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab Contents -->
+            <div class="tab-content active" id="tab-new-content">
+                @if (Model.NewPoems != null && Model.NewPoems.Any())
+                {
+                    <div class="new-content-container grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        @{
+                            var newPoems = Model.NewPoems.Take(5).ToList();
+                        }
+                        @for (int i = 0; i < newPoems.Count; i++)
+                        {
+                            var poem = newPoems[i];
+                            var position = i + 1;
+                            <div class="white-block group cursor-pointer transform transition-all duration-300 hover:scale-102 new-item"
+                                 onclick="window.location.href = '@Url.Action("ReadPoem", "Read", new { id = poem.Id })'">
+                                <div class="p-4">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span class="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                                            <i class="fas fa-certificate mr-1"></i>Новое
+                                        </span>
+                                        <div class="bg-[var(--accent-gold)] text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg flex items-center">
+                                            <i class="fas fa-star mr-1"></i>@poem.Rating.ToString("0.0")
+                                        </div>
+                                    </div>
+                                    <h3 class="font-semibold text-[var(--auth-block-text)] line-clamp-2 mb-2 group-hover:text-[var(--accent-gold)] transition-colors">
+                                        @poem.Title
+                                    </h3>
+                                    <p class="text-sm text-[var(--auth-block-text)] opacity-70 mb-2">
+                                        <i class="fas fa-user-edit mr-1"></i>@poem.AuthorName
+                                    </p>
+                                    <p class="text-sm text-[var(--auth-block-text)] line-clamp-3 mb-4 italic opacity-90">
+                                        @poem.ContentSnippet...
+                                    </p>
+                                    <div class="flex items-center justify-between text-xs text-[var(--auth-block-text)] opacity-70">
+                                        <div class="flex items-center space-x-3">
+                                            <span class="flex items-center">
+                                                <i class="fas fa-eye mr-1"></i>
+                                                @poem.ReadsCount.ToString("N0")
+                                            </span>
+                                            <span class="flex items-center">
+                                                <i class="fas fa-heart mr-1 text-red-400"></i>
+                                                @poem.LikesCount.ToString("N0")
+                                            </span>
+                                            <span class="text-[var(--accent-gold)] font-semibold">
+                                                Место #@position
+                                            </span>
+                                        </div>
+                                        <span class="content-type-badge">
+                                            <i class="fas fa-feather"></i>Стих
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="white-block text-center py-12">
+                        <i class="fas fa-star text-4xl text-[var(--auth-block-text)] opacity-70 mb-4"></i>
+                        <p class="text-[var(--auth-block-text)]">Новинок пока нет</p>
+                        <p class="text-sm text-[var(--auth-block-text)] opacity-70 mt-2">Совсем скоро здесь появятся новые произведения</p>
+                    </div>
+                }
+            </div>
+
+            <div class="tab-content" id="tab-updated-content">
+                @if (Model.RecentlyUpdatedBooks != null && Model.RecentlyUpdatedBooks.Any(b => b.IsPublic))
+                {
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+                        @{
+                            var updatedBooks = Model.RecentlyUpdatedBooks.Where(b => b.IsPublic).Take(8).ToList();
+                        }
+                        @foreach (var book in updatedBooks)
+                        {
+                            <div class="white-block group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl book-item"
+                                 data-href="@Url.Action("ReadBook", "Read", new { id = book.Id })">
+                                <div class="relative overflow-hidden rounded-t-xl">
+                                    @if (!string.IsNullOrEmpty(book.CoverImageUrl))
+                                    {
+                                        <img src="@book.CoverImageUrl" alt="Обложка книги"
+                                             class="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
+                                             onerror="handleImgError(this)">
+                                    }
+                                    else
+                                    {
+                                        <div class="w-full h-48 bg-gradient-to-br from-[var(--border-color)] to-gray-300 flex items-center justify-center">
+                                            <i class="fas fa-book text-4xl text-secondary-custom opacity-50"></i>
+                                        </div>
+                                    }
+                                    @if (book.IsAdultContent)
+                                    {
+                                        <span class="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold">18+</span>
+                                    }
+                                    <div class="absolute top-2 right-2 bg-[var(--accent-gold)] text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg flex items-center">
+                                        <i class="fas fa-star mr-1"></i>@book.Rating.ToString("0.0")
+                                    </div>
+                                    <div class="absolute top-2 left-12 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                                        Обновлено
+                                    </div>
+                                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                                        <div class="flex justify-between items-end text-white">
+                                            <div>
+                                                <div class="flex items-center text-sm">
+                                                    <i class="fas fa-eye mr-1"></i>
+                                                    <span>@book.ReadsCount.ToString("N0")</span>
+                                                </div>
+                                                <div class="flex items-center text-sm mt-1">
+                                                    <i class="fas fa-heart mr-1 text-red-400"></i>
+                                                    <span>@book.LikesCount.ToString("N0")</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-semibold text-lg text-[var(--auth-block-text)] line-clamp-2 mb-2 group-hover:text-[var(--accent-gold)] transition-colors">
+                                        @book.Title
+                                    </h3>
+
+                                    <!-- Авторы -->
+                                    @if (book.Authors != null && book.Authors.Any())
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            @foreach (var author in book.Authors.Take(3))
+                                            {
+                                                <span class="text-xs author-badge px-2 py-1 rounded-full">
+                                                    @author
+                                                </span>
+                                            }
+                                            @if (book.Authors.Count > 3)
+                                            {
+                                                <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                    +@(book.Authors.Count - 3)
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            <span class="text-xs author-badge px-2 py-1 rounded-full">
+                                                @book.AuthorName
+                                            </span>
+                                        </div>
+                                    }
+
+                                    @if (!string.IsNullOrEmpty(book.Description))
+                                    {
+                                        <p class="text-sm text-[var(--auth-block-text)] opacity-90 line-clamp-2 mb-3">
+                                            @book.Description
+                                        </p>
+                                    }
+
+                                    <!-- Жанры с белым текстом -->
+                                    <div class="flex flex-wrap gap-1 mb-3">
+                                        @foreach (var genre in book.Genres.Take(3))
+                                        {
+                                            <span class="text-xs genre-badge px-2 py-1 rounded-full">
+                                                @genre
+                                            </span>
+                                        }
+                                        @if (book.Genres.Count > 3)
+                                        {
+                                            <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                +@(book.Genres.Count - 3)
+                                            </span>
+                                        }
+                                    </div>
+
+                                    <!-- Теги с темно-желтым текстом -->
+                                    @if (book.Tags != null && book.Tags.Any())
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            @foreach (var tag in book.Tags.Take(3))
+                                            {
+                                                <span class="text-xs tag-badge px-2 py-1 rounded-full">
+                                                    #@tag.TrimStart('#')
+                                                </span>
+                                            }
+                                            @if (book.Tags.Count > 3)
+                                            {
+                                                <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                    +@(book.Tags.Count - 3)
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+
+                                    <div class="flex items-center justify-between text-xs text-[var(--auth-block-text)] opacity-70 mt-3 pt-3 border-t border-[var(--auth-block-border)]">
+                                        <span class="content-type-badge">
+                                            <i class="fas fa-book"></i>Книга
+                                        </span>
+                                        <span>@book.PublicationDate.ToString("dd.MM.yyyy")</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="white-block text-center py-12">
+                        <i class="fas fa-sync text-4xl text-[var(--auth-block-text)] opacity-70 mb-4"></i>
+                        <p class="text-[var(--auth-block-text)]">Обновлённых книг пока нет</p>
+                        <p class="text-sm text-[var(--auth-block-text)] opacity-70 mt-2">Авторы скоро обновят свои произведения</p>
+                    </div>
+                }
+            </div>
+
+            <div class="tab-content" id="tab-promoted-content">
+                @if (promotedBooks.Any())
+                {
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+                        @foreach (var book in promotedBooks)
+                        {
+                            <div class="white-block group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl book-item"
+                                 data-href="@Url.Action("ReadBook", "Read", new { id = book.Id })">
+                                <div class="relative overflow-hidden rounded-t-xl">
+                                    @if (!string.IsNullOrEmpty(book.CoverImageUrl))
+                                    {
+                                        <img src="@book.CoverImageUrl" alt="Обложка книги"
+                                             class="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
+                                             onerror="handleImgError(this)">
+                                    }
+                                    else
+                                    {
+                                        <div class="w-full h-48 bg-gradient-to-br from-[var(--border-color)] to-gray-300 flex items-center justify-center">
+                                            <i class="fas fa-book text-4xl text-secondary-custom opacity-50"></i>
+                                        </div>
+                                    }
+                                    @if (book.IsAdultContent)
+                                    {
+                                        <span class="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold">18+</span>
+                                    }
+                                    <div class="absolute top-2 right-2 bg-[var(--accent-gold)] text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg flex items-center">
+                                        <i class="fas fa-star mr-1"></i>@book.Rating.ToString("0.0")
+                                    </div>
+                                    <div class="absolute top-2 left-12 bg-purple-500 text-white text-xs px-2 py-1 rounded-full font-bold">
+                                        Продвигается
+                                    </div>
+                                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                                        <div class="flex justify-between items-end text-white">
+                                            <div>
+                                                <div class="flex items-center text-sm">
+                                                    <i class="fas fa-eye mr-1"></i>
+                                                    <span>@book.ReadsCount.ToString("N0")</span>
+                                                </div>
+                                                <div class="flex items-center text-sm mt-1">
+                                                    <i class="fas fa-heart mr-1 text-red-400"></i>
+                                                    <span>@book.LikesCount.ToString("N0")</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-semibold text-lg text-[var(--auth-block-text)] line-clamp-2 mb-2 group-hover:text-[var(--accent-gold)] transition-colors">
+                                        @book.Title
+                                    </h3>
+
+                                    <!-- Авторы -->
+                                    @if (book.Authors != null && book.Authors.Any())
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            @foreach (var author in book.Authors.Take(3))
+                                            {
+                                                <span class="text-xs author-badge px-2 py-1 rounded-full">
+                                                    @author
+                                                </span>
+                                            }
+                                            @if (book.Authors.Count > 3)
+                                            {
+                                                <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                    +@(book.Authors.Count - 3)
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            <span class="text-xs author-badge px-2 py-1 rounded-full">
+                                                @book.AuthorName
+                                            </span>
+                                        </div>
+                                    }
+
+                                    @if (!string.IsNullOrEmpty(book.Description))
+                                    {
+                                        <p class="text-sm text-[var(--auth-block-text)] opacity-90 line-clamp-2 mb-3">
+                                            @book.Description
+                                        </p>
+                                    }
+
+                                    <!-- Жанры с белым текстом -->
+                                    <div class="flex flex-wrap gap-1 mb-3">
+                                        @foreach (var genre in book.Genres.Take(3))
+                                        {
+                                            <span class="text-xs genre-badge px-2 py-1 rounded-full">
+                                                @genre
+                                            </span>
+                                        }
+                                        @if (book.Genres.Count > 3)
+                                        {
+                                            <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                +@(book.Genres.Count - 3)
+                                            </span>
+                                        }
+                                    </div>
+
+                                    <!-- Теги с темно-желтым текстом -->
+                                    @if (book.Tags != null && book.Tags.Any())
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            @foreach (var tag in book.Tags.Take(3))
+                                            {
+                                                <span class="text-xs tag-badge px-2 py-1 rounded-full">
+                                                    #@tag.TrimStart('#')
+                                                </span>
+                                            }
+                                            @if (book.Tags.Count > 3)
+                                            {
+                                                <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                    +@(book.Tags.Count - 3)
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+
+                                    <div class="flex items-center justify-between text-xs text-[var(--auth-block-text)] opacity-70 mt-3 pt-3 border-t border-[var(--auth-block-border)]">
+                                        <span class="content-type-badge">
+                                            <i class="fas fa-book"></i>Книга
+                                        </span>
+                                        <span>@book.PublicationDate.ToString("dd.MM.yyyy")</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="white-block text-center py-12">
+                        <i class="fas fa-rocket text-4xl text-[var(--auth-block-text)] opacity-70 mb-4"></i>
+                        <p class="text-[var(--auth-block-text)]">Продвигаемых книг пока нет</p>
+                        <p class="text-sm text-[var(--auth-block-text)] opacity-70 mt-2">Следите за обновлениями, чтобы увидеть рекомендованные книги</p>
+                    </div>
+                }
+            </div>
+        </section>
+
+        <!-- Recommendations for Logged-in Users -->
+        @if (Model.IsUserLoggedIn)
+        {
+            <section class="mt-12">
+                <h2 class="text-2xl sm:text-3xl font-bold text-[var(--text-primary)] flex items-center mb-6">
+                    <i class="fas fa-magic text-[var(--accent-gold)] mr-3"></i>
+                    Рекомендации для вас
+                </h2>
+
+                @if (Model.RecommendedBooks != null && Model.RecommendedBooks.Any(b => b.IsPublic))
+                {
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+                        @{
+                            var recommendedBooks = Model.RecommendedBooks.Where(b => b.IsPublic).Take(8).ToList();
+                        }
+                        @foreach (var book in recommendedBooks)
+                        {
+                            <div class="white-block group cursor-pointer transform transition-all duration-300 hover:scale-105 hover:shadow-xl book-item"
+                                 data-href="@Url.Action("ReadBook", "Read", new { id = book.Id })">
+                                <div class="relative overflow-hidden rounded-t-xl">
+                                    @if (!string.IsNullOrEmpty(book.CoverImageUrl))
+                                    {
+                                        <img src="@book.CoverImageUrl" alt="Обложка книги"
+                                             class="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-110"
+                                             onerror="handleImgError(this)">
+                                    }
+                                    else
+                                    {
+                                        <div class="w-full h-48 bg-gradient-to-br from-[var(--border-color)] to-gray-300 flex items-center justify-center">
+                                            <i class="fas fa-book text-4xl text-secondary-custom opacity-50"></i>
+                                        </div>
+                                    }
+                                    @if (book.IsAdultContent)
+                                    {
+                                        <span class="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold">18+</span>
+                                    }
+                                    <div class="absolute top-2 right-2 bg-[var(--accent-gold)] text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg flex items-center">
+                                        <i class="fas fa-star mr-1"></i>@book.Rating.ToString("0.0")
+                                    </div>
+                                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                                        <div class="flex justify-between items-end text-white">
+                                            <div>
+                                                <div class="flex items-center text-sm">
+                                                    <i class="fas fa-eye mr-1"></i>
+                                                    <span>@book.ReadsCount.ToString("N0")</span>
+                                                </div>
+                                                <div class="flex items-center text-sm mt-1">
+                                                    <i class="fas fa-heart mr-1 text-red-400"></i>
+                                                    <span>@book.LikesCount.ToString("N0")</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="p-4">
+                                    <h3 class="font-semibold text-lg text-[var(--auth-block-text)] line-clamp-2 mb-2 group-hover:text-[var(--accent-gold)] transition-colors">
+                                        @book.Title
+                                    </h3>
+
+                                    <!-- Авторы -->
+                                    @if (book.Authors != null && book.Authors.Any())
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            @foreach (var author in book.Authors.Take(3))
+                                            {
+                                                <span class="text-xs author-badge px-2 py-1 rounded-full">
+                                                    @author
+                                                </span>
+                                            }
+                                            @if (book.Authors.Count > 3)
+                                            {
+                                                <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                    +@(book.Authors.Count - 3)
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            <span class="text-xs author-badge px-2 py-1 rounded-full">
+                                                @book.AuthorName
+                                            </span>
+                                        </div>
+                                    }
+
+                                    @if (!string.IsNullOrEmpty(book.Description))
+                                    {
+                                        <p class="text-sm text-[var(--auth-block-text)] opacity-90 line-clamp-2 mb-3">
+                                            @book.Description
+                                        </p>
+                                    }
+
+                                    <!-- Жанры с белым текстом -->
+                                    <div class="flex flex-wrap gap-1 mb-3">
+                                        @foreach (var genre in book.Genres.Take(3))
+                                        {
+                                            <span class="text-xs genre-badge px-2 py-1 rounded-full">
+                                                @genre
+                                            </span>
+                                        }
+                                        @if (book.Genres.Count > 3)
+                                        {
+                                            <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                +@(book.Genres.Count - 3)
+                                            </span>
+                                        }
+                                    </div>
+
+                                    <!-- Теги с темно-желтым текстом -->
+                                    @if (book.Tags != null && book.Tags.Any())
+                                    {
+                                        <div class="flex flex-wrap gap-1 mb-3">
+                                            @foreach (var tag in book.Tags.Take(3))
+                                            {
+                                                <span class="text-xs tag-badge px-2 py-1 rounded-full">
+                                                    #@tag.TrimStart('#')
+                                                </span>
+                                            }
+                                            @if (book.Tags.Count > 3)
+                                            {
+                                                <span class="text-xs bg-gray-500 bg-opacity-20 text-gray-500 px-2 py-1 rounded-full">
+                                                    +@(book.Tags.Count - 3)
+                                                </span>
+                                            }
+                                        </div>
+                                    }
+
+                                    <div class="flex items-center justify-between text-xs text-[var(--auth-block-text)] opacity-70 mt-3 pt-3 border-t border-[var(--auth-block-border)]">
+                                        <span class="content-type-badge">
+                                            <i class="fas fa-book"></i>Книга
+                                        </span>
+                                        <span>@book.PublicationDate.ToString("dd.MM.yyyy")</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="white-block text-center py-8">
+                        <i class="fas fa-magic text-3xl text-[var(--auth-block-text)] opacity-70 mb-3"></i>
+                        <p class="text-[var(--auth-block-text)]">Рекомендации появятся после оценки произведений</p>
+                        <p class="text-sm text-[var(--auth-block-text)] opacity-70 mt-2">Читайте и оценивайте книги, чтобы получать персонализированные рекомендации</p>
+                    </div>
                 }
             </section>
         }
     </div>
 </div>
 
+<style>
+    /* Стили для бейджей авторов */
+    .author-badge {
+        background: rgba(59, 130, 246, 0.15) !important;
+        color: rgb(30, 64, 175) !important;
+        border: 1px solid rgba(59, 130, 246, 0.3) !important;
+    }
+
+    .genre-badge {
+        background: var(--accent-gold) !important;
+        color: white !important;
+        border: 1px solid var(--accent-gold) !important;
+    }
+
+    .tag-badge {
+        background: rgba(255, 193, 7, 0.15) !important;
+        color: #b45309 !important;
+        border: 1px solid rgba(255, 193, 7, 0.3) !important;
+    }
+
+    /* Стили для контейнеров с ограничением по высоте и скроллом */
+    .poems-container,
+    .blogs-container,
+    .authors-container,
+    .new-content-container {
+        max-height: 600px;
+        overflow-y: auto;
+        padding-right: 8px;
+    }
+
+        /* Стили для скроллбара */
+        .poems-container::-webkit-scrollbar,
+        .blogs-container::-webkit-scrollbar,
+        .authors-container::-webkit-scrollbar,
+        .new-content-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .poems-container::-webkit-scrollbar-track,
+        .blogs-container::-webkit-scrollbar-track,
+        .authors-container::-webkit-scrollbar-track,
+        .new-content-container::-webkit-scrollbar-track {
+            background: var(--auth-block-border);
+            border-radius: 3px;
+        }
+
+        .poems-container::-webkit-scrollbar-thumb,
+        .blogs-container::-webkit-scrollbar-thumb,
+        .authors-container::-webkit-scrollbar-thumb,
+        .new-content-container::-webkit-scrollbar-thumb {
+            background: var(--accent-gold);
+            border-radius: 3px;
+        }
+
+            .poems-container::-webkit-scrollbar-thumb:hover,
+            .blogs-container::-webkit-scrollbar-thumb:hover,
+            .authors-container::-webkit-scrollbar-thumb:hover,
+            .new-content-container::-webkit-scrollbar-thumb:hover {
+                background: var(--accent-light);
+            }
+
+    /* Остальные стили остаются без изменений */
+    .white-block {
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(30px);
+        transition: none;
+    }
+
+        .white-block.animate-fade-in-up {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+    @@keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fade-in-up {
+        animation: fadeInUp 0.6s ease-out forwards;
+    }
+
+    .content-type-badge {
+        background: rgba(212, 175, 55, 0.15) !important;
+        border: 1px solid rgba(212, 175, 55, 0.3);
+        color: var(--accent-gold) !important;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+    }
+
+    .line-clamp-1 {
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .line-clamp-3 {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .hover-scale-102 {
+        transform: scale(1);
+        transition: transform 0.3s ease;
+    }
+
+        .hover-scale-102:hover {
+            transform: scale(1.02);
+        }
+
+    .white-block {
+        background: var(--auth-block-bg);
+        color: var(--auth-block-text);
+        border: 1px solid var(--auth-block-border);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        border-radius: 12px;
+        transition: all 0.3s ease;
+    }
+
+        .white-block:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+    /* Tab Styles */
+    .tab-button {
+        padding: 0.75rem 1.5rem;
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.3s ease;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+    }
+
+        .tab-button:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-button.active {
+            color: var(--accent-gold);
+            border-bottom-color: var(--accent-gold);
+        }
+
+    .tab-content {
+        display: none;
+    }
+
+        .tab-content.active {
+            display: block;
+        }
+
+    .rating-period-content {
+        display: none;
+    }
+
+        .rating-period-content.active {
+            display: block;
+        }
+
+    .poem-rating-period-content {
+        display: none;
+    }
+
+        .poem-rating-period-content.active {
+            display: block;
+        }
+
+    /* Rating Period Styles */
+    .rating-period-btn {
+        padding: 0.5rem 1rem;
+        background: var(--auth-block-bg);
+        border: 1px solid var(--auth-block-border);
+        color: var(--auth-block-text);
+        cursor: pointer;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+        .rating-period-btn:hover {
+            background: var(--accent-gold);
+            color: white;
+            border-color: var(--accent-gold);
+        }
+
+        .rating-period-btn.active {
+            background: var(--accent-gold);
+            color: white;
+            border-color: var(--accent-gold);
+        }
+
+    .poem-rating-period-btn {
+        padding: 0.375rem 0.75rem;
+        background: var(--auth-block-bg);
+        border: 1px solid var(--auth-block-border);
+        color: var(--auth-block-text);
+        cursor: pointer;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+        .poem-rating-period-btn:hover {
+            background: var(--accent-gold);
+            color: white;
+            border-color: var(--accent-gold);
+        }
+
+        .poem-rating-period-btn.active {
+            background: var(--accent-gold);
+            color: white;
+            border-color: var(--accent-gold);
+        }
+</style>
+
 @section Scripts {
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const genreSelect = document.getElementById('genreSelect');
-            const booksByGenreContainer = document.getElementById('booksByGenreContainer');
+        document.addEventListener('DOMContentLoaded', function() {
+            // =======================================================
+            // 1. ЛОГИКА ПЕРЕКЛЮЧЕНИЯ ПЕРИОДОВ ДЛЯ КНИГ
+            // =======================================================
+            document.querySelectorAll('.rating-period-btn').forEach(button => {
+                button.addEventListener('click', function () {
+                    const period = this.getAttribute('data-period');
 
-            // Функция для загрузки книг по жанру через AJAX
-            async function loadBooksByGenre(genreId) {
-                if (!genreId) {
-                    booksByGenreContainer.innerHTML = '<p class="text-center text-secondary col-span-full">Выберите жанр, чтобы увидеть книги.</p>';
-                    return;
-                }
-                booksByGenreContainer.innerHTML = '<p class="text-center text-secondary col-span-full">Загрузка книг...</p>'; // Индикатор загрузки
+                    // Remove active class from all buttons and contents
+                    document.querySelectorAll('.rating-period-btn').forEach(btn => btn.classList.remove('active'));
+                    document.querySelectorAll('.rating-period-content').forEach(content => content.classList.remove('active'));
 
-                try {
-                    const response = await fetch(`/Home/GetBooksByGenre?genreId=${genreId}`);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                    // Add active class to clicked button and corresponding content
+                    this.classList.add('active');
+                    const periodContent = document.getElementById(`rating-period-${period}`);
+                    if (periodContent) {
+                        periodContent.classList.add('active');
                     }
-                    const html = await response.text();
-                    booksByGenreContainer.innerHTML = html;
-                } catch (error) {
-                    console.error("Ошибка при загрузке книг по жанру:", error);
-                    booksByGenreContainer.innerHTML = '<p class="text-center text-red-500 col-span-full">Не удалось загрузить книги. Попробуйте еще раз.</p>';
-                }
-            }
-
-            // Обработчик изменения выбора жанра
-            genreSelect.addEventListener('change', (event) => {
-                const selectedGenreId = event.target.value;
-                loadBooksByGenre(selectedGenreId);
+                });
             });
 
-            // Загрузить книги для выбранного жанра при первой загрузке страницы, если жанр уже выбран (например, из URL)
-            const initialSelectedGenreId = genreSelect.value;
-            if (initialSelectedGenreId) {
-                loadBooksByGenre(initialSelectedGenreId);
+            // =======================================================
+            // 2. ЛОГИКА ПЕРЕКЛЮЧЕНИЯ ПЕРИОДОВ ДЛЯ СТИХОВ
+            // =======================================================
+            document.querySelectorAll('.poem-rating-period-btn').forEach(button => {
+                button.addEventListener('click', function () {
+                    const period = this.getAttribute('data-period');
+
+                    // Remove active class from all buttons and contents
+                    document.querySelectorAll('.poem-rating-period-btn').forEach(btn => btn.classList.remove('active'));
+                    document.querySelectorAll('.poem-rating-period-content').forEach(content => content.classList.remove('active'));
+
+                    // Add active class to clicked button and corresponding content
+                    this.classList.add('active');
+                    const contentElement = document.getElementById(`poem-rating-period-${period.replace('poems-', '')}`);
+                    if (contentElement) {
+                        contentElement.classList.add('active');
+                    }
+                });
+            });
+
+            // =======================================================
+            // 3. ЛОГИКА ПЕРЕКЛЮЧЕНИЯ ТАБОВ
+            // =======================================================
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', function () {
+                    const tabId = this.getAttribute('data-tab');
+
+                    // Remove active class from all buttons and contents
+                    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+                    // Add active class to clicked button and corresponding content
+                    this.classList.add('active');
+                    const tabContent = document.getElementById(`tab-${tabId}`);
+                    if (tabContent) {
+                        tabContent.classList.add('active');
+                    }
+                });
+            });
+
+            // =======================================================
+            // 4. ПОСЛЕДОВАТЕЛЬНАЯ АНИМАЦИЯ ПОЯВЛЕНИЯ ВСЕХ ЭЛЕМЕНТОВ
+            // =======================================================
+            function startSequentialAnimation() {
+                const allBlocks = document.querySelectorAll('.white-block');
+                let delay = 0;
+
+                allBlocks.forEach((block, index) => {
+                    // Устанавливаем задержку для каждого блока
+                    setTimeout(() => {
+                        block.classList.add('animate-fade-in-up');
+                    }, delay);
+
+                    // Увеличиваем задержку для следующего блока
+                    delay += 100; // 100ms между анимациями
+                });
             }
+
+            // Запускаем анимацию после полной загрузки страницы
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', startSequentialAnimation);
+            } else {
+                // DOM уже готов
+                setTimeout(startSequentialAnimation, 300);
+            }
+
+            // =======================================================
+            // 5. SMOOTH SCROLLING FOR ANCHOR LINKS
+            // =======================================================
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+
+            // =======================================================
+            // 6. ФИКС ДЛЯ ИСЧЕЗАЮЩИХ ЭЛЕМЕНТОВ
+            // =======================================================
+            function fixDisappearingElements() {
+                // Принудительно перезапускаем анимацию для всех элементов
+                const allItems = document.querySelectorAll('.book-item, .poem-item, .blog-item, .author-item, .new-item');
+
+                allItems.forEach(item => {
+                    // Сбрасываем анимацию
+                    item.style.animation = 'none';
+                    item.offsetHeight; // Trigger reflow
+                    item.style.animation = null;
+
+                    // Убеждаемся, что элемент видим
+                    item.style.opacity = '1';
+                    item.style.visibility = 'visible';
+                    item.style.transform = 'translateY(0)';
+                });
+            }
+
+            // Запускаем фикс после загрузки и при изменении размера окна
+            window.addEventListener('load', fixDisappearingElements);
+            window.addEventListener('resize', fixDisappearingElements);
+
+            // Также запускаем фикс при переключении вкладок
+            document.querySelectorAll('.tab-button, .rating-period-btn, .poem-rating-period-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    setTimeout(fixDisappearingElements, 100);
+                });
+            });
+
+            // =====================================================
+            // 7. ПРИКРЕПЛЕНИЕ ОБОЖЕК К КНИГАМ И УПРАВЛЕНИЕ КЛИКАМИ
+            // =====================================================
+            document.querySelectorAll('.book-item').forEach(item => {
+                if (!item.dataset.bound) {
+                    item.addEventListener('click', function(e) {
+                        // игнорировать клики на интерактивные дочерние элементы
+                        const tag = e.target.tagName.toLowerCase();
+                        if (['button','a','input','label'].includes(tag) || e.target.closest('button, a')) return;
+                        const href = this.getAttribute('data-href');
+                        if (href) window.location.href = href;
+                    });
+                    item.dataset.bound = 'true';
+                }
+            });
+
+            // Обработчик ошибок изображений для резервного покрытия
+            window.handleImgError = function(img) {
+                try {
+                    img.onerror = null;
+                    const parent = img.parentElement;
+                    if (!parent) return;
+                    const fallback = document.createElement('div');
+                    fallback.className = 'w-full h-48 bg-gradient-to-br from-[var(--border-color)] to-gray-300 flex items-center justify-center';
+                    fallback.innerHTML = '<i class="fas fa-book text-4xl text-secondary-custom opacity-50"></i>';
+                    parent.replaceChild(fallback, img);
+                } catch (e) { /* игнорировать */ }
+            };
         });
     </script>
 }

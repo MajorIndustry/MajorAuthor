@@ -1,0 +1,111 @@
+﻿@model MajorAuthor.Models.CatalogViewModel
+
+@if (Model.Poems.Any())
+{
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        @foreach (var poem in Model.Poems)
+        {
+            <div class="white-block group cursor-pointer transform transition-all duration-300 hover:scale-102"
+                 onclick="window.location.href = '@Url.Action("ReadPoem", "Read", new { id = poem.Id })'">
+                <div class="p-4">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="bg-[var(--accent-gold)] text-white text-xs px-2 py-1 rounded-full font-bold shadow-lg flex items-center">
+                            <i class="fas fa-star mr-1"></i>@poem.Rating.ToString("0.0")
+                        </div>
+                        <span class="text-xs text-[var(--auth-block-text)] opacity-70">
+                            @poem.PublicationDate.ToString("dd.MM.yyyy")
+                        </span>
+                    </div>
+
+                    <h3 class="font-semibold text-lg text-[var(--auth-block-text)] line-clamp-2 mb-2 group-hover:text-[var(--accent-gold)] transition-colors">
+                        @poem.Title
+                    </h3>
+
+                    <p class="text-sm text-[var(--auth-block-text)] opacity-70 mb-3">
+                        <i class="fas fa-user-edit mr-1"></i>@poem.AuthorName
+                    </p>
+
+                    <p class="text-sm text-[var(--auth-block-text)] line-clamp-3 mb-4 italic opacity-90 leading-relaxed">
+                        @poem.ContentSnippet
+                    </p>
+
+                    <div class="flex items-center justify-between text-xs text-[var(--auth-block-text)] opacity-70">
+                        <div class="flex items-center space-x-3">
+                            <span class="flex items-center">
+                                <i class="fas fa-eye mr-1"></i>
+                                @poem.ReadsCount.ToString("N0")
+                            </span>
+                            <span class="flex items-center">
+                                <i class="fas fa-heart mr-1 text-red-400"></i>
+                                @poem.LikesCount.ToString("N0")
+                            </span>
+                            <span class="flex items-center">
+                                <i class="fas fa-comment mr-1"></i>
+                                @poem.CommentsCount.ToString("N0")
+                            </span>
+                        </div>
+                        <span class="content-type-badge">
+                            <i class="fas fa-feather"></i>Стих
+                        </span>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Пагинация -->
+    @if (Model.TotalPages > 1)
+    {
+        <div class="flex justify-center items-center space-x-2">
+            @if (Model.Page > 1)
+            {
+                <a href="@Url.Action("AllPoems", new { sortBy = Model.SortBy, sortOrder = Model.SortOrder, page = Model.Page - 1, searchQuery = Model.SearchQuery })"
+                   class="pagination-btn">
+                    <i class="fas fa-chevron-left mr-2"></i>Назад
+                </a>
+            }
+
+            @for (int i = 1; i <= Model.TotalPages; i++)
+            {
+                if (i == Model.Page)
+                {
+                    <span class="pagination-btn active">@i</span>
+                }
+                else if (i == 1 || i == Model.TotalPages || (i >= Model.Page - 2 && i <= Model.Page + 2))
+                {
+                    <a href="@Url.Action("AllPoems", new { sortBy = Model.SortBy, sortOrder = Model.SortOrder, page = i, searchQuery = Model.SearchQuery })"
+                       class="pagination-btn">@i</a>
+                }
+                else if (i == Model.Page - 3 || i == Model.Page + 3)
+                {
+                    <span class="pagination-btn">...</span>
+                }
+            }
+
+            @if (Model.Page < Model.TotalPages)
+            {
+                <a href="@Url.Action("AllPoems", new { sortBy = Model.SortBy, sortOrder = Model.SortOrder, page = Model.Page + 1, searchQuery = Model.SearchQuery })"
+                   class="pagination-btn">
+                    Вперед<i class="fas fa-chevron-right ml-2"></i>
+                </a>
+            }
+        </div>
+    }
+}
+else
+{
+    <div class="white-block text-center py-12">
+        <i class="fas fa-feather text-4xl text-[var(--auth-block-text)] opacity-70 mb-4"></i>
+        <p class="text-[var(--auth-block-text)]">Стихи не найдены</p>
+        <p class="text-sm text-[var(--auth-block-text)] opacity-70 mt-2">
+            @if (!string.IsNullOrEmpty(Model.SearchQuery))
+            {
+                <text>По запросу "@Model.SearchQuery" ничего не найдено. Попробуйте изменить поисковый запрос.</text>
+            }
+            else
+            {
+                <text>Попробуйте изменить параметры поиска</text>
+            }
+        </p>
+    </div>
+}

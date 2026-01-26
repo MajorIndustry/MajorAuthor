@@ -1,0 +1,2114 @@
+﻿﻿@using System.Security.Claims
+@using MajorAuthor.Data.Entities
+@model MajorAuthor.Models.BookReadViewModel
+@{
+    ViewData["Title"] = Model.Book.Title;
+}
+
+<div class="container mx-auto px-4 py-6 max-w-6xl">
+    <!-- Верхняя часть с обложкой и основной информацией -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 mb-8">
+        <!-- Обложка -->
+        <div class="lg:col-span-1">
+            @if (!string.IsNullOrEmpty(Model.Book.CoverImageUrl))
+            {
+                <div class="book-cover-container shadow-2xl rounded-xl overflow-hidden">
+                    <img src="@Model.Book.CoverImageUrl" alt="@Model.Book.Title"
+                         class="w-full h-auto object-cover hover:scale-105 transition-transform duration-300">
+                </div>
+            }
+            else
+            {
+                <div class="book-cover-container gradient-bg rounded-xl h-80 flex items-center justify-center shadow-2xl">
+                    <span class="text-7xl text-white">📚</span>
+                </div>
+            }
+        </div>
+
+        <!-- Основная информация -->
+        <div class="lg:col-span-3">
+            <!-- Заголовок и авторы -->
+            <div class="mb-6">
+                <h1 class="book-title-main text-4xl md:text-5xl font-bold gradient-text mb-4">@Model.Book.Title</h1>
+
+                <!-- Авторы -->
+                <div class="flex flex-wrap items-center gap-3 mb-4">
+                    <span class="text-secondary-custom font-medium">Авторы:</span>
+                    @foreach (var author in Model.Authors)
+                    {
+                        <a asp-controller="Profile" asp-action="UserProfile" asp-route-id="@author.Id"
+                           class="author-name-gold inline-flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 hover:scale-105 hover:shadow-lg">
+                            <i class="fas fa-user-edit text-sm"></i>
+                            <span class="font-semibold">@author.PenName</span>
+                        </a>
+                    }
+                </div>
+            </div>
+
+            <!-- Статистика в ряд -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="stat-card">
+                    <div class="stat-icon text-blue-500">
+                        <i class="fas fa-eye text-2xl"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number text-2xl font-bold">@Model.Book.ReadsCount</div>
+                        <div class="stat-label text-sm text-secondary-custom">Просмотров</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon text-red-500">
+                        <i class="fas fa-heart text-2xl"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div id="likesCountStat" class="stat-number text-2xl font-bold">@Model.Book.LikesCount</div>
+                        <div class="stat-label text-sm text-secondary-custom">Лайков</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon text-green-500">
+                        <i class="fas fa-comment text-2xl"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number text-2xl font-bold">@Model.Comments.Count</div>
+                        <div class="stat-label text-sm text-secondary-custom">Комментариев</div>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon text-purple-500">
+                        <i class="fas fa-book-open text-2xl"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number text-2xl font-bold">@Model.PublishedChapters.Count</div>
+                        <div class="stat-label text-sm text-secondary-custom">Глав</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Кнопки действий -->
+            <div class="flex flex-wrap gap-4 mb-6">
+                @if (Model.PublishedChapters.Any())
+                {
+                    <!-- Кнопка "Читать сначала" -->
+                    <a asp-controller="Read" asp-action="ReadChapter"
+                       asp-route-bookId="@Model.Book.Id" asp-route-chapterId="@Model.PublishedChapters.First().Id"
+                       class="action-button read-from-start">
+                        <i class="fas fa-play mr-2 text-lg"></i>
+                        <span class="font-bold">Читать сначала</span>
+                        <span class="ml-2 bg-white/20 px-2 py-1 rounded text-sm">@Model.PublishedChapters.Count глав</span>
+                    </a>
+                    
+                    <!-- Кнопка "Продолжить чтение" -->
+                    {
+                        var continueChapter = Model.PublishedChapters.FirstOrDefault(c => c.Id == Model.ContinueReadingChapterId);
+                        if (continueChapter != null && Model.HasReadingProgress)
+                        {
+                            <a asp-controller="Read" asp-action="ReadChapter"
+                               asp-route-bookId="@Model.Book.Id" asp-route-chapterId="@continueChapter.Id"
+                               class="action-button continue-button">
+                                <i class="fas fa-forward mr-2 text-lg"></i>
+                                <span class="font-bold">Продолжить чтение</span>
+                                <span class="ml-2 bg-white/20 px-2 py-1 rounded text-sm">
+                                    Глава @continueChapter.Order
+                                    @if (Model.ReadChapterIds.Contains(continueChapter.Id))
+                                    {
+                                        <i class="fas fa-check ml-1 text-green-300"></i>
+                                    }
+                                </span>
+                            </a>
+                        }
+                    }
+                }
+
+                <button id="likeButton"
+                        data-book-id="@Model.Book.Id"
+                        data-is-author="@Model.IsAuthor"
+                        class="action-button like-button @(Model.HasLiked ? "active" : "") @(Model.IsAuthor ? "opacity-50 cursor-not-allowed" : "")"
+                        @(Model.IsAuthor ? "disabled" : "")>
+                    <i class="fas fa-heart mr-2 text-lg"></i>
+                    <span class="font-bold">@(Model.HasLiked ? "Лайк" : "Нравится")</span>
+                    <span id="likeCount" class="ml-2 bg-white/20 px-2 py-1 rounded font-bold">@Model.Book.LikesCount</span>
+                </button>
+
+                <button id="favoriteButton" data-book-id="@Model.Book.Id"
+                        class="action-button favorite-button @(Model.IsInFavorites ? "active" : "")">
+                    <i class="fas fa-bookmark mr-2 text-lg"></i>
+                    <span class="font-bold">@(Model.IsInFavorites ? "В закладках" : "В закладки")</span>
+                    @if (Model.IsInFavorites)
+                    {
+                        <span class="ml-2 bg-white/20 px-2 py-1 rounded text-sm">
+                            <i class="fas fa-check"></i>
+                        </span>
+                    }
+                </button>
+                @if (Model.Book.AllowDownload && Model.PublishedChapters.Any())
+                {
+                    <a asp-controller="Read" asp-action="DownloadBook" asp-route-id="@Model.Book.Id"
+                       class="action-button download-button" id="downloadButton">
+                        <i class="fas fa-download mr-2 text-lg"></i>
+                        <span class="font-bold">Скачать книгу</span>
+                        <span class="ml-2 bg-white/20 px-2 py-1 rounded text-sm">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </span>
+                    </a>
+                }
+            </div>
+
+            <!-- Жанры и теги -->
+            <div class="mb-6">
+                <div class="flex flex-wrap items-center gap-2 mb-3">
+                    <span class="text-secondary-custom font-medium mr-2">Жанры:</span>
+                    @foreach (var genre in Model.Genres.Take(5))
+                    {
+                        <span class="genre-badge">
+                            @genre.Name
+                        </span>
+                    }
+                    @if (Model.Genres.Count > 5)
+                    {
+                        <span class="text-secondary-custom text-sm">+@(Model.Genres.Count - 5)</span>
+                    }
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-secondary-custom font-medium mr-2">Теги:</span>
+                    @foreach (var tag in Model.Tags.Take(8))
+                    {
+                        <span class="tag-badge">
+                            #@tag.Name
+                        </span>
+                    }
+                    @if (Model.Tags.Count > 8)
+                    {
+                        <span class="text-secondary-custom text-sm">+@(Model.Tags.Count - 8)</span>
+                    }
+                </div>
+            </div>
+
+            <!-- Дополнительная информация -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-6">
+                <div class="info-item">
+                    <i class="fas fa-calendar text-[var(--accent-gold)] mr-2"></i>
+                    <span class="text-secondary-custom">Дата публикации:</span>
+                    <span class="font-medium text-theme-aware ml-2">
+                        @Model.Book.PublicationDate.ToString("dd.MM.yyyy")
+                    </span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-book text-[var(--accent-gold)] mr-2"></i>
+                    <span class="text-secondary-custom">Тип:</span>
+                    <span class="font-medium text-theme-aware ml-2">
+                        @Model.Book.Type?.Name
+                    </span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-clock text-[var(--accent-gold)] mr-2"></i>
+                    <span class="text-secondary-custom">Статус:</span>
+                    <span class="font-medium text-theme-aware ml-2">
+                        @Model.Book.Status?.Name
+                    </span>
+                </div>
+                @if (Model.Book.IsAdultContent)
+                {
+                    <div class="info-item">
+                        <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+                        <span class="text-red-500 font-medium">Контент 18+</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Вкладки -->
+    <div class="white-block">
+        <div class="book-tabs mb-6" id="bookTabs">
+            <button class="tab-button active" data-tab="main">
+                <i class="fas fa-home mr-2"></i>Главная
+            </button>
+
+            <button class="tab-button" data-tab="chapters">
+                <i class="fas fa-list-ol mr-2"></i>Главы
+                <span class="ml-2 bg-blue-500 text-white text-xs rounded-full px-2 py-1">@Model.PublishedChapters.Count</span>
+            </button>
+
+            @if (Model.Cycle != null)
+            {
+                <button class="tab-button" data-tab="cycle">
+                    <i class="fas fa-infinity mr-2"></i>Цикл
+                    <span class="ml-2 bg-purple-500 text-white text-xs rounded-full px-2 py-1">@(Model.CycleBooks.Count + 1)</span>
+                </button>
+            }
+        </div>
+
+        <!-- Контент вкладок -->
+        <div id="tabContent">
+            <!-- Вкладка "Главная" -->
+            <div id="mainTab" class="tab-panel active">
+                <!-- Описание книги -->
+                @if (!string.IsNullOrEmpty(Model.Book.Description))
+                {
+                    <div class="white-block mb-8">
+                        <h3 class="text-xl font-bold mb-4 text-[var(--auth-block-text)]">Описание</h3>
+                        <div class="text-[var(--auth-block-text)] leading-relaxed whitespace-pre-line">
+                            @Model.Book.Description
+                        </div>
+                    </div>
+                }
+
+                <!-- Похожие книги -->
+                <div class="mb-8">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-2xl font-bold text-[var(--auth-block-text)]">Похожие книги</h3>
+                        <span class="text-secondary-custom text-sm">@Model.SimilarBooks.Count найдено</span>
+                    </div>
+
+                    @if (Model.SimilarBooks.Any())
+                    {
+                        <div class="relative">
+                            <div class="similar-books-scroll-container">
+                                <div class="similar-books-wrapper">
+                                    @foreach (var book in Model.SimilarBooks)
+                                    {
+                                        <div class="similar-book-card">
+                                            <a asp-controller="Read" asp-action="ReadBook" asp-route-id="@book.Id" class="block">
+                                                @if (!string.IsNullOrEmpty(book.CoverImageUrl))
+                                                {
+                                                    <div class="similar-book-cover">
+                                                        <img src="@book.CoverImageUrl" alt="@book.Title"
+                                                             class="w-full h-48 object-cover rounded-lg mb-3">
+                                                        <div class="similar-book-overlay">
+                                                            <span class="read-more">Читать</span>
+                                                        </div>
+                                                    </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="w-full h-48 gradient-bg rounded-lg flex items-center justify-center mb-3">
+                                                        <span class="text-3xl text-white">📖</span>
+                                                    </div>
+                                                }
+                                                <h4 class="font-semibold text-[var(--auth-block-text)] mb-2 truncate" title="@book.Title">
+                                                    @book.Title
+                                                </h4>
+                                                <div class="text-sm text-secondary-custom mb-2 truncate">
+                                                    @string.Join(", ", book.BookAuthors.Take(2).Select(ba => ba.Author.PenName))
+                                                </div>
+                                                <div class="flex justify-between text-xs text-secondary-custom">
+                                                    <span><i class="far fa-eye"></i> @book.ReadsCount</span>
+                                                    <span><i class="fas fa-heart text-red-500"></i> @book.LikesCount</span>
+                                                    <span><i class="fas fa-book-open"></i> @book.Chapters.Count(c => c.IsPublic)</span>
+                                                </div>
+                                            </a>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Кнопки навигации для скролла -->
+                            <button class="similar-books-nav prev hidden md:flex">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                            <button class="similar-books-nav next hidden md:flex">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="white-block text-center py-8">
+                            <div class="text-5xl text-[var(--accent-gold)] mb-4 opacity-50">
+                                <i class="fas fa-book"></i>
+                            </div>
+                            <p class="text-xl text-secondary-custom mb-2">Похожих книг не найдено</p>
+                            <p class="text-sm text-secondary-custom">Система рекомендаций еще изучает ваши предпочтения</p>
+                        </div>
+                    }
+                </div>
+
+                <!-- Комментарии -->
+                <div class="white-block">
+                    <h3 class="text-2xl font-bold mb-6 text-[var(--auth-block-text)] border-b border-[var(--border-color)] pb-3">Комментарии</h3>
+
+                    @if (User.Identity.IsAuthenticated)
+                    {
+                        <div class="comment-form-container mb-8">
+                            <form id="commentForm" class="space-y-4">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" id="bookId" value="@Model.Book.Id" />
+                                <textarea id="commentText"
+                                      class="w-full px-4 py-3 bg-[var(--bg-primary)] text-[var(--text-primary)]
+                                                 rounded-lg border border-[var(--border-color)] focus:border-[var(--accent-gold)]
+                                                 focus:ring-2 focus:ring-[var(--accent-gold)] focus:ring-opacity-50 resize-none"
+                                      rows="3"
+                                      placeholder="Напишите ваш комментарий... (максимум 500 символов)"></textarea>
+                                <div class="flex justify-between items-center">
+                                    <div id="charCount" class="text-sm text-secondary-custom">0/500</div>
+                                    <button type="submit"
+                                            class="gold-button px-6 py-2">
+                                        <i class="fas fa-paper-plane mr-2"></i>Отправить
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <input type="hidden" id="currentUserId" value="@User.FindFirstValue(ClaimTypes.NameIdentifier)" />
+                        <input type="hidden" id="currentUserName" value="@User.Identity.Name" />
+                        <input type="hidden" id="currentUserAvatar" value="@(User.FindFirstValue("AvatarUrl") ?? "")" />
+                    }
+                    else
+                    {
+                        <div class="mb-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                            <p class="text-center text-secondary-custom">
+                                <a asp-controller="Account" asp-action="Login"
+                                   class="text-[var(--accent-gold)] hover:underline font-medium">
+                                    Войдите
+                                </a>, чтобы оставлять комментарии
+                            </p>
+                        </div>
+                    }
+
+                    <!-- Список комментариев -->
+                    <div id="commentsList" class="space-y-6">
+                        @if (Model.Comments.Any())
+                        {
+                            @foreach (var comment in Model.Comments)
+                            {
+                                <div class="comment-item" data-comment-id="@comment.Id">
+                                    <div class="comment-avatar">
+                                        @if (!string.IsNullOrEmpty(comment.UserAvatar))
+                                        {
+                                            <img src="@comment.UserAvatar" alt="@comment.UserName"
+                                                 class="w-10 h-10 rounded-full object-cover">
+                                        }
+                                        else
+                                        {
+                                            <span class="text-white font-semibold">@(comment.UserName?[0].ToString().ToUpper() ?? "?")</span>
+                                        }
+                                    </div>
+                                    <div class="comment-content">
+                                        <div class="comment-header">
+                                            <div>
+                                                <span class="comment-author">@comment.UserName</span>
+                                                <span class="comment-time ml-2">
+                                                    @comment.Timestamp.ToString("dd.MM.yyyy HH:mm")
+                                                </span>
+                                            </div>
+                                            @if (comment.UserId == User.FindFirstValue(ClaimTypes.NameIdentifier))
+                                            {
+                                                <div class="flex gap-2">
+                                                    <button class="reply-comment text-blue-500 hover:text-blue-700 transition-colors"
+                                                            data-comment-id="@comment.Id"
+                                                            title="Ответить">
+                                                        <i class="fas fa-reply"></i>
+                                                    </button>
+                                                    <button class="edit-comment text-amber-500 hover:text-amber-700 transition-colors"
+                                                            data-comment-id="@comment.Id"
+                                                            data-comment-text="@comment.Content"
+                                                            title="Редактировать">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="delete-comment text-red-500 hover:text-red-700 transition-colors"
+                                                            data-comment-id="@comment.Id"
+                                                            title="Удалить комментарий">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="comment-text mt-2">
+                                            @comment.Content
+                                        </div>
+
+                                        <!-- Ответы на комментарий -->
+                                        <div class="replies-container ml-8 mt-4 space-y-4" data-comment-id="@comment.Id">
+                                            @foreach (var reply in comment.Replies ?? new List<CommentViewModel>())
+                                            {
+                                                <div class="comment-item comment-reply" data-reply-id="@reply.Id">
+                                                    <div class="comment-avatar">
+                                                        @if (!string.IsNullOrEmpty(reply.UserAvatar))
+                                                        {
+                                                            <img src="@reply.UserAvatar" alt="@reply.UserName"
+                                                                 class="w-8 h-8 rounded-full object-cover">
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-white font-semibold text-sm">@(reply.UserName?[0].ToString().ToUpper() ?? "?")</span>
+                                                        }
+                                                    </div>
+                                                    <div class="comment-content">
+                                                        <div class="comment-header">
+                                                            <div>
+                                                                <span class="comment-author text-sm">@reply.UserName</span>
+                                                                <span class="comment-time ml-2 text-xs">
+                                                                    @reply.Timestamp.ToString("dd.MM.yyyy HH:mm")
+                                                                </span>
+                                                            </div>
+                                                            @if (reply.UserId == User.FindFirstValue(ClaimTypes.NameIdentifier))
+                                                            {
+                                                                <div class="flex gap-2">
+                                                                    <button class="edit-reply text-amber-500 hover:text-amber-700 transition-colors"
+                                                                            data-reply-id="@reply.Id"
+                                                                            data-reply-text="@reply.Content"
+                                                                            title="Редактировать">
+                                                                        <i class="fas fa-edit text-xs"></i>
+                                                                    </button>
+                                                                    <button class="delete-reply text-red-500 hover:text-red-700 transition-colors"
+                                                                            data-reply-id="@reply.Id"
+                                                                            title="Удалить ответ">
+                                                                        <i class="fas fa-trash text-xs"></i>
+                                                                    </button>
+                                                                </div>
+                                                            }
+                                                        </div>
+                                                        <div class="comment-text mt-2 text-sm">
+                                                            @reply.Content
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+
+                                        <div class="reply-form-container mt-3 hidden" data-comment-id="@comment.Id">
+                                            <!-- Форма ответа будет здесь -->
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-center py-8">
+                                <div class="text-5xl text-[var(--accent-gold)] mb-4 opacity-50">
+                                    <i class="fas fa-comment-slash"></i>
+                                </div>
+                                <p class="text-xl text-secondary-custom mb-2">Комментариев пока нет</p>
+                                <p class="text-sm text-secondary-custom">Будьте первым, кто оставит комментарий!</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка "Главы" -->
+            <div id="chaptersTab" class="tab-panel hidden">
+                @if (Model.PublishedChapters.Any())
+                {
+                    <div class="grid grid-cols-1 gap-4">
+                        @foreach (var chapter in Model.PublishedChapters.OrderBy(c => c.Order))
+                        {
+                            var isRead = Model.ReadChapterIds.Contains(chapter.Id);
+                            
+                            <div class="chapter-card @(isRead ? "read-chapter" : "")">
+                                <div class="flex justify-between items-center mb-3">
+                                    <div class="chapter-order-badge">
+                                        Глава @chapter.Order
+                                    </div>
+                                    @if (isRead)
+                                    {
+                                        <div class="read-status">
+                                            <i class="fas fa-check-circle text-green-500 text-xl"></i>
+                                            <span class="text-green-500 text-sm font-medium ml-1">Прочитано</span>
+                                        </div>
+                                    }
+                                </div>
+                                <h3 class="chapter-title text-lg font-semibold mb-2 truncate text-theme-aware" title="@chapter.Title">
+                                    @chapter.Title
+                                </h3>
+                                <div class="chapter-meta text-sm text-secondary-custom mb-4">
+                                    <div class="flex flex-wrap gap-3">
+                                        <span><i class="far fa-calendar mr-1"></i>@chapter.PublicationDate.ToString("dd.MM.yyyy")</span>
+                                        <span><i class="far fa-file-alt mr-1"></i>@chapter.Pages.Count стр.</span>
+                                        <span><i class="far fa-clock mr-1"></i>@GetReadingTime(chapter.Pages.Count) мин</span>
+                                    </div>
+                                </div>
+                                <a asp-controller="Read" asp-action="ReadChapter" 
+                                   asp-route-bookId="@Model.Book.Id" asp-route-chapterId="@chapter.Id"
+                                   class="gold-button w-full text-center justify-center @(isRead ? "read-chapter-button" : "")">
+                                    <i class="fas fa-book-open mr-2"></i>
+                                    @(isRead ? "Перечитать" : "Читать")
+                                </a>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-12">
+                        <div class="text-5xl text-[var(--accent-gold)] mb-4 opacity-50">
+                            <i class="fas fa-book-open"></i>
+                        </div>
+                        <p class="text-xl text-secondary-custom mb-2">Главы еще не опубликованы</p>
+                        <p class="text-sm text-secondary-custom">Автор еще работает над произведением</p>
+                    </div>
+                }
+            </div>
+
+            <!-- Вкладка "Цикл" -->
+            @if (Model.Cycle != null)
+            {
+                <div id="cycleTab" class="tab-panel hidden">
+                    <div class="mb-8">
+                        <h3 class="text-2xl font-bold mb-2 text-[var(--auth-block-text)]">@Model.Cycle.Name</h3>
+                        <p class="text-secondary-custom mb-6">
+                            Цикл создан <span class="author-name-gold font-semibold">@Model.Cycle.Author.PenName</span>
+                        </p>
+                    </div>
+
+                    <div class="space-y-6">
+                        @{
+                            var allCycleBooks = new List<Book> { Model.Book };
+                            allCycleBooks.AddRange(Model.CycleBooks.OrderBy(b => b.PublicationDate));
+                        }
+
+                        @foreach (var book in allCycleBooks)
+                        {
+                            if (book.Id == Model.Book.Id)
+                            {
+                                <div class="cycle-book-card current-book">
+                                    <div class="flex items-start gap-4">
+                                        <div class="flex-shrink-0">
+                                            @if (!string.IsNullOrEmpty(book.CoverImageUrl))
+                                            {
+                                                <img src="@book.CoverImageUrl" alt="@book.Title"
+                                                     class="w-20 h-28 object-cover rounded-lg">
+                                            }
+                                            else
+                                            {
+                                                <div class="w-20 h-28 gradient-bg rounded-lg flex items-center justify-center">
+                                                    <span class="text-white text-xl">📖</span>
+                                                </div>
+                                            }
+                                        </div>
+                                        <div class="flex-1">
+                                            <div class="flex items-start justify-between">
+                                                <div>
+                                                    <h4 class="text-lg font-semibold text-[var(--accent-gold)] mb-1">
+                                                        @book.Title
+                                                        <span class="ml-2 current-badge">Текущая</span>
+                                                    </h4>
+                                                    <div class="flex flex-wrap items-center gap-2 mb-2">
+                                                        @foreach (var author in book.BookAuthors.Take(2))
+                                                        {
+                                                            <a asp-controller="Profile" asp-action="UserProfile" asp-route-id="@author.Author.Id" class="author-name-gold text-sm">
+                                                                @author.Author.PenName
+                                                            </a>
+                                                        }
+                                                    </div>
+                                                    <div class="flex gap-4 text-sm text-secondary-custom">
+                                                        <span><i class="far fa-eye"></i> @book.ReadsCount</span>
+                                                        <span><i class="fas fa-heart text-red-500"></i> @book.LikesCount</span>
+                                                        <span><i class="far fa-file-alt"></i> @book.Chapters?.Count(c => c.IsPublic) глав</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <a asp-controller="Read" asp-action="ReadBook" asp-route-id="@book.Id" class="block">
+                                    <div class="cycle-book-card">
+                                        <div class="flex items-start gap-4">
+                                            <div class="flex-shrink-0">
+                                                @if (!string.IsNullOrEmpty(book.CoverImageUrl))
+                                                {
+                                                    <img src="@book.CoverImageUrl" alt="@book.Title"
+                                                         class="w-20 h-28 object-cover rounded-lg">
+                                                }
+                                                else
+                                                {
+                                                    <div class="w-20 h-28 gradient-bg rounded-lg flex items-center justify-center">
+                                                        <span class="text-white text-xl">📖</span>
+                                                    </div>
+                                                }
+                                            </div>
+                                            <div class="flex-1">
+                                                <div class="flex items-start justify-between">
+                                                    <div>
+                                                        <h4 class="text-lg font-semibold text-theme-aware mb-1">
+                                                            @book.Title
+                                                        </h4>
+                                                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                                                            @foreach (var author in book.BookAuthors.Take(2))
+                                                            {
+                                                                <a asp-controller="Profile" asp-action="UserProfile" asp-route-id="@author.Author.Id" class="author-name-gold text-sm">
+                                                                    @author.Author.PenName
+                                                                </a>
+                                                            }
+                                                        </div>
+                                                        <div class="flex gap-4 text-sm text-secondary-custom">
+                                                            <span><i class="far fa-eye"></i> @book.ReadsCount</span>
+                                                            <span><i class="fas fa-heart text-red-500"></i> @book.LikesCount</span>
+                                                            <span><i class="far fa-file-alt"></i> @book.Chapters?.Count(c => c.IsPublic) глав</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                            }
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@functions {
+    private string GetReadingTime(int pageCount)
+    {
+        return Math.Max(1, (int)Math.Ceiling(pageCount * 1.0)).ToString();
+    }
+}
+
+<style>
+    /* Улучшенные стили для кнопок действий */
+    .action-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.75rem 1.5rem;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        gap: 0.5rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .action-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .action-button:hover::before {
+            left: 100%;
+        }
+
+    /* Стили для кнопки "Продолжить чтение" */
+    .continue-button {
+        background: linear-gradient(135deg, #10B981, #059669);
+        color: white;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+
+        .continue-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+            background: linear-gradient(135deg, #059669, #047857);
+        }
+
+    /* Стили для кнопки "Читать сначала" */
+    .read-from-start {
+        background: linear-gradient(135deg, #4F46E5, #7C3AED);
+        color: white;
+        box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
+    }
+
+        .read-from-start:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+            background: linear-gradient(135deg, #4338CA, #6D28D9);
+        }
+
+    .like-button {
+        background: linear-gradient(135deg, #EF4444, #DC2626);
+        color: white;
+        box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+    }
+
+        .like-button.active {
+            background: linear-gradient(135deg, #DC2626, #B91C1C);
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        .like-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        }
+
+    .favorite-button {
+        background: linear-gradient(135deg, var(--accent-gold), var(--accent-light));
+        color: white;
+        box-shadow: 0 4px 15px rgba(var(--accent-gold-rgb), 0.3);
+    }
+
+        .favorite-button.active {
+            background: linear-gradient(135deg, var(--accent-light), #B8860B);
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        .favorite-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(var(--accent-gold-rgb), 0.4);
+        }
+
+    .like-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    @@keyframes pulse {
+        0% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.05);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    /* Стили для авторов в золотой окантовке */
+    .author-name-gold {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1.5rem;
+        border-radius: 9999px;
+        background: linear-gradient(135deg, rgba(var(--accent-gold-rgb), 0.1), rgba(var(--accent-light-rgb), 0.1));
+        border: 2px solid var(--accent-gold);
+        color: var(--accent-gold);
+        font-weight: 600;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .author-name-gold::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(var(--accent-gold-rgb), 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .author-name-gold:hover::before {
+            left: 100%;
+        }
+
+        .author-name-gold:hover {
+            background: linear-gradient(135deg, var(--accent-gold), var(--accent-light));
+            color: var(--header-bg);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(var(--accent-gold-rgb), 0.3);
+            border-color: var(--accent-light);
+        }
+
+    /* Класс для текста, который меняется в зависимости от темы */
+    .text-theme-aware {
+        color: var(--auth-block-text);
+    }
+
+    /* Стиль для названия главы */
+    .chapter-title {
+        color: var(--auth-block-text);
+    }
+
+    /* Анимация для новых комментариев */
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    /* Стили для кнопок управления комментариями */
+    .comment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .comment-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .reply-comment, .edit-comment, .delete-comment, .edit-reply, .delete-reply {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.35rem;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        font-size: 0.9rem;
+    }
+
+        .reply-comment:hover {
+            background: rgba(59, 130, 246, 0.1);
+            color: #3B82F6;
+        }
+
+        .edit-comment:hover, .edit-reply:hover {
+            background: rgba(245, 158, 11, 0.1);
+            color: #F59E0B;
+        }
+
+        .delete-comment:hover, .delete-reply:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: #EF4444;
+        }
+
+    /* Стили для ответов на комментарии */
+    .comment-reply {
+        margin-left: 2rem;
+        margin-top: 0.5rem;
+        padding-left: 1rem;
+        border-left: 2px solid var(--border-color);
+    }
+
+        .comment-reply .comment-avatar {
+            width: 32px;
+            height: 32px;
+        }
+
+            .comment-reply .comment-avatar img {
+                width: 32px;
+                height: 32px;
+            }
+
+        .comment-reply .comment-author {
+            font-size: 0.9rem;
+        }
+
+        .comment-reply .comment-time {
+            font-size: 0.8rem;
+        }
+
+        .comment-reply .comment-text {
+            font-size: 0.9rem;
+        }
+
+    /* Карточки статистики */
+    .stat-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: all 0.3s ease;
+    }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: rgba(var(--current-color-rgb), 0.1);
+    }
+
+    .stat-number {
+        line-height: 1;
+    }
+
+    .stat-label {
+        margin-top: 0.25rem;
+    }
+
+    /* Элементы информации */
+        .info-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+            .info-item:last-child {
+                border-bottom: none;
+            }
+
+    /* Улучшенные карточки глав */
+    .chapter-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.5rem;
+        position: relative;
+        transition: all 0.3s ease;
+        width: 100%;
+        animation: fadeIn 0.5s ease-out;
+    }
+
+        .chapter-card:hover {
+            border-color: var(--accent-gold);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+    /* Стили для прочитанных глав */
+    .chapter-card.read-chapter {
+        border-left: 4px solid #10B981;
+        background: linear-gradient(90deg, rgba(16, 185, 129, 0.05), transparent);
+        animation: fadeInGreen 0.5s ease-out;
+    }
+
+    .read-status {
+        display: flex;
+        align-items: center;
+        background: rgba(16, 185, 129, 0.1);
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+    }
+
+    .read-chapter-button {
+        background: linear-gradient(135deg, #10B981, #059669);
+    }
+
+        .read-chapter-button:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+        }
+
+    .chapter-order-badge {
+        position: absolute;
+        top: -10px;
+        left: 1rem;
+        background: linear-gradient(135deg, var(--accent-gold), var(--accent-light));
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        z-index: 1;
+    }
+
+    /* Навигация для похожих книг */
+    .similar-books-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        z-index: 10;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+        .similar-books-nav:hover {
+            background: var(--accent-gold);
+            color: white;
+            border-color: var(--accent-gold);
+            transform: translateY(-50%) scale(1.1);
+        }
+
+        .similar-books-nav.prev {
+            left: -20px;
+        }
+
+        .similar-books-nav.next {
+            right: -20px;
+        }
+
+    /* Улучшенные похожие книги */
+    .similar-book-cover {
+        position: relative;
+        overflow: hidden;
+        border-radius: 12px;
+    }
+
+    .similar-book-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .similar-book-card:hover .similar-book-overlay {
+        opacity: 1;
+    }
+
+    .read-more {
+        color: white;
+        background: var(--accent-gold);
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+
+    .similar-book-card:hover .read-more {
+        transform: scale(1.05);
+    }
+
+    /* Цикл книги */
+    .cycle-book-card {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1rem;
+        transition: all 0.3s ease;
+            cursor: pointer;
+            transition: all 0.3s ease;
+    }
+
+        .cycle-book-card:hover {
+            border-color: var(--accent-gold);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .cycle-book-card.current-book {
+            border-color: var(--accent-gold);
+            background: linear-gradient(90deg, rgba(var(--accent-gold-rgb), 0.05), transparent);
+        }
+
+            .similar-book-card a,
+            .cycle-book-card a {
+                text-decoration: none;
+            }
+
+            .similar-book-card .author-name-gold,
+            .cycle-book-card .author-name-gold {
+                text-decoration: none !important;
+            }
+    .current-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, var(--accent-gold), var(--accent-light));
+        color: white;
+        padding: 0.2rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    /* Жанры и теги */
+    .genre-badge, .tag-badge {
+        display: inline-block;
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+    .genre-badge {
+        background: rgba(59, 130, 246, 0.1);
+        color: var(--genre-text);
+        border: 1px solid var(--genre-border);
+    }
+
+        .genre-badge:hover {
+            background: rgba(59, 130, 246, 0.2);
+            transform: translateY(-1px);
+        }
+
+    .tag-badge {
+        background: rgba(168, 85, 247, 0.1);
+        color: var(--tag-text);
+        border: 1px solid var(--tag-border);
+    }
+        .tag-badge:hover {
+            background: rgba(168, 85, 247, 0.2);
+            transform: translateY(-1px);
+        }
+        /* Добавьте в секцию стилей в ReadBook.cshtml */
+        .download-button {
+            background: linear-gradient(135deg, #10B981, #059669);
+            color: white;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+
+            .download-button:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+                background: linear-gradient(135deg, #059669, #047857);
+            }
+
+            .download-button:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+                transform: none !important;
+            }
+    
+    /* Анимация для прочитанных глав */
+    @@keyframes fadeInGreen {
+        from {
+            background-color: transparent;
+            border-color: var(--border-color);
+        }
+        to {
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.05), transparent);
+            border-left-color: #10B981;
+        }
+    }
+
+    /* Разделение кнопок на две части визуально */
+    .read-from-start, .continue-button {
+        position: relative;
+        overflow: hidden;
+    }
+
+    .read-from-start::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, transparent 50%, rgba(255,255,255,0.1) 100%);
+        pointer-events: none;
+    }
+
+    .continue-button::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+        pointer-events: none;
+    }
+
+    /* Адаптивность */
+    @@media (max-width: 768px) {
+        .similar-books-nav {
+            display: none;
+        }
+
+        .stat-card {
+            padding: 0.75rem;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+        }
+
+        .chapter-card {
+            padding: 1rem;
+        }
+
+        .action-button {
+            padding: 0.6rem 1.2rem;
+            font-size: 0.9rem;
+        }
+
+        .author-name-gold {
+            padding: 0.4rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        .comment-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .book-title-main {
+            font-size: 2rem;
+        }
+
+        .comment-reply {
+            margin-left: 1rem;
+            padding-left: 0.5rem;
+        }
+
+            .comment-reply .comment-avatar {
+                width: 24px;
+                height: 24px;
+            }
+
+                .comment-reply .comment-avatar img {
+                    width: 24px;
+                    height: 24px;
+                }
+        
+        .read-status {
+            padding: 0.15rem 0.5rem;
+            font-size: 0.8rem;
+        }
+        
+        .read-from-start::after,
+        .continue-button::after {
+            display: none;
+        }
+        
+        .read-from-start,
+        .continue-button {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    @@media (max-width: 640px) {
+        .grid-cols-2 {
+            grid-template-columns: 1fr;
+        }
+
+        .action-button {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .book-tabs {
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            white-space: nowrap;
+        }
+
+        .tab-button {
+            padding: 0.75rem 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .chapter-order-badge {
+            font-size: 0.65rem;
+            padding: 0.2rem 0.5rem;
+        }
+    }
+</style>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Получаем данные текущего пользователя
+            const currentUserId = document.getElementById('currentUserId')?.value;
+            const currentUserName = document.getElementById('currentUserName')?.value || 'Пользователь';
+            const currentUserAvatar = document.getElementById('currentUserAvatar')?.value || '';
+
+            // Управление вкладками
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabPanels = document.querySelectorAll('.tab-panel');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-tab');
+
+                    // Обновляем активные элементы
+                    tabButtons.forEach(btn => btn.classList.remove('active'));
+                    this.classList.add('active');
+
+                    tabPanels.forEach(panel => {
+                        panel.classList.remove('active');
+                        panel.classList.add('hidden');
+                    });
+
+                    const activePanel = document.getElementById(tabId + 'Tab');
+                    if (activePanel) {
+                        activePanel.classList.remove('hidden');
+                        activePanel.classList.add('active');
+                    }
+                });
+            });
+
+            // Навигация для похожих книг
+            const similarBooksContainer = document.querySelector('.similar-books-scroll-container');
+            const similarBooksWrapper = document.querySelector('.similar-books-wrapper');
+            const prevBtn = document.querySelector('.similar-books-nav.prev');
+            const nextBtn = document.querySelector('.similar-books-nav.next');
+
+            if (similarBooksContainer && similarBooksWrapper && prevBtn && nextBtn) {
+                const scrollAmount = 300;
+
+                prevBtn.addEventListener('click', () => {
+                    similarBooksContainer.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+                });
+
+                nextBtn.addEventListener('click', () => {
+                    similarBooksContainer.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+                });
+
+                function updateNavButtons() {
+                    const { scrollLeft, scrollWidth, clientWidth } = similarBooksContainer;
+                    prevBtn.style.display = scrollLeft > 0 ? 'flex' : 'none';
+                    nextBtn.style.display = scrollLeft < scrollWidth - clientWidth - 10 ? 'flex' : 'none';
+                }
+
+                similarBooksContainer.addEventListener('scroll', updateNavButtons);
+                window.addEventListener('resize', updateNavButtons);
+                updateNavButtons();
+            }
+
+            // Счетчик символов в комментариях
+            const commentText = document.getElementById('commentText');
+            const charCount = document.getElementById('charCount');
+
+            if (commentText && charCount) {
+                commentText.addEventListener('input', function() {
+                    const length = this.value.length;
+                    charCount.textContent = `${length}/500`;
+
+                    if (length > 500) {
+                        charCount.classList.add('text-red-500');
+                        this.classList.add('border-red-500');
+                    } else {
+                        charCount.classList.remove('text-red-500');
+                        this.classList.remove('border-red-500');
+                    }
+                });
+            }
+
+            // Отправка комментария
+            const commentForm = document.getElementById('commentForm');
+            if (commentForm) {
+                commentForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
+                    const commentTextValue = document.getElementById('commentText')?.value.trim();
+                    const bookId = document.getElementById('bookId')?.value;
+
+                    // Получаем токен из формы
+                    const token = document.querySelector('#commentForm input[name="__RequestVerificationToken"]')?.value;
+
+                    if (!commentTextValue) {
+                        showToast('Введите текст комментария', 'error');
+                        return;
+                    }
+
+                    if (commentTextValue.length > 500) {
+                        showToast('Комментарий слишком длинный (макс. 500 символов)', 'error');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('@Url.Action("AddBookComment", "Read")', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded',
+                                'RequestVerificationToken': token
+                            },
+                            body: `id=${encodeURIComponent(bookId)}&commentText=${encodeURIComponent(commentTextValue)}`
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        const result = await response.json();
+
+                        if (result.success && result.comment) {
+                            // Добавляем новый комментарий в список
+                            const commentsList = document.getElementById('commentsList');
+                            const newCommentHTML = createCommentHTML(result.comment, currentUserId);
+
+                            // Создаем временный контейнер для преобразования строки в DOM
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = newCommentHTML.trim();
+                            const newCommentElement = tempDiv.firstChild;
+
+                            // Убираем сообщение о пустых комментариях
+                            const emptyState = commentsList.querySelector('.text-center');
+                            if (emptyState) {
+                                emptyState.remove();
+                            }
+
+                            // Добавляем комментарий в начало списка
+                            commentsList.insertBefore(newCommentElement, commentsList.firstChild);
+
+                            // Очищаем форму
+                            if (commentText) {
+                                commentText.value = '';
+                                charCount.textContent = '0/500';
+                                charCount.classList.remove('text-red-500');
+                            }
+
+                            showToast('Комментарий добавлен', 'success');
+                        } else {
+                            showToast(result.message || 'Ошибка при добавлении комментария', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Ошибка:', error);
+                        showToast('Ошибка соединения', 'error');
+                    }
+                });
+            }
+
+            // Обработка действий с комментариями
+            document.addEventListener('click', function(e) {
+                // Удаление комментария
+                if (e.target.closest('.delete-comment')) {
+                    const button = e.target.closest('.delete-comment');
+                    const commentId = button.getAttribute('data-comment-id');
+
+                    if (confirm('Вы уверены, что хотите удалить этот комментарий?')) {
+                        deleteComment(commentId, button);
+                    }
+                }
+
+                // Редактирование комментария
+                if (e.target.closest('.edit-comment')) {
+                    const button = e.target.closest('.edit-comment');
+                    const commentId = button.getAttribute('data-comment-id');
+                    const currentText = button.getAttribute('data-comment-text');
+                    editComment(commentId, currentText, button);
+                }
+
+                // Ответ на комментарий
+                if (e.target.closest('.reply-comment')) {
+                    const button = e.target.closest('.reply-comment');
+                    const commentId = button.getAttribute('data-comment-id');
+                    showReplyForm(commentId, button);
+                }
+
+                // Редактирование ответа
+                if (e.target.closest('.edit-reply')) {
+                    const button = e.target.closest('.edit-reply');
+                    const replyId = button.getAttribute('data-reply-id');
+                    const currentText = button.getAttribute('data-reply-text');
+                    editReply(replyId, currentText, button);
+                }
+
+                // Удаление ответа
+                if (e.target.closest('.delete-reply')) {
+                    const button = e.target.closest('.delete-reply');
+                    const replyId = button.getAttribute('data-reply-id');
+                    deleteReply(replyId, button);
+                }
+            });
+            
+            // Добавьте обработчик для кнопки скачивания
+            const downloadButton = document.getElementById('downloadButton');
+            if (downloadButton) {
+                downloadButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+
+                    // Показываем модальное окно с подтверждением
+                    if (confirm('Вы действительно хотите скачать книгу? Это может занять некоторое время в зависимости от размера книги.')) {
+                        const bookId = this.getAttribute('data-book-id');
+
+                        // Показываем индикатор загрузки
+                        const originalText = this.innerHTML;
+                        this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Генерация PDF...';
+                        this.disabled = true;
+
+                        // Начинаем скачивание
+                        window.location.href = this.href;
+
+                        // Через 3 секунды возвращаем исходное состояние
+                        setTimeout(() => {
+                            this.innerHTML = originalText;
+                            this.disabled = false;
+                        }, 3000);
+                    }
+                });
+            }
+            
+            // Лайки
+            const likeButton = document.getElementById('likeButton');
+            if (likeButton) {
+                likeButton.addEventListener('click', async function() {
+                    const bookId = this.getAttribute('data-book-id');
+                    const isAuthor = this.getAttribute('data-is-author') === 'true';
+
+                    if (isAuthor) {
+                        showToast('Вы не можете ставить лайк своей книге', 'error');
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch('@Url.Action("LikeBook", "Read")', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: `id=${encodeURIComponent(bookId)}`
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            // Обновляем UI
+                            const likeCount = document.getElementById('likeCount');
+                            if (likeCount) {
+                                likeCount.textContent = result.likesCount;
+                            }
+
+                            // Обновляем счетчик в статистике
+                            const likesCountStat = document.getElementById('likesCountStat');
+                            if (likesCountStat) {
+                                likesCountStat.textContent = result.likesCount;
+                            }
+
+                            if (result.hasLiked) {
+                                this.classList.add('active');
+                                const span = this.querySelector('span:not(.ml-2)');
+                                if (span) span.textContent = 'Лайк';
+                                showToast('Лайк добавлен', 'success');
+                            } else {
+                                this.classList.remove('active');
+                                const span = this.querySelector('span:not(.ml-2)');
+                                if (span) span.textContent = 'Нравится';
+                                showToast('Лайк удален', 'info');
+                            }
+                        } else {
+                            showToast(result.message || 'Ошибка', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Ошибка:', error);
+                        showToast('Ошибка соединения', 'error');
+                    }
+                });
+            }
+
+            // Закладки
+            const favoriteButton = document.getElementById('favoriteButton');
+            if (favoriteButton) {
+                favoriteButton.addEventListener('click', async function() {
+                    const bookId = this.getAttribute('data-book-id');
+
+                    try {
+                        const response = await fetch('@Url.Action("ToggleFavorite", "Read")', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: `id=${encodeURIComponent(bookId)}`
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            if (result.isInFavorites) {
+                                this.classList.add('active');
+                                const span = this.querySelector('span');
+                                if (span) span.textContent = 'В закладках';
+                                showToast('Книга добавлена в закладки', 'success');
+                            } else {
+                                this.classList.remove('active');
+                                const span = this.querySelector('span');
+                                if (span) span.textContent = 'В закладки';
+                                showToast('Книга удалена из закладок', 'info');
+                            }
+                        } else {
+                            showToast(result.message || 'Ошибка', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Ошибка:', error);
+                        showToast('Ошибка соединения', 'error');
+                    }
+                });
+            }
+
+            // Вспомогательные функции
+            function createCommentHTML(comment, currentUserId) {
+                const userInitial = comment.userName ? comment.userName[0].toUpperCase() : '?';
+                const timestamp = new Date(comment.timestamp).toLocaleDateString('ru-RU', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                const isCurrentUser = comment.userId === currentUserId;
+
+                return `
+                    <div class="comment-item" data-comment-id="${comment.id}" style="opacity: 0; transform: translateX(-20px); animation: fadeIn 0.3s ease-out forwards;">
+                        <div class="comment-avatar">
+                            ${comment.userAvatar ?
+                                `<img src="${comment.userAvatar}" alt="${comment.userName}" class="w-10 h-10 rounded-full object-cover">` :
+                                `<span class="text-white font-semibold">${userInitial}</span>`
+                            }
+                        </div>
+                        <div class="comment-content">
+                            <div class="comment-header">
+                                <div>
+                                    <span class="comment-author">${escapeHtml(comment.userName || 'Пользователь')}</span>
+                                    <span class="comment-time ml-2">${timestamp}</span>
+                                </div>
+                                ${isCurrentUser ? `
+                                    <div class="flex gap-2">
+                                        <button class="reply-comment text-blue-500 hover:text-blue-700 transition-colors"
+                                                data-comment-id="${comment.id}"
+                                                title="Ответить">
+                                            <i class="fas fa-reply"></i>
+                                        </button>
+                                        <button class="edit-comment text-amber-500 hover:text-amber-700 transition-colors"
+                                                data-comment-id="${comment.id}"
+                                                data-comment-text="${escapeHtml(comment.content)}"
+                                                title="Редактировать">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="delete-comment text-red-500 hover:text-red-700 transition-colors"
+                                                data-comment-id="${comment.id}"
+                                                title="Удалить комментарий">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <div class="comment-text mt-2">
+                                ${escapeHtml(comment.content)}
+                            </div>
+                            <div class="replies-container ml-8 mt-4 space-y-4" data-comment-id="${comment.id}"></div>
+                            <div class="reply-form-container mt-3 hidden" data-comment-id="${comment.id}"></div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            function createReplyHTML(replyData, isCurrentUser = false) {
+                const userInitial = replyData.userName ? replyData.userName[0].toUpperCase() : '?';
+                const timestamp = new Date(replyData.timestamp).toLocaleDateString('ru-RU', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                return `
+                    <div class="comment-item comment-reply" data-reply-id="${replyData.id}">
+                        <div class="comment-avatar">
+                            ${replyData.userAvatar ?
+                                `<img src="${replyData.userAvatar}" alt="${replyData.userName}" class="w-8 h-8 rounded-full object-cover">` :
+                                `<span class="text-white font-semibold text-sm">${userInitial}</span>`
+                            }
+                        </div>
+                        <div class="comment-content">
+                            <div class="comment-header">
+                                <div>
+                                    <span class="comment-author text-sm">${escapeHtml(replyData.userName || 'Пользователь')}</span>
+                                    <span class="comment-time ml-2 text-xs">${timestamp}</span>
+                                </div>
+                                ${isCurrentUser ? `
+                                    <div class="flex gap-2">
+                                        <button class="edit-reply text-amber-500 hover:text-amber-700 transition-colors"
+                                                data-reply-id="${replyData.id}"
+                                                data-reply-text="${escapeHtml(replyData.content)}"
+                                                title="Редактировать">
+                                            <i class="fas fa-edit text-xs"></i>
+                                        </button>
+                                        <button class="delete-reply text-red-500 hover:text-red-700 transition-colors"
+                                                data-reply-id="${replyData.id}"
+                                                title="Удалить ответ">
+                                            <i class="fas fa-trash text-xs"></i>
+                                        </button>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            <div class="comment-text mt-2 text-sm">
+                                ${escapeHtml(replyData.content)}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            async function deleteComment(commentId, button) {
+                try {
+                    const response = await fetch('@Url.Action("DeleteBookComment", "Read")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        body: `commentId=${encodeURIComponent(commentId)}`
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        const commentElement = button.closest('.comment-item');
+                        commentElement.style.opacity = '0';
+                        commentElement.style.transform = 'translateX(-20px)';
+
+                        setTimeout(() => {
+                            commentElement.remove();
+
+                            // Если комментариев не осталось, показываем сообщение
+                            const commentsList = document.getElementById('commentsList');
+                            if (commentsList.children.length === 0) {
+                                commentsList.innerHTML = `
+                                    <div class="text-center py-8">
+                                        <div class="text-5xl text-[var(--accent-gold)] mb-4 opacity-50">
+                                            <i class="fas fa-comment-slash"></i>
+                                        </div>
+                                        <p class="text-xl text-secondary-custom mb-2">Комментариев пока нет</p>
+                                        <p class="text-sm text-secondary-custom">Будьте первым, кто оставит комментарий!</p>
+                                    </div>
+                                `;
+                            }
+
+                            showToast('Комментарий удален', 'success');
+                        }, 300);
+                    } else {
+                        showToast(result.message || 'Ошибка при удалении комментария', 'error');
+                    }
+                } catch (error) {
+                    console.error('Ошибка:', error);
+                    showToast('Ошибка соединения', 'error');
+                }
+            }
+
+            function showReplyForm(commentId, button) {
+                const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
+                const replyFormContainer = commentElement.querySelector('.reply-form-container');
+
+                if (replyFormContainer.classList.contains('hidden')) {
+                    replyFormContainer.innerHTML = `
+                        <form class="reply-form space-y-2">
+                            <textarea class="w-full px-3 py-2 bg-[var(--bg-primary)] text-[var(--text-primary)]
+                                         rounded border border-[var(--border-color)] focus:border-[var(--accent-gold)]
+                                         focus:ring-1 focus:ring-[var(--accent-gold)] resize-none text-sm"
+                                      rows="2"
+                                      placeholder="Введите ответ..." required></textarea>
+                            <div class="flex gap-2">
+                                <button type="submit" class="gold-button text-sm px-3 py-1">
+                                    <i class="fas fa-paper-plane mr-1"></i>Ответить
+                                </button>
+                                <button type="button" class="cancel-reply text-sm px-3 py-1 border border-[var(--border-color)] rounded hover:bg-[var(--border-color)]">
+                                    Отмена
+                                </button>
+                            </div>
+                        </form>
+                    `;
+
+                    replyFormContainer.classList.remove('hidden');
+
+                    // Обработка отправки ответа
+                    const replyForm = replyFormContainer.querySelector('.reply-form');
+                    replyForm.addEventListener('submit', async function(e) {
+                        e.preventDefault();
+                        const replyText = this.querySelector('textarea').value.trim();
+
+                        if (replyText) {
+                            try {
+                                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                                const response = await fetch('@Url.Action("AddReplyToComment", "Read")', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/x-www-form-urlencoded',
+                                        'RequestVerificationToken': token
+                                    },
+                                    body: `commentId=${encodeURIComponent(commentId)}&replyText=${encodeURIComponent(replyText)}`
+                                });
+
+                                const result = await response.json();
+
+                                if (result.success && result.reply) {
+                                    // Находим или создаем контейнер для ответов
+                                    let repliesContainer = commentElement.querySelector('.replies-container');
+                                    if (!repliesContainer) {
+                                        repliesContainer = document.createElement('div');
+                                        repliesContainer.className = 'replies-container ml-8 mt-4 space-y-4';
+                                        repliesContainer.setAttribute('data-comment-id', commentId);
+                                        commentElement.querySelector('.comment-content').appendChild(repliesContainer);
+                                    }
+
+                                    // Создаем HTML ответа
+                                    const replyHTML = createReplyHTML(result.reply, true);
+
+                                    // Создаем DOM элемент из строки
+                                    const tempDiv = document.createElement('div');
+                                    tempDiv.innerHTML = replyHTML.trim();
+                                    const replyElement = tempDiv.firstChild;
+
+                                    // Добавляем ответ в контейнер
+                                    repliesContainer.appendChild(replyElement);
+
+                                    // Очищаем и скрываем форму
+                                    this.querySelector('textarea').value = '';
+                                    replyFormContainer.classList.add('hidden');
+
+                                    showToast('Ответ добавлен', 'success');
+
+                                    // Добавляем обработчики для кнопок редактирования и удаления
+                                    const editButton = replyElement.querySelector('.edit-reply');
+                                    const deleteButton = replyElement.querySelector('.delete-reply');
+
+                                    if (editButton) {
+                                        editButton.addEventListener('click', function() {
+                                            const replyId = this.getAttribute('data-reply-id');
+                                            const currentText = this.getAttribute('data-reply-text');
+                                            editReply(replyId, currentText, this);
+                                        });
+                                    }
+
+                                    if (deleteButton) {
+                                        deleteButton.addEventListener('click', function() {
+                                            const replyId = this.getAttribute('data-reply-id');
+                                            deleteReply(replyId, this);
+                                        });
+                                    }
+                                } else {
+                                    showToast(result.message || 'Ошибка при добавлении ответа', 'error');
+                                }
+                            } catch (error) {
+                                console.error('Ошибка:', error);
+                                showToast('Ошибка соединения', 'error');
+                            }
+                        }
+                    });
+
+                    // Отмена ответа
+                    replyFormContainer.querySelector('.cancel-reply').addEventListener('click', function() {
+                        replyFormContainer.classList.add('hidden');
+                        replyFormContainer.innerHTML = '';
+                    });
+                } else {
+                    replyFormContainer.classList.add('hidden');
+                    replyFormContainer.innerHTML = '';
+                }
+            }
+
+            async function editComment(commentId, currentText, button) {
+                const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
+                const commentTextElement = commentElement.querySelector('.comment-text');
+
+                commentTextElement.innerHTML = `
+                    <form class="edit-form">
+                        <textarea class="w-full px-3 py-2 bg-[var(--bg-primary)] text-[var(--text-primary)]
+                                     rounded border border-[var(--border-color)] focus:border-[var(--accent-gold)]
+                                     focus:ring-1 focus:ring-[var(--accent-gold)] resize-none"
+                                  rows="3" required>${escapeHtml(currentText)}</textarea>
+                        <div class="flex gap-2 mt-2">
+                            <button type="submit" class="gold-button text-sm px-3 py-1">
+                                <i class="fas fa-save mr-1"></i>Сохранить
+                            </button>
+                            <button type="button" class="cancel-edit text-sm px-3 py-1 border border-[var(--border-color)] rounded hover:bg-[var(--border-color)]">
+                                Отмена
+                            </button>
+                        </div>
+                    </form>
+                `;
+
+                const editForm = commentTextElement.querySelector('.edit-form');
+                editForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const newText = this.querySelector('textarea').value.trim();
+
+                    if (newText && newText !== currentText) {
+                        try {
+                            // Отправляем запрос на обновление комментария
+                            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                            const response = await fetch('@Url.Action("EditBookComment", "Read")', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                    'RequestVerificationToken': token
+                                },
+                                body: `commentId=${encodeURIComponent(commentId)}&commentText=${encodeURIComponent(newText)}`
+                            });
+
+                            const result = await response.json();
+
+                            if (result.success) {
+                                commentTextElement.textContent = newText;
+                                button.setAttribute('data-comment-text', newText);
+                                showToast('Комментарий отредактирован', 'success');
+                            } else {
+                                showToast(result.message || 'Ошибка при редактировании', 'error');
+                                commentTextElement.textContent = currentText;
+                            }
+                        } catch (error) {
+                            console.error('Ошибка:', error);
+                            showToast('Ошибка соединения', 'error');
+                            commentTextElement.textContent = currentText;
+                        }
+                    }
+                });
+
+                editForm.querySelector('.cancel-edit').addEventListener('click', function() {
+                    commentTextElement.textContent = currentText;
+                });
+            }
+
+            async function editReply(replyId, currentText, button) {
+                const replyElement = button.closest('.comment-reply');
+                const replyTextElement = replyElement.querySelector('.comment-text');
+
+                const editForm = document.createElement('form');
+                editForm.className = 'edit-reply-form';
+                editForm.innerHTML = `
+                    <textarea class="w-full px-3 py-2 bg-[var(--bg-primary)] text-[var(--text-primary)]
+                                 rounded border border-[var(--border-color)] focus:border-[var(--accent-gold)]
+                                 focus:ring-1 focus:ring-[var(--accent-gold)] resize-none text-sm"
+                              rows="2" required>${escapeHtml(currentText)}</textarea>
+                    <div class="flex gap-2 mt-2">
+                        <button type="submit" class="gold-button text-xs px-3 py-1">
+                            <i class="fas fa-save mr-1"></i>Сохранить
+                        </button>
+                        <button type="button" class="cancel-edit-reply text-xs px-3 py-1 border border-[var(--border-color)] rounded hover:bg-[var(--border-color)]">
+                            Отмена
+                        </button>
+                    </div>
+                `;
+
+                replyTextElement.innerHTML = '';
+                replyTextElement.appendChild(editForm);
+
+                editForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const newText = this.querySelector('textarea').value.trim();
+
+                    if (newText && newText !== currentText) {
+                        try {
+                            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                            const response = await fetch('@Url.Action("EditReply", "Read")', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/x-www-form-urlencoded',
+                                    'RequestVerificationToken': token
+                                },
+                                body: `replyId=${encodeURIComponent(replyId)}&replyText=${encodeURIComponent(newText)}`
+                            });
+
+                            const result = await response.json();
+
+                            if (result.success) {
+                                replyTextElement.textContent = newText;
+                                button.setAttribute('data-reply-text', newText);
+                                showToast('Ответ отредактирован', 'success');
+                            } else {
+                                showToast(result.message || 'Ошибка при редактировании', 'error');
+                                replyTextElement.textContent = currentText;
+                            }
+                        } catch (error) {
+                            console.error('Ошибка:', error);
+                            showToast('Ошибка соединения', 'error');
+                            replyTextElement.textContent = currentText;
+                        }
+                    }
+                });
+
+                editForm.querySelector('.cancel-edit-reply').addEventListener('click', function() {
+                    replyTextElement.textContent = currentText;
+                });
+            }
+
+            async function deleteReply(replyId, button) {
+                if (confirm('Вы уверены, что хотите удалить этот ответ?')) {
+                    try {
+                        const response = await fetch('@Url.Action("DeleteReply", "Read")', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: `replyId=${encodeURIComponent(replyId)}`
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            const replyElement = button.closest('.comment-reply');
+                            replyElement.style.opacity = '0';
+                            replyElement.style.transform = 'translateX(-20px)';
+
+                            setTimeout(() => {
+                                replyElement.remove();
+                                showToast('Ответ удален', 'success');
+                            }, 300);
+                        } else {
+                            showToast(result.message || 'Ошибка при удалении ответа', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Ошибка:', error);
+                        showToast('Ошибка соединения', 'error');
+                    }
+                }
+            }
+
+            function showToast(message, type = 'info') {
+                // Создаем элемент тоста
+                const toast = document.createElement('div');
+                toast.className = `fixed bottom-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg
+                                   transition-all duration-300 transform translate-x-full
+                                   ${type === 'success' ? 'bg-green-500 text-white' :
+                                     type === 'error' ? 'bg-red-500 text-white' :
+                                     type === 'info' ? 'bg-blue-500 text-white' :
+                                     'bg-[var(--accent-gold)] text-white'}`;
+
+                // Создаем иконку
+                const icon = document.createElement('i');
+                icon.className = `fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation' : 'info-circle'} mr-2`;
+
+                // Создаем текст
+                const text = document.createElement('span');
+                text.textContent = message;
+
+                // Собираем тост
+                const container = document.createElement('div');
+                container.className = 'flex items-center gap-2';
+                container.appendChild(icon);
+                container.appendChild(text);
+                toast.appendChild(container);
+
+                // Добавляем тост на страницу
+                document.body.appendChild(toast);
+
+                // Анимация появления
+                setTimeout(() => {
+                    toast.style.transform = 'translateX(0)';
+                }, 100);
+
+                // Удаляем тост через 3 секунды
+                setTimeout(() => {
+                    toast.style.transform = 'translateX(100%)';
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            document.body.removeChild(toast);
+                        }
+                    }, 300);
+                }, 3000);
+            }
+
+            function escapeHtml(unsafe) {
+                if (!unsafe) return '';
+                return unsafe
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+            }
+        });
+    </script>
+}
