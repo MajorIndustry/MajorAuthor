@@ -1,9 +1,10 @@
 ﻿// Проект: MajorAuthor.Data
 // Файл: ApplicationUser.cs
+using MajorAuthor.Data.Entities; // Необходимо для Author, UserPreferredGenre, UserPreferredTag, UserFavoriteBook
 using Microsoft.AspNetCore.Identity;
 using System;
 using System.Collections.Generic;
-using MajorAuthor.Data.Entities; // Необходимо для Author, UserPreferredGenre, UserPreferredTag, UserFavoriteBook
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MajorAuthor.Data
 {
@@ -15,7 +16,20 @@ namespace MajorAuthor.Data
     {
         // Пример дополнительного свойства, если оно вам нужно
         public DateTime RegistrationDate { get; set; } = DateTime.UtcNow;
+        // Новые поля для имени
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
 
+        [NotMapped]
+        public string FullName
+        {
+            get
+            {
+                var name = $"{FirstName} {LastName}".Trim();
+                // Если имя и фамилия пусты, возвращаем UserName
+                return string.IsNullOrEmpty(name) ? UserName ?? Email ?? "Пользователь" : name;
+            }
+        }
         // Если у пользователя есть аватар, можно добавить URL
         public string? ProfilePictureUrl { get; set; }
 
@@ -91,5 +105,7 @@ namespace MajorAuthor.Data
         /// Коллекция прочитанных глав пользователем.
         /// </summary>
         public ICollection<ChapterRead> ChaptersRead { get; set; } = new List<ChapterRead>();
+        public ICollection<PoemReading> PoemReadings { get; set; } = new List<PoemReading>();
+        public ICollection<BlogReading> BlogReadings { get; set; } = new List<BlogReading>();
     }
 }

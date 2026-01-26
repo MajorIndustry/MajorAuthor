@@ -1,0 +1,182 @@
+﻿@model MajorAuthor.Models.EditPoemModel
+
+@{
+    ViewData["Title"] = "Редактировать стихотворение";
+}
+
+<div class="min-h-screen custom-bg flex items-start sm:items-center justify-center py-10 px-2 sm:px-6 lg:px-8">
+    <div class="w-full max-w-3xl white-block rounded-2xl p-5 sm:p-8 lg:p-10">
+        <header class="mb-6 text-center">
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold gold-accent tracking-tight">
+                Редактировать стихотворение
+            </h1>
+        </header>
+
+        @* Общий блок ошибок *@
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <div class="poem-error-summary mb-6">
+                <h3 class="poem-error-summary-title">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Ошибки валидации
+                </h3>
+                <ul class="poem-error-list">
+                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <li class="poem-error-item">@error.ErrorMessage</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <form asp-action="EditPoem" asp-controller="MyWorks" method="post" class="space-y-6">
+            <input type="hidden" asp-for="Id" />
+
+            <div>
+                <label for="title" class="block text-sm font-medium poem-label mb-2">
+                    Название <span class="text-red-500">*</span>
+                </label>
+                <input asp-for="Title"
+                       id="title"
+                       class="w-full input-dark @(ViewData.ModelState["Title"]?.Errors?.Any() == true ? "input-error" : "") rounded-lg py-3 px-4 focus:outline-none focus:ring-4 focus:ring-yellow-300/30 focus:border-yellow-400 transition-shadow shadow-sm"
+                       placeholder="Название вашего стихотворения"
+                       minlength="3"
+                       maxlength="100"
+                       aria-required="true"
+                       aria-invalid="@(ViewData.ModelState["Title"]?.Errors?.Any() == true)"
+                       required />
+                <div class="mt-1 flex items-center justify-between">
+                    <span asp-validation-for="Title" class="poem-error"></span>
+                    <span class="text-sm text-gray-600 dark:text-gray-400">
+                        <span id="title-char-count" class="font-medium">@Model.Title.Length</span> / 100
+                    </span>
+                </div>
+            </div>
+
+            <div>
+                <label for="content" class="block text-sm font-medium poem-label mb-2">
+                    Текст стихотворения <span class="text-red-500">*</span>
+                </label>
+                <textarea asp-for="Content"
+                          id="content"
+                          rows="12"
+                          class="w-full input-dark @(ViewData.ModelState["Content"]?.Errors?.Any() == true ? "input-error" : "") rounded-lg py-4 px-4 leading-relaxed focus:outline-none focus:ring-4 focus:ring-yellow-300/30 focus:border-yellow-400 transition-shadow resize-vertical min-h-[180px] sm:min-h-[260px]"
+                          placeholder="Начните писать здесь..."
+                          minlength="10"
+                          maxlength="10000"
+                          aria-required="true"
+                          aria-invalid="@(ViewData.ModelState["Content"]?.Errors?.Any() == true)"
+                          required></textarea>
+                <div class="mt-1 flex items-center justify-between">
+                    <span asp-validation-for="Content" class="poem-error"></span>
+                    <span class="text-sm text-gray-600 dark:text-gray-400">
+                        <span id="content-char-count" class="font-medium">@Model.Content.Length</span> / 10000
+                    </span>
+                </div>
+
+                @* Блок ошибки дублирования *@
+                @if (ViewData.ModelState["Content"]?.Errors?.Any(e => e.ErrorMessage.Contains("уже существует")) == true)
+                {
+                    <div class="poem-duplicate-error mt-3">
+                        <i class="fas fa-exclamation-circle poem-duplicate-error-icon"></i>
+                        <div class="poem-duplicate-error-text">
+                            @ViewData.ModelState["Content"]?.Errors?.FirstOrDefault()?.ErrorMessage
+                        </div>
+                    </div>
+                }
+            </div>
+
+            <div class="pt-4 flex flex-col sm:flex-row-reverse sm:items-center gap-3">
+                <button type="submit"
+                        class="w-full sm:w-auto inline-flex justify-center items-center bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-semibold py-3 px-6 rounded-full transition transform hover:scale-[1.01] shadow-lg focus:outline-none focus:ring-4 focus:ring-yellow-300/40">
+                    <i class="fas fa-save mr-2"></i>
+                    Сохранить изменения
+                </button>
+
+                <a asp-action="Index"
+                   class="w-full sm:w-auto text-center py-3 px-6 rounded-full font-semibold gold-accent hover:text-yellow-500 transition border border-transparent hover:border-yellow-700">
+                    <i class="fas fa-times mr-2"></i>
+                    Отмена
+                </a>
+            </div>
+
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                <span class="text-red-500">*</span> - обязательные поля
+            </p>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const titleInput = document.getElementById('title');
+            const contentTextarea = document.getElementById('content');
+            const titleCount = document.getElementById('title-char-count');
+            const contentCount = document.getElementById('content-char-count');
+
+            function updateCount(inputElement, countElement) {
+                if (!inputElement || !countElement) return;
+
+                const max = inputElement.getAttribute('maxlength') || '';
+                const len = inputElement.value.length;
+
+                countElement.textContent = len;
+
+                // Цветовая индикация
+                const maxInt = parseInt(max);
+                if (maxInt && len > maxInt * 0.9) {
+                    countElement.classList.add('text-yellow-500');
+                    countElement.classList.remove('font-medium');
+                } else if (maxInt && len > maxInt) {
+                    countElement.classList.add('text-red-500');
+                    countElement.classList.remove('font-medium');
+                } else {
+                    countElement.classList.remove('text-yellow-500', 'text-red-500');
+                    countElement.classList.add('font-medium');
+                }
+            }
+
+            if (titleInput && titleCount) {
+                titleInput.addEventListener('input', function () {
+                    updateCount(titleInput, titleCount);
+                });
+                updateCount(titleInput, titleCount);
+            }
+
+            if (contentTextarea && contentCount) {
+                contentTextarea.addEventListener('input', function () {
+                    updateCount(contentTextarea, contentCount);
+                });
+                updateCount(contentTextarea, contentCount);
+            }
+
+            // Автофокус на поле с ошибкой
+            const errorFields = document.querySelectorAll('.input-error');
+            if (errorFields.length > 0) {
+                errorFields[0].focus();
+                errorFields[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            // Показ всплывающей подсказки при вводе
+            const showCharLimitWarning = (element, max) => {
+                const len = element.value.length;
+                if (len > max * 0.95) {
+                    element.setAttribute('title', `Осталось ${max - len} символов`);
+                } else {
+                    element.removeAttribute('title');
+                }
+            };
+
+            if (titleInput) {
+                titleInput.addEventListener('input', () => showCharLimitWarning(titleInput, 100));
+            }
+
+            if (contentTextarea) {
+                contentTextarea.addEventListener('input', () => showCharLimitWarning(contentTextarea, 10000));
+            }
+        });
+    </script>
+}

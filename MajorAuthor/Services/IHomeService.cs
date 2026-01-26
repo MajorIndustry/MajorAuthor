@@ -24,5 +24,6 @@ namespace MajorAuthor.Services
         /// <param name="genreId">ID жанра.</param>
         /// <returns>Список моделей BookDisplayModel.</returns>
         Task<List<HomeViewModel.BookDisplayModel>> GetBooksByGenreAsync(int genreId);
+        Task<IEnumerable<HomeViewModel.PoemDisplayModel>> GetPopularPoemsForPeriodAsync(string period);
     }
 }

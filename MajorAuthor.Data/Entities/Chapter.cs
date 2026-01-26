@@ -39,6 +39,8 @@ namespace MajorAuthor.Data.Entities
         /// Навигационное свойство к книге.
         /// </summary>
         public Book Book { get; set; }
+        public DateTime PublicationDate { get; set; }
+        public bool IsPublic { get; set; } = false;
 
         /// <summary>
         /// Коллекция страниц, входящих в эту главу.

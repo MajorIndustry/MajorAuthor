@@ -54,5 +54,27 @@ namespace MajorAuthor.Controllers
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
+
+        // В файле HomeController.cs (внутри класса HomeController)
+
+        /// <summary>
+        /// Action для получения популярных стихов по выбранному периоду (используется AJAX).
+        /// </summary>
+        /// <param name="period">Период для рейтинга (week, month, year).</param>
+        [HttpGet]
+        public async Task<IActionResult> GetPoemsByPeriod(string period)
+        {
+            if (string.IsNullOrEmpty(period))
+            {
+                return BadRequest("Период не указан.");
+            }
+
+            // Получаем данные стихов из сервиса
+            var poems = await _homeService.GetPopularPoemsForPeriodAsync(period);
+
+            // Предполагаем, что у вас есть PartialView для отображения списка стихов.
+            // Если вы используете другой файл, замените "_PoemListPartial" на ваше имя.
+            return PartialView("_PoemListPartial", poems);
+        }
     }
 }

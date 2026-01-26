@@ -1,0 +1,222 @@
+﻿@model MajorAuthor.Models.EditBlogModel
+@{
+    ViewData["Title"] = "Редактировать блог";
+}
+
+<div class="min-h-screen custom-bg flex items-start sm:items-center justify-center py-10 px-4">
+    <div class="w-full max-w-3xl white-block p-6 sm:p-8 lg:p-10">
+        <header class="mb-5 text-center">
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-extrabold gold-accent tracking-tight">Редактировать блог</h1>
+        </header>
+
+        <!-- ИСПРАВЛЕННАЯ ФОРМА - добавлен asp-controller -->
+        <form asp-controller="MyWorks" asp-action="EditBlog" method="post" enctype="multipart/form-data" class="space-y-4">
+            @Html.AntiForgeryToken()
+
+            <!-- Скрытое поле для передачи Id блога -->
+            <input type="hidden" asp-for="Id" />
+
+            <!-- Скрытое поле для ExistingImageUrl -->
+            <input type="hidden" asp-for="ExistingImageUrl" />
+
+            <div>
+                <label asp-for="Title" class="block text-sm font-medium label-dark mb-2">Название <span class="text-red-400">*</span></label>
+                <input asp-for="Title"
+                       id="title"
+                       class="w-full rounded-lg py-3 px-4 border input-dark focus:outline-none focus:ring-4 focus:ring-yellow-300/30 focus:border-yellow-400 transition-shadow shadow-sm"
+                       placeholder="Заголовок вашего блога"
+                       minlength="3" maxlength="200" required />
+                <div class="mt-1 flex items-center justify-between">
+                    <span asp-validation-for="Title" class="text-red-400 text-xs"></span>
+                    <span><span class="char-count-black title-char-count">@(Model.Title?.Length ?? 0)</span> / 200</span>
+                </div>
+            </div>
+
+            <!-- Блок для управления существующим изображением -->
+            <div id="existing-photo-block" class="@(string.IsNullOrEmpty(Model.ExistingImageUrl) ? "hidden" : "")">
+                <label class="block text-sm font-medium label-dark mb-2">Текущее изображение</label>
+                <div class="flex items-center gap-4 p-3 border rounded-lg bg-gray-50 border-gray-200">
+                    <img src="@Model.ExistingImageUrl" alt="Текущее изображение блога" class="h-16 w-16 object-cover rounded-md shadow-sm" />
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-700 truncate">Изображение загружено</p>
+                        <p class="text-xs text-gray-500">Загружено ранее</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" id="removePhotoBtn" class="text-sm text-red-500 hover:text-red-700 font-medium transition duration-150 ease-in-out">
+                            Удалить
+                        </button>
+                        <!-- ДОПОЛНИТЕЛЬНО: Кнопка восстановления (опционально) -->
+                        <button type="button" id="cancelRemoveBtn" class="text-sm text-blue-500 hover:text-blue-700 font-medium transition duration-150 ease-in-out hidden">
+                            Восстановить
+                        </button>
+                    </div>
+                </div>
+                <input type="hidden" asp-for="RemoveExistingPhoto" id="removeExistingPhotoHidden" />
+            </div>
+            <!-- Блок для загрузки нового изображения -->
+            <div id="new-photo-block" class="@(!string.IsNullOrEmpty(Model.ExistingImageUrl) ? "hidden" : "")">
+                <label asp-for="Photo" class="block text-sm font-medium label-dark mb-2">Изображение (опционально)</label>
+                <div class="flex items-center gap-3">
+                    <label class="file-btn" for="photoInput">Выбрать файл</label>
+                    <span class="text-sm text-gray-600 file-name" id="fileName">Файл не выбран</span>
+                </div>
+                <input asp-for="Photo" id="photoInput" type="file" class="file-input" accept=".jpg,.jpeg,.png,.gif,.webp,image/*" />
+                <span asp-validation-for="Photo" class="text-red-400 text-xs mt-1 block"></span>
+            </div>
+
+            <div>
+                <label asp-for="Content" class="block text-sm font-medium label-dark mb-2">Содержимое <span class="text-red-400">*</span></label>
+                <textarea asp-for="Content"
+                          id="content"
+                          rows="12"
+                          class="w-full rounded-lg py-4 px-4 border input-dark leading-relaxed focus:outline-none focus:ring-4 focus:ring-yellow-300/30 focus:border-yellow-400 transition-shadow resize-vertical content-min"
+                          placeholder="Начните писать здесь..."
+                          minlength="10" maxlength="20000" required></textarea>
+                <div class="mt-1 flex items-center justify-between">
+                    <span asp-validation-for="Content" class="text-red-400 text-xs"></span>
+                    <span><span class="char-count-black content-char-count">@(Model.Content?.Length ?? 0)</span> / 20000</span>
+                </div>
+            </div>
+
+            <div class="pt-4 flex flex-col sm:flex-row-reverse sm:items-center gap-3">
+                <button type="submit"
+                        class="w-full sm:w-auto inline-flex justify-center items-center bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-semibold py-3 px-6 rounded-full transition transform hover:scale-[1.01] shadow-lg focus:outline-none focus:ring-4 focus:ring-yellow-300/40">
+                    Сохранить изменения
+                </button>
+
+                <a asp-action="Index" class="w-full sm:w-auto text-center py-3 px-6 rounded-full font-semibold gold-accent hover:text-yellow-500 transition border border-transparent hover:border-yellow-700">
+                    Отмена
+                </a>
+            </div>
+
+            <p class="text-xs text-gray-500 mt-1">Поля, отмеченные <span class="text-red-400">*</span>, обязательны.</p>
+        </form>
+    </div>
+</div>
+<style>
+    .white-block .label-dark,
+    .white-block .char-count-black {
+        color: var(--auth-block-text) !important;
+    }
+</style>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const titleInput = document.getElementById('title');
+            const contentTextarea = document.getElementById('content');
+            const titleCount = document.querySelector('.title-char-count');
+            const contentCount = document.querySelector('.content-char-count');
+
+            const fileInput = document.getElementById('photoInput');
+            const fileNameSpan = document.getElementById('fileName');
+            const fileBtn = document.querySelector('.file-btn');
+
+            // Элементы для редактирования
+            const existingPhotoBlock = document.getElementById('existing-photo-block');
+            const newPhotoBlock = document.getElementById('new-photo-block');
+            const removePhotoBtn = document.getElementById('removePhotoBtn');
+            const removeExistingPhotoHidden = document.getElementById('removeExistingPhotoHidden');
+
+            function updateCount(inputElement, countElement) {
+                if (!inputElement || !countElement) return;
+                const len = inputElement.value.length;
+                countElement.textContent = len;
+                const max = inputElement.getAttribute('maxlength');
+                if (max && len > parseInt(max)) {
+                    countElement.classList.add('text-red-400');
+                } else {
+                    countElement.classList.remove('text-red-400');
+                }
+            }
+
+            // Инициализация и слушатели для счетчиков символов
+            if (titleInput && titleCount) {
+                titleInput.addEventListener('input', () => updateCount(titleInput, titleCount));
+                updateCount(titleInput, titleCount);
+            }
+
+            if (contentTextarea && contentCount) {
+                contentTextarea.addEventListener('input', () => updateCount(contentTextarea, contentCount));
+                updateCount(contentTextarea, contentCount);
+            }
+
+            // Логика кнопки "Выбрать файл"
+            if (fileBtn && fileInput && fileNameSpan) {
+                fileBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    fileInput.click();
+                });
+
+                // Обработчик изменения файла - ИСПРАВЛЕНО
+                fileInput.addEventListener('change', () => {
+                    const file = fileInput.files && fileInput.files[0];
+                    if (file) {
+                        fileNameSpan.textContent = file.name;
+                        // ВАЖНОЕ ИСПРАВЛЕНИЕ: При выборе нового файла сбрасываем флаг удаления
+                        if (removeExistingPhotoHidden) {
+                            removeExistingPhotoHidden.value = 'false';
+                        }
+                    } else {
+                        fileNameSpan.textContent = 'Файл не выбран';
+                    }
+                });
+            }
+
+            // Логика кнопки "Удалить" существующее изображение - ИСПРАВЛЕНО
+            if (removePhotoBtn && existingPhotoBlock && newPhotoBlock && removeExistingPhotoHidden) {
+                removePhotoBtn.addEventListener('click', () => {
+                    // Устанавливаем скрытый флаг для контроллера
+                    removeExistingPhotoHidden.value = 'true';
+                    // Скрываем блок с существующим фото
+                    existingPhotoBlock.classList.add('hidden');
+                    // Показываем блок загрузки нового фото
+                    newPhotoBlock.classList.remove('hidden');
+                    // Сбрасываем выбранный файл, если он был
+                    if (fileInput) {
+                        fileInput.value = '';
+                    }
+                    if (fileNameSpan) {
+                        fileNameSpan.textContent = 'Файл не выбран';
+                    }
+                });
+            }
+
+            // ДОБАВЛЕНО: Восстановление фото если пользователь передумал
+            function restoreExistingPhoto() {
+                if (removeExistingPhotoHidden) {
+                    removeExistingPhotoHidden.value = 'false';
+                }
+                if (existingPhotoBlock) {
+                    existingPhotoBlock.classList.remove('hidden');
+                }
+                if (newPhotoBlock) {
+                    newPhotoBlock.classList.add('hidden');
+                }
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+                if (fileNameSpan) {
+                    fileNameSpan.textContent = 'Файл не выбран';
+                }
+            }
+
+            // ДОБАВЛЕНО: Кнопка отмены удаления (можно добавить в HTML)
+            const cancelRemoveBtn = document.getElementById('cancelRemoveBtn');
+            if (cancelRemoveBtn) {
+                cancelRemoveBtn.addEventListener('click', restoreExistingPhoto);
+            }
+
+            // ДОБАВЛЕНО: Обработчик для отправки формы - отладочная информация
+            const form = document.querySelector('form');
+            if (form) {
+                form.addEventListener('submit', function (e) {
+                    console.log('Форма отправляется...');
+                    console.log('RemoveExistingPhoto:', removeExistingPhotoHidden ? removeExistingPhotoHidden.value : 'не найден');
+                    console.log('File selected:', fileInput ? fileInput.files[0] : 'нет файла');
+                });
+            }
+        });
+    </script>
+}

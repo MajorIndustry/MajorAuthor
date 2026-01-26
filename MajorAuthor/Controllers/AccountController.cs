@@ -1,16 +1,16 @@
 ﻿// Project: MajorAuthor.Web
 // File: Controllers/AccountController.cs
+using AspNet.Security.OAuth.Yandex;
+using MajorAuthor.Data;
 using MajorAuthor.Models;
+using MajorAuthor.Services;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Authentication;
-using System.Security.Claims;
-using MajorAuthor.Data;
-using Microsoft.AspNetCore.Authentication.Google;
-using MajorAuthor.Services;
-using AspNet.Security.OAuth.Yandex;
 
 namespace MajorAuthor.Controllers
 {
@@ -36,6 +36,8 @@ namespace MajorAuthor.Controllers
             _userManager = userManager;
             _accountService = accountService;
         }
+
+        // --- HTTP методы ---
 
         [HttpGet]
         public async Task<IActionResult> Login(string returnUrl = null)
@@ -119,8 +121,7 @@ namespace MajorAuthor.Controllers
             return View(model);
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
+        [HttpGet]
         public IActionResult ExternalLogin(string provider, string returnUrl = null)
         {
             var redirectUrl = Url.Action(nameof(ExternalLoginCallback), "Account", new { returnUrl });
@@ -135,70 +136,117 @@ namespace MajorAuthor.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> ExternalLoginCallback(string returnUrl = null)
+        public async Task<IActionResult> ExternalLoginCallback(string returnUrl = null, string remoteError = null)
         {
+            returnUrl = returnUrl ?? Url.Content("~/");
+
+            if (remoteError != null)
+            {
+                return RedirectToAction(nameof(Login), new
+                {
+                    returnUrl,
+                    error = remoteError
+                });
+            }
+
             var info = await _signInManager.GetExternalLoginInfoAsync();
             if (info == null)
             {
-                TempData["StatusMessage"] = "Ошибка при загрузке информации о внешнем входе.";
-                return RedirectToAction(nameof(Login), new { returnUrl });
+                return RedirectToAction(nameof(Login), new
+                {
+                    returnUrl,
+                    error = "Ошибка загрузки информации внешнего входа."
+                });
             }
 
             var result = await _accountService.HandleExternalLoginCallbackAsync(info, returnUrl);
 
-            switch (result)
+            if (result.Success)
             {
-                case ExternalLoginResult.Succeeded:
-                    return LocalRedirect(returnUrl ?? Url.Content("~/"));
-                case ExternalLoginResult.Lockout:
-                    return RedirectToAction("Lockout", "Account");
-                case ExternalLoginResult.LoginAlreadyAssociated:
-                    TempData["StatusMessage"] = "Этот внешний логин уже привязан к другому аккаунту. Пожалуйста, войдите с привязанным аккаунтом.";
-                    return RedirectToAction(nameof(Login), new { returnUrl });
-                case ExternalLoginResult.RequiresConfirmation:
-                    ViewData["ReturnUrl"] = returnUrl;
-                    ViewData["LoginProvider"] = info.LoginProvider;
-                    var email = info.Principal.FindFirstValue(ClaimTypes.Email);
-                    return View("ExternalLoginConfirmation", new ExternalLoginConfirmationViewModel { Email = email });
-                case ExternalLoginResult.LoginFailed:
-                default:
-                    TempData["StatusMessage"] = "Произошла ошибка при входе через внешний аккаунт. Попробуйте еще раз.";
-                    return RedirectToAction(nameof(Login), new { returnUrl });
+                return LocalRedirect(result.RedirectUrl);
             }
+
+            if (result._Lockout)
+            {
+                return RedirectToPage("./Lockout");
+            }
+
+            if (result._EmailRequired)
+            {
+                var tempDataKey = $"ExternalLogin_{System.Guid.NewGuid()}";
+                TempData[tempDataKey] = JsonSerializer.Serialize(result.TempData);
+
+                return RedirectToAction(nameof(Login), new
+                {
+                    status = "email_missing",
+                    provider = info.LoginProvider,
+                    tempDataKey = tempDataKey,
+                    returnUrl = returnUrl
+                });
+            }
+
+            return RedirectToAction(nameof(Login), new
+            {
+                returnUrl,
+                error = result._Error ?? "Ошибка при обработке внешнего входа."
+            });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ExternalLoginConfirmation(ExternalLoginConfirmationViewModel model, string returnUrl = null)
+        public async Task<IActionResult> CompleteExternalLoginRegistration([FromBody] ExternalLoginConfirmationViewModel model)
         {
-            var info = await _signInManager.GetExternalLoginInfoAsync();
-            if (info == null)
-            {
-                TempData["StatusMessage"] = "Ошибка при загрузке информации о внешнем входе во время подтверждения.";
-                return RedirectToAction(nameof(Login));
-            }
-
             if (!ModelState.IsValid)
             {
-                ViewData["ReturnUrl"] = returnUrl;
-                ViewData["LoginProvider"] = info.LoginProvider;
-                return View(model);
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+                return Json(new ExternalLoginJsonResult { Status = "error", Errors = errors });
             }
 
-            var result = await _accountService.ConfirmExternalLoginAsync(info, model);
-
-            if (result.Succeeded)
+            if (string.IsNullOrEmpty(model.TempDataKey))
             {
-                return LocalRedirect(returnUrl ?? Url.Content("~/"));
+                return Json(new ExternalLoginJsonResult
+                {
+                    Status = "session_expired",
+                    Message = "Сессия внешнего входа истекла. Пожалуйста, попробуйте войти снова."
+                });
             }
 
-            foreach (var error in result.Errors)
+            var tempDataJson = TempData[model.TempDataKey] as string;
+            if (string.IsNullOrEmpty(tempDataJson))
             {
-                ModelState.AddModelError(string.Empty, error.Description);
+                return Json(new ExternalLoginJsonResult
+                {
+                    Status = "session_expired",
+                    Message = "Сессия внешнего входа истекла. Пожалуйста, попробуйте войти снова."
+                });
             }
-            ViewData["ReturnUrl"] = returnUrl;
-            ViewData["LoginProvider"] = info.LoginProvider;
-            return View(model);
+
+            var tempData = JsonSerializer.Deserialize<ExternalLoginTempData>(tempDataJson);
+            if (tempData == null)
+            {
+                return Json(new ExternalLoginJsonResult
+                {
+                    Status = "session_expired",
+                    Message = "Сессия внешнего входа истекла. Пожалуйста, попробуйте войти снова."
+                });
+            }
+
+            var callbackUrl = Url.Action(
+                nameof(ConfirmEmail),
+                "Account",
+                values: new { returnUrl = tempData.ReturnUrl },
+                protocol: Request.Scheme);
+
+            var result = await _accountService.CompleteExternalRegistrationAsync(model.Email, tempData, callbackUrl);
+
+            // Обрабатываем случай, когда требуется подтверждение email
+            if (result.Status == "email_confirmation_required")
+            {
+                // Перенаправляем на страницу входа с сообщением
+                result.RedirectUrl = Url.Action("Login", "Account");
+            }
+
+            return Json(result);
         }
 
         [HttpPost]
@@ -213,21 +261,24 @@ namespace MajorAuthor.Controllers
         public async Task<IActionResult> ConfirmEmail(string userId, string code, string returnUrl = null)
         {
             var result = await _accountService.ConfirmEmailAsync(userId, code);
-            ViewBag.StatusMessage = result.Succeeded ? "Спасибо за подтверждение вашего email." : "Ошибка подтверждения email.";
 
             if (result.Succeeded)
             {
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user != null)
                 {
+                    // Автоматически входим после подтверждения email
                     await _signInManager.SignInAsync(user, isPersistent: false);
+
+                    // Устанавливаем сообщение об успехе
+                    TempData["StatusMessage"] = "Спасибо за подтверждение вашего email. Вы успешно вошли в систему.";
+                    return LocalRedirect(returnUrl ?? Url.Content("~/"));
                 }
-                return LocalRedirect(returnUrl ?? Url.Content("~/"));
             }
-            else
-            {
-                return View("Error");
-            }
+
+            // Если что-то пошло не так
+            ViewBag.StatusMessage = "Ошибка подтверждения email.";
+            return View("Error");
         }
 
         [HttpGet]
@@ -338,6 +389,14 @@ namespace MajorAuthor.Controllers
         public IActionResult Lockout()
         {
             return View();
+        }
+
+        [HttpGet]
+        private IActionResult ReturnPopupCallback(object responseData)
+        {
+            var jsonString = System.Text.Json.JsonSerializer.Serialize(responseData);
+            ViewData["JsonResponse"] = jsonString;
+            return View("ExternalLoginPopupCallback");
         }
     }
 }

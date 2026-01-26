@@ -1,0 +1,783 @@
+﻿@model MajorAuthor.Models.CatalogViewModel
+@{
+    ViewData["Title"] = "Все книги";
+    var genres = ViewBag.Genres as List<string> ?? new List<string>();
+    var tags = ViewBag.Tags as List<string> ?? new List<string>();
+}
+
+<div class="min-h-screen bg-gradient-to-br from-[var(--bg-primary)] to-[var(--bg-secondary)] py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Заголовок и сортировка -->
+        <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-8">
+            <div class="flex flex-col">
+                <h1 class="text-3xl font-bold text-[var(--text-primary)] mb-2">
+                    <i class="fas fa-book text-[var(--accent-gold)] mr-3"></i>
+                    Все книги
+                </h1>
+                @if (!string.IsNullOrEmpty(Model.SearchQuery))
+                {
+                    <div class="flex items-center mt-2">
+                        <span class="text-[var(--text-secondary)] mr-2">Результаты поиска для:</span>
+                        <span class="text-[var(--accent-gold)] font-semibold">"@Model.SearchQuery"</span>
+                        <button onclick="clearSearch()" class="ml-3 text-red-500 hover:text-red-700 transition-colors">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                }
+            </div>
+
+            <div class="flex flex-wrap gap-2 mt-4 lg:mt-0">
+                <span class="text-[var(--text-primary)] font-medium mr-2">Сортировка:</span>
+
+                <!-- Рейтинг -->
+                <div class="flex">
+                    <a href="@Url.Action("AllBooks", new { sortBy = "rating", sortOrder = "asc", page = 1, searchQuery = Model.SearchQuery, genres = Model.SelectedGenres, tags = Model.SelectedTags })"
+                       class="sort-btn @(Model.SortBy == "rating" && Model.SortOrder == "asc" ? "active" : "") rounded-l rounded-r-none border-r-0">
+                        <i class="fas fa-sort-amount-up mr-2"></i>Рейтинг ↑
+                    </a>
+                    <a href="@Url.Action("AllBooks", new { sortBy = "rating", sortOrder = "desc", page = 1, searchQuery = Model.SearchQuery, genres = Model.SelectedGenres, tags = Model.SelectedTags })"
+                       class="sort-btn @(Model.SortBy == "rating" && Model.SortOrder == "desc" ? "active" : "") rounded-r rounded-l-none">
+                        <i class="fas fa-sort-amount-down mr-2"></i>Рейтинг ↓
+                    </a>
+                </div>
+
+                <!-- Дата -->
+                <div class="flex">
+                    <a href="@Url.Action("AllBooks", new { sortBy = "date", sortOrder = "asc", page = 1, searchQuery = Model.SearchQuery, genres = Model.SelectedGenres, tags = Model.SelectedTags })"
+                       class="sort-btn @(Model.SortBy == "date" && Model.SortOrder == "asc" ? "active" : "") rounded-l rounded-r-none border-r-0">
+                        <i class="fas fa-sort-amount-up mr-2"></i>Дата ↑
+                    </a>
+                    <a href="@Url.Action("AllBooks", new { sortBy = "date", sortOrder = "desc", page = 1, searchQuery = Model.SearchQuery, genres = Model.SelectedGenres, tags = Model.SelectedTags })"
+                       class="sort-btn @(Model.SortBy == "date" && Model.SortOrder == "desc" ? "active" : "") rounded-r rounded-l-none">
+                        <i class="fas fa-sort-amount-down mr-2"></i>Дата ↓
+                    </a>
+                </div>
+
+                <!-- Лайки -->
+                <div class="flex">
+                    <a href="@Url.Action("AllBooks", new { sortBy = "likes", sortOrder = "asc", page = 1, searchQuery = Model.SearchQuery, genres = Model.SelectedGenres, tags = Model.SelectedTags })"
+                       class="sort-btn @(Model.SortBy == "likes" && Model.SortOrder == "asc" ? "active" : "") rounded-l rounded-r-none border-r-0">
+                        <i class="fas fa-sort-amount-up mr-2"></i>Лайки ↑
+                    </a>
+                    <a href="@Url.Action("AllBooks", new { sortBy = "likes", sortOrder = "desc", page = 1, searchQuery = Model.SearchQuery, genres = Model.SelectedGenres, tags = Model.SelectedTags })"
+                       class="sort-btn @(Model.SortBy == "likes" && Model.SortOrder == "desc" ? "active" : "") rounded-r rounded-l-none">
+                        <i class="fas fa-sort-amount-down mr-2"></i>Лайки ↓
+                    </a>
+                </div>
+
+                <!-- Просмотры -->
+                <div class="flex">
+                    <a href="@Url.Action("AllBooks", new { sortBy = "reads", sortOrder = "asc", page = 1, searchQuery = Model.SearchQuery, genres = Model.SelectedGenres, tags = Model.SelectedTags })"
+                       class="sort-btn @(Model.SortBy == "reads" && Model.SortOrder == "asc" ? "active" : "") rounded-l rounded-r-none border-r-0">
+                        <i class="fas fa-sort-amount-up mr-2"></i>Просмотры ↑
+                    </a>
+                    <a href="@Url.Action("AllBooks", new { sortBy = "reads", sortOrder = "desc", page = 1, searchQuery = Model.SearchQuery, genres = Model.SelectedGenres, tags = Model.SelectedTags })"
+                       class="sort-btn @(Model.SortBy == "reads" && Model.SortOrder == "desc" ? "active" : "") rounded-r rounded-l-none">
+                        <i class="fas fa-sort-amount-down mr-2"></i>Просмотры ↓
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Фильтры по жанрам и тегам -->
+        <div class="white-block mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Фильтр по жанрам -->
+                <div>
+                    <label class="block text-sm font-medium text-[var(--auth-block-text)] mb-2">
+                        <i class="fas fa-tags mr-2"></i>Жанры
+                    </label>
+                    <div class="filter-container">
+                        <select id="genreFilter" multiple class="filter-select" data-placeholder="Выберите жанры...">
+                            @foreach (var genre in genres)
+                            {
+                                <option value="@genre" selected="@(Model.SelectedGenres?.Contains(genre) == true)">@genre</option>
+                            }
+                        </select>
+                    </div>
+                    <!-- Контейнер для выбранных жанров -->
+                    <div id="selectedGenresContainer" class="selected-items-container mt-2 flex flex-wrap gap-2">
+                        @if (!string.IsNullOrEmpty(Model.SelectedGenres))
+                        {
+                            var selectedGenres = Model.SelectedGenres.Split(',');
+                            foreach (var genre in selectedGenres)
+                            {
+                                <span class="selected-item genre-badge">
+                                    @genre
+                                    <button type="button" class="remove-item" data-value="@genre" data-type="genre">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </span>
+                            }
+                        }
+                    </div>
+                </div>
+
+                <!-- Фильтр по тегам -->
+                <div>
+                    <label class="block text-sm font-medium text-[var(--auth-block-text)] mb-2">
+                        <i class="fas fa-hashtag mr-2"></i>Теги
+                    </label>
+                    <div class="filter-container">
+                        <select id="tagFilter" multiple class="filter-select" data-placeholder="Выберите теги...">
+                            @foreach (var tag in tags)
+                            {
+                                <option value="@tag" selected="@(Model.SelectedTags?.Contains(tag) == true)">@tag</option>
+                            }
+                        </select>
+                    </div>
+                    <!-- Контейнер для выбранных тегов -->
+                    <div id="selectedTagsContainer" class="selected-items-container mt-2 flex flex-wrap gap-2">
+                        @if (!string.IsNullOrEmpty(Model.SelectedTags))
+                        {
+                            var selectedTags = Model.SelectedTags.Split(',');
+                            foreach (var tag in selectedTags)
+                            {
+                                <span class="selected-item tag-badge">
+                                    #@tag.TrimStart('#')
+                                    <button type="button" class="remove-item" data-value="@tag" data-type="tag">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </span>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-between items-center mt-4">
+                <button onclick="clearFilters()" class="auth-btn-secondary">
+                    <i class="fas fa-times mr-2"></i>Очистить фильтры
+                </button>
+                <button onclick="applyFilters()" class="auth-btn-primary">
+                    <i class="fas fa-filter mr-2"></i>Применить фильтры
+                </button>
+            </div>
+        </div>
+
+        <!-- Контейнер для динамического контента -->
+        <div id="booksContainer">
+            @await Html.PartialAsync("_BookListPartial", Model)
+        </div>
+    </div>
+</div>
+
+<style>
+    .sort-btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 0.75rem;
+        background: var(--auth-block-bg);
+        border: 1px solid var(--auth-block-border);
+        color: var(--auth-block-text);
+        font-size: 0.75rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        white-space: nowrap;
+        cursor: pointer;
+        border-radius: 6px;
+        margin: 0 2px;
+    }
+
+        .sort-btn:hover {
+            background: var(--accent-gold);
+            color: white;
+            border-color: var(--accent-gold);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(var(--accent-gold-rgb, 167, 136, 95), 0.3);
+        }
+
+        .sort-btn.active {
+            background: var(--accent-gold, #A7885F);
+            color: white;
+            border-color: var(--accent-gold, #A7885F);
+            font-weight: 600;
+            box-shadow: 0 2px 12px rgba(var(--accent-gold-rgb, 167, 136, 95), 0.4);
+        }
+
+    .pagination-btn {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.5rem 1rem;
+        background: var(--auth-block-bg);
+        border: 1px solid var(--auth-block-border);
+        color: var(--auth-block-text);
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        cursor: pointer;
+    }
+
+        .pagination-btn:hover {
+            background: var(--accent-gold);
+            color: white;
+            border-color: var(--accent-gold);
+        }
+
+        .pagination-btn.active {
+            background: var(--accent-gold);
+            color: white;
+            border-color: var(--accent-gold);
+            cursor: default;
+            font-weight: 600;
+        }
+
+    /* Контейнер для фильтров с увеличенной шириной */
+    .filter-container {
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .filter-select {
+        width: 100%;
+        border-radius: 0.5rem;
+        border: 1px solid var(--auth-block-border);
+        background: var(--auth-block-bg);
+        color: var(--auth-block-text);
+        min-height: 3rem;
+        font-size: 0.95rem;
+    }
+
+        .filter-select:focus {
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 3px rgba(var(--accent-gold-rgb), 0.2);
+            outline: none;
+        }
+
+    /* Контейнер для выбранных элементов */
+    .selected-items-container {
+        min-height: 2.5rem;
+    }
+
+    .selected-item {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.375rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin: 0.125rem;
+    }
+
+    .remove-item {
+        background: none;
+        border: none;
+        color: inherit;
+        margin-left: 0.5rem;
+        cursor: pointer;
+        padding: 0;
+        width: 1rem;
+        height: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: background-color 0.2s;
+    }
+
+        .remove-item:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+    /* Стили для выбранных жанров и тегов */
+    .genre-badge {
+        background: var(--accent-gold);
+        color: white;
+        border: 1px solid var(--accent-gold);
+    }
+
+    .tag-badge {
+        background: rgba(255, 193, 7, 0.15);
+        color: #b45309;
+        border: 1px solid rgba(255, 193, 7, 0.3);
+    }
+
+    /* Select2 стили с увеличенной шириной */
+    .select2-container {
+        width: 100% !important;
+        max-width: 300px !important;
+    }
+
+    .select2-container--default .select2-selection--multiple {
+        background-color: var(--auth-block-bg) !important;
+        border: 1px solid var(--auth-block-border) !important;
+        border-radius: 0.5rem !important;
+        color: var(--auth-block-text) !important;
+        min-height: 3rem !important;
+        padding: 0.25rem 0.5rem !important;
+        font-size: 0.95rem !important;
+        width: 300px !important;
+        max-width: 300px !important;
+    }
+
+        .select2-container--default .select2-selection--multiple .select2-selection__rendered {
+            padding: 0 !important;
+            width: 100% !important;
+        }
+
+        .select2-container--default .select2-selection--multiple .select2-selection__choice {
+            display: none !important; /* Скрываем выбранные элементы внутри Select2 */
+        }
+
+        .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+            display: none !important;
+        }
+
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background-color: var(--accent-gold) !important;
+        color: white !important;
+    }
+
+    .select2-container--default .select2-search--inline .select2-search__field {
+        color: var(--auth-block-text) !important;
+        font-size: 0.95rem !important;
+        margin-top: 0.5rem !important;
+        width: 100% !important;
+    }
+
+    .select2-dropdown {
+        background-color: var(--auth-block-bg) !important;
+        border: 1px solid var(--auth-block-border) !important;
+        color: var(--auth-block-text) !important;
+        border-radius: 0.5rem !important;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+        width: 300px !important;
+        max-width: 300px !important;
+    }
+
+    .select2-container--default .select2-results__option[aria-selected=true] {
+        background-color: rgba(var(--accent-gold-rgb), 0.2) !important;
+        color: var(--auth-block-text) !important;
+    }
+
+    .select2-container--default .select2-results__option {
+        padding: 0.5rem 0.75rem !important;
+        font-size: 0.9rem !important;
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__placeholder {
+        color: var(--text-secondary) !important;
+        font-size: 0.95rem !important;
+        line-height: 2.5 !important;
+    }
+
+    /* Адаптивность для мобильных устройств */
+    @@media (max-width: 768px) {
+        .filter-container {
+            max-width: 100% !important;
+        }
+
+        .select2-container,
+        .select2-container--default .select2-selection--multiple,
+        .select2-dropdown {
+            width: 100% !important;
+            max-width: 100% !important;
+        }
+    }
+</style>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" />
+
+    <script>
+        // Глобальные переменные для хранения текущих фильтров
+        let currentSearchQuery = '@Html.Raw(Model.SearchQuery)';
+        let currentGenres = '@Html.Raw(Model.SelectedGenres)';
+        let currentTags = '@Html.Raw(Model.SelectedTags)';
+
+        // Функция для обновления выбранных элементов в контейнерах
+        function updateSelectedItems() {
+            // Обновляем контейнер жанров
+            const selectedGenres = $('#genreFilter').val() || [];
+            const genresContainer = $('#selectedGenresContainer');
+            genresContainer.empty();
+
+            selectedGenres.forEach(genre => {
+                const badge = $(`
+                    <span class="selected-item genre-badge">
+                        ${genre}
+                        <button type="button" class="remove-item" data-value="${genre}" data-type="genre">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </span>
+                `);
+                genresContainer.append(badge);
+            });
+
+            // Обновляем контейнер тегов
+            const selectedTags = $('#tagFilter').val() || [];
+            const tagsContainer = $('#selectedTagsContainer');
+            tagsContainer.empty();
+
+            selectedTags.forEach(tag => {
+                const badge = $(`
+                    <span class="selected-item tag-badge">
+                        #${tag.replace(/^#/, '')}
+                        <button type="button" class="remove-item" data-value="${tag}" data-type="tag">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </span>
+                `);
+                tagsContainer.append(badge);
+            });
+
+            // Обновляем глобальные переменные
+            currentGenres = selectedGenres.join(',');
+            currentTags = selectedTags.join(',');
+        }
+
+        // Функция для удаления выбранного элемента
+        function removeSelectedItem(value, type) {
+            if (type === 'genre') {
+                const selectedGenres = $('#genreFilter').val() || [];
+                const index = selectedGenres.indexOf(value);
+                if (index > -1) {
+                    selectedGenres.splice(index, 1);
+                    $('#genreFilter').val(selectedGenres).trigger('change');
+                }
+            } else if (type === 'tag') {
+                const selectedTags = $('#tagFilter').val() || [];
+                const index = selectedTags.indexOf(value);
+                if (index > -1) {
+                    selectedTags.splice(index, 1);
+                    $('#tagFilter').val(selectedTags).trigger('change');
+                }
+            }
+            updateSelectedItems();
+        }
+
+        // Функция для применения фильтров
+        function applyFilters() {
+            updateSelectedItems();
+            performBooksSearch(currentSearchQuery, currentGenres, currentTags);
+        }
+
+        // Функция для очистки фильтров
+        function clearFilters() {
+            $('#genreFilter').val(null).trigger('change');
+            $('#tagFilter').val(null).trigger('change');
+            updateSelectedItems();
+            currentGenres = '';
+            currentTags = '';
+            performBooksSearch(currentSearchQuery, '', '');
+        }
+
+        // Функция для очистки поиска
+        function clearSearch() {
+            currentSearchQuery = '';
+            performBooksSearch('', currentGenres, currentTags);
+            $('#mainSearchInput').val('');
+            $('#searchInputMobile').val('');
+        }
+
+        // Функция для очистки поиска и фильтров
+        function clearSearchAndFilters() {
+            currentSearchQuery = '';
+            currentGenres = '';
+            currentTags = '';
+            performBooksSearch('', '', '');
+            $('#mainSearchInput').val('');
+            $('#searchInputMobile').val('');
+            $('#genreFilter').val(null).trigger('change');
+            $('#tagFilter').val(null).trigger('change');
+            updateSelectedItems();
+        }
+
+        // Обновленная функция поиска с поддержкой фильтров
+        function performBooksSearch(query, genres, tags) {
+            currentSearchQuery = query;
+            currentGenres = genres || currentGenres;
+            currentTags = tags || currentTags;
+
+            showLoadingIndicator();
+            const urlParams = new URLSearchParams(window.location.search);
+            const sortBy = urlParams.get('sortBy') || 'rating';
+            const sortOrder = urlParams.get('sortOrder') || 'desc';
+
+            $.ajax({
+                url: '@Url.Action("SearchBooks", "Catalog")',
+                type: 'GET',
+                data: {
+                    query: query,
+                    sortBy: sortBy,
+                    sortOrder: sortOrder,
+                    page: 1,
+                    genres: currentGenres,
+                    tags: currentTags
+                },
+                success: function (data) {
+                    $('#booksContainer').html(data);
+                    updateBrowserHistory(query, sortBy, sortOrder, 1, currentGenres, currentTags);
+                    updateActiveSortButtons(sortBy, sortOrder);
+                },
+                error: function () {
+                    hideLoadingIndicator();
+                    showError('Произошла ошибка при поиске. Пожалуйста, попробуйте еще раз.');
+                }
+            });
+        }
+
+        // Функция для обновления активных кнопок сортировки
+        function updateActiveSortButtons(sortBy, sortOrder) {
+            $('.sort-btn').removeClass('active');
+            $(`.sort-btn[href*="sortBy=${sortBy}"][href*="sortOrder=${sortOrder}"]`).addClass('active');
+        }
+
+        // Функция для обновления истории браузера
+        function updateBrowserHistory(query, sortBy, sortOrder, page, genres, tags) {
+            const params = new URLSearchParams();
+            if (query) params.set('searchQuery', query);
+            if (sortBy && sortBy !== 'rating') params.set('sortBy', sortBy);
+            if (sortOrder && sortOrder !== 'desc') params.set('sortOrder', sortOrder);
+            if (page && page !== 1) params.set('page', page);
+            if (genres) params.set('genres', genres);
+            if (tags) params.set('tags', tags);
+
+            const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+            window.history.replaceState({ path: newUrl }, '', newUrl);
+
+            // Обновляем заголовок с поисковым запросом
+            const titleDiv = document.querySelector('.flex.flex-col');
+            if (titleDiv) {
+                let existingSearchDisplay = titleDiv.querySelector('.flex.items-center.mt-2');
+                if (existingSearchDisplay) existingSearchDisplay.remove();
+
+                if (query) {
+                    titleDiv.insertAdjacentHTML('beforeend', `
+                        <div class="flex items-center mt-2">
+                            <span class="text-[var(--text-secondary)] mr-2">Результаты поиска для:</span>
+                            <span class="text-[var(--accent-gold)] font-semibold">"${escapeHtml(query)}"</span>
+                            <button onclick="clearSearch()" class="ml-3 text-red-500 hover:text-red-700 transition-colors" title="Очистить поиск">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `);
+                }
+            }
+        }
+
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Функция для показа индикатора загрузки
+        function showLoadingIndicator() {
+            $('#booksContainer').html(`
+                <div class="white-block text-center py-12">
+                    <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[var(--accent-gold)] mx-auto mb-4"></div>
+                    <p class="text-[var(--auth-block-text)]">Поиск книг...</p>
+                </div>
+            `);
+        }
+
+        function hideLoadingIndicator() { }
+
+        function showError(message) {
+            $('#booksContainer').html(`
+                <div class="white-block text-center py-12">
+                    <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-4"></i>
+                    <p class="text-[var(--auth-block-text)]">${message}</p>
+                </div>
+            `);
+        }
+
+        // Функция для живого поиска жанров и тегов
+        function setupLiveSearch() {
+            // Живой поиск для жанров
+            $('#genreFilter').select2({
+                placeholder: $(this).data('placeholder') || "Выберите жанры...",
+                allowClear: true,
+                width: '300px',
+                theme: 'bootstrap-5',
+                minimumInputLength: 0,
+                language: {
+                    noResults: function() {
+                        return "Жанры не найдены";
+                    },
+                    searching: function() {
+                        return "Поиск...";
+                    }
+                }
+            });
+
+            // Живой поиск для тегов
+            $('#tagFilter').select2({
+                placeholder: $(this).data('placeholder') || "Выберите теги...",
+                allowClear: true,
+                width: '300px',
+                theme: 'bootstrap-5',
+                minimumInputLength: 0,
+                language: {
+                    noResults: function() {
+                        return "Теги не найдены";
+                    },
+                    searching: function() {
+                        return "Поиск...";
+                    }
+                }
+            });
+
+            // Обновляем контейнеры при изменении выбора
+            $('#genreFilter, #tagFilter').on('change', function() {
+                updateSelectedItems();
+            });
+
+            // Адаптивность для мобильных устройств
+            function handleResize() {
+                if (window.innerWidth <= 768) {
+                    $('#genreFilter, #tagFilter').select2({
+                        width: '100%'
+                    });
+                } else {
+                    $('#genreFilter, #tagFilter').select2({
+                        width: '300px'
+                    });
+                }
+            }
+
+            // Обработчик изменения размера окна
+            $(window).on('resize', handleResize);
+            handleResize(); // Вызываем сразу при загрузке
+        }
+
+        // Обработчик для удаления выбранных элементов
+        $(document).on('click', '.remove-item', function() {
+            const value = $(this).data('value');
+            const type = $(this).data('type');
+            removeSelectedItem(value, type);
+        });
+
+        // Обработчик для пагинации
+        $(document).on('click', '#booksContainer .pagination-btn', function (e) {
+            e.preventDefault();
+            if ($(this).hasClass('active') || $(this).text() === '...') return;
+
+            const pageUrl = new URL($(this).attr('href'), window.location.origin);
+            const page = pageUrl.searchParams.get('page');
+
+            if (page) {
+                const urlParams = new URLSearchParams(window.location.search);
+                const sortBy = urlParams.get('sortBy') || 'rating';
+                const sortOrder = urlParams.get('sortOrder') || 'desc';
+
+                showLoadingIndicator();
+
+                $.ajax({
+                    url: '@Url.Action("AllBooks", "Catalog")',
+                    type: 'GET',
+                    data: {
+                        searchQuery: currentSearchQuery,
+                        sortBy: sortBy,
+                        sortOrder: sortOrder,
+                        page: page,
+                        genres: currentGenres,
+                        tags: currentTags
+                    },
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    success: function (data) {
+                        $('#booksContainer').html(data);
+                        updateBrowserHistory(currentSearchQuery, sortBy, sortOrder, page, currentGenres, currentTags);
+                        updateActiveSortButtons(sortBy, sortOrder);
+                        window.scrollTo(0, 0);
+                    },
+                    error: function () {
+                        hideLoadingIndicator();
+                        showError('Ошибка при загрузке страницы.');
+                    }
+                });
+            }
+        });
+
+        // Обработчик для сортировки
+        $(document).on('click', '.sort-btn', function (e) {
+            e.preventDefault();
+            if ($(this).hasClass('active')) return;
+
+            const url = new URL($(this).attr('href'), window.location.origin);
+            const sortBy = url.searchParams.get('sortBy');
+            const sortOrder = url.searchParams.get('sortOrder');
+
+            showLoadingIndicator();
+
+            $.ajax({
+                url: '@Url.Action("AllBooks", "Catalog")',
+                type: 'GET',
+                data: {
+                    searchQuery: currentSearchQuery,
+                    sortBy: sortBy,
+                    sortOrder: sortOrder,
+                    page: 1,
+                    genres: currentGenres,
+                    tags: currentTags
+                },
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function (data) {
+                    $('#booksContainer').html(data);
+                    updateBrowserHistory(currentSearchQuery, sortBy, sortOrder, 1, currentGenres, currentTags);
+                    updateActiveSortButtons(sortBy, sortOrder);
+                },
+                error: function () {
+                    hideLoadingIndicator();
+                    showError('Ошибка при применении сортировки.');
+                }
+            });
+        });
+
+        // Инициализация при загрузке страницы
+        $(document).ready(function () {
+            // Инициализируем живой поиск для фильтров
+            setupLiveSearch();
+
+            // Инициализируем контейнеры выбранных элементов
+            updateSelectedItems();
+
+            // Инициализируем активные кнопки при загрузке
+            const urlParams = new URLSearchParams(window.location.search);
+            const sortBy = urlParams.get('sortBy') || 'rating';
+            const sortOrder = urlParams.get('sortOrder') || 'desc';
+            updateActiveSortButtons(sortBy, sortOrder);
+
+            // Перехватываем отправку форм поиска
+            $('#mainSearchForm, #mobileSearchForm').on('submit', function (e) {
+                if (window.location.pathname.toLowerCase().includes('/catalog/allbooks')) {
+                    const query = $(this).find('input[type="text"]').val().trim();
+                    e.preventDefault();
+                    performBooksSearch(query, currentGenres, currentTags);
+
+                    $('#mainSearchInputWrapper').removeClass('active');
+                    $('#searchWrapperMobile').removeClass('active');
+                    $('.search-toggle-desktop').removeClass('hidden-when-active');
+                }
+            });
+
+            // Обработчик для live search
+            let searchTimeout;
+            $('#mainSearchInput, #searchInputMobile').on('input', function () {
+                if (window.location.pathname.toLowerCase().includes('/catalog/allbooks')) {
+                    clearTimeout(searchTimeout);
+                    const query = $(this).val().trim();
+
+                    if (query.length >= 2) {
+                        searchTimeout = setTimeout(() => {
+                            performBooksSearch(query, currentGenres, currentTags);
+                        }, 500);
+                    } else if (query.length === 0 && currentSearchQuery) {
+                        clearSearch();
+                    }
+                }
+            });
+        });
+    </script>
+}

@@ -1,0 +1,37 @@
+﻿@* Views/MyWorks/InvitationResult.cshtml *@
+@{
+    ViewData["Title"] = "Результат приглашения";
+    Layout = "_Layout";
+}
+
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <div class="white-block animate-fade-in-up text-center">
+        <div class="mb-6">
+            <i class="fas fa-envelope-open-text text-6xl text-amber-500 mb-4"></i>
+            <h2 class="text-2xl font-bold gradient-text mb-4">@ViewBag.Message</h2>
+
+            @if (!string.IsNullOrEmpty(ViewBag.BookTitle))
+            {
+                <div class="mt-4 p-4 bg-amber-500 bg-opacity-10 rounded-lg">
+                    <h3 class="text-lg font-semibold text-amber-400">Книга: @ViewBag.BookTitle</h3>
+                    @if (ViewBag.BookId != null)
+                    {
+                        <a href="@Url.Action("Read", "Books", new { id = ViewBag.BookId })"
+                           class="gold-button inline-block mt-3">
+                            <i class="fas fa-book-open mr-2"></i>Перейти к книге
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a asp-action="Index" class="auth-btn-secondary">
+                <i class="fas fa-arrow-left mr-2"></i>Вернуться к моим работам
+            </a>
+            <a asp-action="CreateBook" class="gold-button">
+                <i class="fas fa-plus mr-2"></i>Создать новую книгу
+            </a>
+        </div>
+    </div>
+</div>

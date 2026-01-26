@@ -67,7 +67,9 @@ namespace MajorAuthor.Data.Entities
         /// Количество комментариев к записи блога.
         /// </summary>
         public int CommentsCount { get; set; } = 0;
-
+        public double Rating { get; set; } = 0;
+        public double WeeklyRating { get; set; } = 0;
+        public double MonthlyRating { get; set; } = 0;
         /// <summary>
         /// Коллекция лайков этой записи блога.
         /// </summary>
@@ -77,5 +79,8 @@ namespace MajorAuthor.Data.Entities
         /// Коллекция комментариев к этой записи блога.
         /// </summary>
         public ICollection<BlogComment> Comments { get; set; } = new List<BlogComment>();
+
+        public ICollection<BlogReading> Readings { get; set; } = new List<BlogReading>();
+        public DateTime LastUpdateTime { get; set; }
     }
 }

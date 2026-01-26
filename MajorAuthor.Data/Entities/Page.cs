@@ -33,7 +33,7 @@ namespace MajorAuthor.Data.Entities
         /// URL изображения на странице (например, для манги). Может быть null, если страница содержит только текст.
         /// </summary>
         [MaxLength(1000)]
-        public string ImageUrl { get; set; }
+        public string? ImageUrl { get; set; }
 
         /// <summary>
         /// Внешний ключ к главе, к которой принадлежит страница.

@@ -1,6 +1,7 @@
 ﻿// Проект: MajorAuthor.Data
 // Файл: DbInitializer.cs
 using MajorAuthor.Data.Entities;
+using Microsoft.IdentityModel.Tokens;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -19,14 +20,16 @@ namespace MajorAuthor.Data
         public static async Task Initialize(MajorAuthorDbContext context)
         {
             // Проверяем, есть ли уже какие-либо жанры
-            if (context.Genres.Any())
+            if (context.Genres.Any() && context.BookStatuses.Any() && context.BookTypes.Any())
             {
                 return; // База данных уже инициализирована
             }
 
             // Добавляем базовые жанры
-            var genres = new Genre[]
+            if (context.Genres.IsNullOrEmpty())
             {
+                var genres = new Genre[]
+                {
                 new Genre { Name = "Фантастика" },
                 new Genre { Name = "Фэнтези" },
                 new Genre { Name = "Детектив" },
@@ -37,11 +40,39 @@ namespace MajorAuthor.Data
                 new Genre { Name = "Научная фантастика" },
                 new Genre { Name = "Исторический роман" },
                 new Genre { Name = "Биография" }
-            };
+                };
 
-            await context.Genres.AddRangeAsync(genres);
-            await context.SaveChangesAsync();
+                await context.Genres.AddRangeAsync(genres);
+                await context.SaveChangesAsync();
+            }
+            if (context.BookStatuses.IsNullOrEmpty())
+            {
+                var bookStatuses = new BookStatus[]
+                {
+                new BookStatus { Name = "в процессе" },
+                new BookStatus { Name = "завершена" },
+                new BookStatus { Name = "заморожена" },
+                new BookStatus { Name = "заброшена" }
+                };
 
+                await context.BookStatuses.AddRangeAsync(bookStatuses);
+                await context.SaveChangesAsync();
+            }
+            if (context.BookTypes.IsNullOrEmpty())
+            {
+                var bookTypes = new BookType[]
+                {
+                new BookType { Name = "Роман-эпопея" },
+                new BookType { Name = "Роман" },
+                new BookType { Name = "Повесть" },
+                new BookType { Name = "Рассказ" },
+                new BookType { Name = "Новелла" },
+                new BookType { Name = "Поэма" }
+                };
+
+                await context.BookTypes.AddRangeAsync(bookTypes);
+                await context.SaveChangesAsync();
+            }
             // Здесь также можно добавить инициализацию тестовых книг, авторов, пользователей и т.д.
             // Например:
             // var author1 = new Author { PenName = "Тестовый Автор 1", User = new User { Username = "testuser1", Email = "test1@example.com", PasswordHash = "hashedpassword" } };

@@ -1,0 +1,100 @@
+﻿body, .custom-bg {
+    background-color: var(--bg-primary) !important; /* фон как на картинке */
+}
+
+.white-block {
+    background: var(--auth-block-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    border-radius: 16px;
+}
+
+.gold-accent {
+    color: var(--accent-gold);
+}
+
+.input-dark {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+    .input-dark::placeholder {
+        color: var(--text-secondary);
+    }
+
+.label-dark {
+    color: var(--text-primary) !important;
+}
+
+.char-count-black {
+    color: var(--text-primary) !important;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+/* кастомная кнопка для input type=file */
+.file-btn {
+    background: linear-gradient(180deg,#FFD542,#FFC400);
+    color: #0b1220;
+    padding: 0.45rem 0.9rem;
+    border-radius: 999px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+}
+
+.file-input {
+    display: none;
+}
+
+/* Mobile menu dropdown text color: default black for readability in light theme,
+   but in dark-theme override to light color so it's readable on dark background */
+.mobile-menu {
+    background-color: var(--bg-secondary);
+}
+
+.mobile-menu .dropdown-item {
+    color: var(--text-primary) !important;
+}
+
+/* Ensure dropdown item hover uses accent */
+.mobile-menu .dropdown-item:hover {
+    background-color: var(--border-color);
+    color: var(--accent-gold);
+}
+
+@media (max-width: 640px) {
+    .white-block {
+        padding: 1rem;
+        margin: 0 0.5rem;
+    }
+
+    .content-min {
+        min-height: 180px;
+    }
+}
+
+/* LIGHT THEME SPECIFICS where explicit overrides are desired (optional) */
+body:not(.dark-theme) .white-block {
+    /* keep white card on light theme */
+    background: var(--auth-block-bg);
+    color: var(--text-primary);
+}
+
+body:not(.dark-theme) .input-dark {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}
+
+/* DARK THEME specifics (if needed) */
+body.dark-theme .white-block {
+    background: var(--auth-block-bg);
+    color: var(--text-primary);
+}
+
+body.dark-theme .input-dark {
+    background-color: var(--bg-secondary);
+    color: var(--text-primary);
+}

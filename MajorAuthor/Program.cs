@@ -1,55 +1,111 @@
-// Проект: MajorAuthor.Web
-// Файл: Program.cs
+п»ї// РџСЂРѕРµРєС‚: MajorAuthor.Web
+// Р¤Р°Р№Р»: Program.cs
 
-using MajorAuthor.Data; // Используем наш DbContext
+using MajorAuthor.Data; // РСЃРїРѕР»СЊР·СѓРµРј РЅР°С€ DbContext
 using MajorAuthor.Data.Entities;
 using MajorAuthor.Models;
-using MajorAuthor.Services; // Если вы будете использовать ASP.NET Core Identity
+using MajorAuthor.Services; // Р•СЃР»Рё РІС‹ Р±СѓРґРµС‚Рµ РёСЃРїРѕР»СЊР·РѕРІР°С‚СЊ ASP.NET Core Identity
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore; // Используем Entity Framework Core
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Routing;
+
+using Microsoft.EntityFrameworkCore;
+using SixLabors.ImageSharp.Web.DependencyInjection; // РСЃРїРѕР»СЊР·СѓРµРј Entity Framework Core
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Добавление сервисов в контейнер.
+// Р”РѕР±Р°РІР»РµРЅРёРµ СЃРµСЂРІРёСЃРѕРІ РІ РєРѕРЅС‚РµР№РЅРµСЂ.
 
-// Настройка строки подключения из appsettings.json
+// РќР°СЃС‚СЂРѕР№РєР° СЃС‚СЂРѕРєРё РїРѕРґРєР»СЋС‡РµРЅРёСЏ РёР· appsettings.json
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-// Регистрация MajorAuthorDbContext
+// Р РµРіРёСЃС‚СЂР°С†РёСЏ MajorAuthorDbContext
 //builder.Services.AddDbContext<MajorAuthorDbContext>(options =>
-//    options.UseSqlServer(connectionString)); // Используйте UseSqlite, UseNpgsql и т.д., если используете другую БД
+//    options.UseSqlServer(connectionString)); // РСЃРїРѕР»СЊР·СѓР№С‚Рµ UseSqlite, UseNpgsql Рё С‚.Рґ., РµСЃР»Рё РёСЃРїРѕР»СЊР·СѓРµС‚Рµ РґСЂСѓРіСѓСЋ Р‘Р”
 builder.Services.AddDbContextFactory<MajorAuthorDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(connectionString), ServiceLifetime.Scoped);
 
 //    .AddEntityFrameworkStores<MajorAuthorDbContext>();
-// Настройка ASP.NET Core Identity
+// РќР°СЃС‚СЂРѕР№РєР° ASP.NET Core Identity
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
-    .AddEntityFrameworkStores<MajorAuthorDbContext>(); // Использование MajorAuthorDbContext
+    .AddEntityFrameworkStores<MajorAuthorDbContext>(); // РСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ MajorAuthorDbContext
+// РљРѕРЅС„РёРіСѓСЂР°С†РёСЏ РґР»СЏ HTTP: РњРђРљРЎРРњРђР›Р¬РќРћР• РџРћРќРР–Р•РќРР• Р‘Р•Р—РћРџРђРЎРќРћРЎРўР
+// Р­С‚Рѕ РїРѕР·РІРѕР»РёС‚ СЂР°Р±РѕС‚Р°С‚СЊ Р±РµР· HTTPS, РЅРѕ РќР• Р Р•РљРћРњР•РќР”РЈР•РўРЎРЇ.
+// 1. РљРѕРЅС„РёРіСѓСЂРёСЂСѓРµРј РѕСЃРЅРѕРІРЅРѕР№ Identity Cookie, РѕС‚РєР»СЋС‡Р°СЏ Secure
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    // РћС‚РєР»СЋС‡Р°РµРј С‚СЂРµР±РѕРІР°РЅРёРµ HTTPS РґР»СЏ РѕСЃРЅРѕРІРЅРѕРіРѕ cookie
+    options.Cookie.SecurePolicy = CookieSecurePolicy.None;
+    // РЇРІРЅРѕ СѓРєР°Р·С‹РІР°РµРј, С‡С‚Рѕ СЌС‚Рѕ РЅРµ РјРµР¶СЃР°Р№С‚РѕРІС‹Р№ Р·Р°РїСЂРѕСЃ (Lax)
+    options.Cookie.SameSite = SameSiteMode.Lax;
+});
 
-// --- Начало изменений для внешних провайдеров ---
+// 2. РљРѕРЅС„РёРіСѓСЂРёСЂСѓРµРј РІРЅРµС€РЅРёР№ Identity Cookie (ExternalScheme)
+//builder.Services.Configure<CookieAuthenticationOptions>(IdentityConstants.ExternalScheme, options =>
+//{
+//    // РћС‚РєР»СЋС‡Р°РµРј С‚СЂРµР±РѕРІР°РЅРёРµ HTTPS
+//    options.Cookie.SecurePolicy = CookieSecurePolicy.None;
+//    // РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј Unspecified, С‡С‚РѕР±С‹ Р±СЂР°СѓР·РµСЂ РЅРµ Р±Р»РѕРєРёСЂРѕРІР°Р» РµРіРѕ РїСЂРё РІРѕР·РІСЂР°С‚Рµ
+//    options.Cookie.SameSite = SameSiteMode.Unspecified;
+//});
+builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+{
+    // РЈСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ РІСЂРµРјСЏ, РІ С‚РµС‡РµРЅРёРµ РєРѕС‚РѕСЂРѕРіРѕ РґР°РЅРЅС‹Рµ РІРЅРµС€РЅРµРіРѕ Р»РѕРіРёРЅР° 
+    // (РЅР°РїСЂРёРјРµСЂ, email, РєРѕС‚РѕСЂС‹Р№ РЅСѓР¶РЅРѕ РїРѕРґС‚РІРµСЂРґРёС‚СЊ) РѕСЃС‚Р°СЋС‚СЃСЏ РґРµР№СЃС‚РІРёС‚РµР»СЊРЅС‹РјРё.
+    // РџРѕ СѓРјРѕР»С‡Р°РЅРёСЋ РѕС‡РµРЅСЊ РјР°Р»Рѕ (5 РјРёРЅСѓС‚). РЈРІРµР»РёС‡РёРј РґРѕ 30 РјРёРЅСѓС‚.
+    options.ValidationInterval = TimeSpan.FromMinutes(30);
+});
+builder.Services.ConfigureExternalCookie(options =>
+{
+    // РЈСЃС‚Р°РЅРѕРІРёРј СЃСЂРѕРє Р¶РёР·РЅРё РІСЂРµРјРµРЅРЅРѕР№ РєСѓРєРё РІРЅРµС€РЅРµРіРѕ РІС…РѕРґР° 
+    // (С‚Р°, РєРѕС‚РѕСЂР°СЏ СЃРѕРґРµСЂР¶РёС‚ info Рѕ Р»РѕРіРёРЅРµ)
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+    options.SlidingExpiration = true;
+});
+// --- РќР°С‡Р°Р»Рѕ РёР·РјРµРЅРµРЅРёР№ РґР»СЏ РІРЅРµС€РЅРёС… РїСЂРѕРІР°Р№РґРµСЂРѕРІ ---
 builder.Services.AddAuthentication()
     .AddGoogle(googleOptions =>
     {
-        // Получение Client ID и Client Secret из конфигурации
-        // Для разработки используйте User Secrets: dotnet user-secrets set "Authentication:Google:ClientId" "ВАШ_CLIENT_ID"
-        // dotnet user-secrets set "Authentication:Google:ClientSecret" "ВАШ_CLIENT_SECRET"
+        // РџРѕР»СѓС‡РµРЅРёРµ Client ID Рё Client Secret РёР· РєРѕРЅС„РёРіСѓСЂР°С†РёРё
+        // Р”Р»СЏ СЂР°Р·СЂР°Р±РѕС‚РєРё РёСЃРїРѕР»СЊР·СѓР№С‚Рµ User Secrets: dotnet user-secrets set "Authentication:Google:ClientId" "Р’РђРЁ_CLIENT_ID"
+        // dotnet user-secrets set "Authentication:Google:ClientSecret" "Р’РђРЁ_CLIENT_SECRET"
         googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"];
         googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
     })
     .AddYandex(yandexOptions =>
     {
-        // Для разработки используйте User Secrets: dotnet user-secrets set "Authentication:Yandex:ClientId" "ВАШ_APP_ID"
-        // dotnet user-secrets set "Authentication:Yandex:ClientSecret" "ВАШ_APP_SECRET"
+        // Р”Р»СЏ СЂР°Р·СЂР°Р±РѕС‚РєРё РёСЃРїРѕР»СЊР·СѓР№С‚Рµ User Secrets: dotnet user-secrets set "Authentication:Yandex:ClientId" "Р’РђРЁ_APP_ID"
+        // dotnet user-secrets set "Authentication:Yandex:ClientSecret" "Р’РђРЁ_APP_SECRET"
         yandexOptions.ClientId = builder.Configuration["Authentication:Yandex:ClientId"];
         yandexOptions.ClientSecret = builder.Configuration["Authentication:Yandex:ClientSecret"];
-    });
-// --- Конец изменений для внешних провайдеров ---
+        // рџ’Ў РќРћР’РћР•: Р”РѕР±Р°РІР»СЏРµРј РїР°СЂР°РјРµС‚СЂ РґР»СЏ РїСЂРёРЅСѓРґРёС‚РµР»СЊРЅРѕРіРѕ РІС‹Р±РѕСЂР° Р°РєРєР°СѓРЅС‚Р°
+        yandexOptions.Scope.Add("login:info"); // РџСЂРµРґРїРѕР»Р°РіР°РµС‚СЃСЏ, С‡С‚Рѕ СЌС‚Рѕ СѓР¶Рµ РµСЃС‚СЊ
+        yandexOptions.Scope.Add("login:email"); // РџСЂРµРґРїРѕР»Р°РіР°РµС‚СЃСЏ, С‡С‚Рѕ СЌС‚Рѕ СѓР¶Рµ РµСЃС‚СЊ
 
-// === НАСТРОЙКИ И РЕГИСТРАЦИЯ СЛУЖБЫ EMAIL ===
-// Привязываем секцию "EmailSettings" из конфигурации к классу EmailSettings
+        //yandexOptions.Events.OnRedirectToAuthorizationEndpoint = context =>
+        //{
+        //    // Р”РѕР±Р°РІР»СЏРµРј РїР°СЂР°РјРµС‚СЂ prompt=select_account (РёР»Рё login=yes, РёР»Рё force_auth=true)
+        //    // РЇРЅРґРµРєСЃ С‡Р°СЃС‚Рѕ РёСЃРїРѕР»СЊР·СѓРµС‚ force_auth=true РёР»Рё СЂРµРґРёСЂРµРєС‚ СЃ РїР°СЂР°РјРµС‚СЂРѕРј
+        //    var separator = context.RedirectUri.Contains('?') ? "&" : "?";
+
+        //    // Р’ Р·Р°РІРёСЃРёРјРѕСЃС‚Рё РѕС‚ РІРµСЂСЃРёРё API РЇРЅРґРµРєСЃР°, РјРѕР¶РµС‚ РїРѕС‚СЂРµР±РѕРІР°С‚СЊСЃСЏ 'force_auth=yes'
+        //    context.RedirectUri = context.RedirectUri + separator + "force_auth=yes";
+
+        //    context.Response.Redirect(context.RedirectUri);
+        //    return Task.CompletedTask;
+        //};
+    });
+// --- РљРѕРЅРµС† РёР·РјРµРЅРµРЅРёР№ РґР»СЏ РІРЅРµС€РЅРёС… РїСЂРѕРІР°Р№РґРµСЂРѕРІ ---
+
+// === РќРђРЎРўР РћР™РљР Р Р Р•Р“РРЎРўР РђР¦РРЇ РЎР›РЈР–Р‘Р« EMAIL ===
+// РџСЂРёРІСЏР·С‹РІР°РµРј СЃРµРєС†РёСЋ "EmailSettings" РёР· РєРѕРЅС„РёРіСѓСЂР°С†РёРё Рє РєР»Р°СЃСЃСѓ EmailSettings
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
-// Регистрируем нашу службу отправки электронной почты
-builder.Services.AddTransient<IEmailSender, EmailSender>(); // Регистрируем как Transient
+// Р РµРіРёСЃС‚СЂРёСЂСѓРµРј РЅР°С€Сѓ СЃР»СѓР¶Р±Сѓ РѕС‚РїСЂР°РІРєРё СЌР»РµРєС‚СЂРѕРЅРЅРѕР№ РїРѕС‡С‚С‹
+builder.Services.AddTransient<IEmailSender, EmailSender>(); // Р РµРіРёСЃС‚СЂРёСЂСѓРµРј РєР°Рє Transient
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<IActionContextAccessor, ActionContextAccessor>();
+builder.Services.AddSingleton<IUrlHelperFactory, UrlHelperFactory>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 
 builder.Services.AddScoped<IHomeService, HomeServiceWithFactory>();
@@ -60,41 +116,64 @@ builder.Services.AddScoped<IWorkService<Blog>, BlogService>();
 builder.Services.AddScoped<IAuthorService, AuthorService>();
 builder.Services.AddScoped<IBookInvitationService, BookInvitationService>();
 builder.Services.AddScoped<IWorkFacade, WorkFacade>();
-builder.Services.AddScoped<ILikeService, LikeService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
+// Р’ С„Р°Р№Р»Рµ Program.cs РёР»Рё Startup.cs РґРѕР±Р°РІСЊС‚Рµ:
+builder.Services.AddScoped<IMessageService, MessageService>();
+// Р”РѕР±Р°РІРёС‚СЊ РІ РєРѕРЅС‚РµР№РЅРµСЂ Р·Р°РІРёСЃРёРјРѕСЃС‚РµР№
+builder.Services.AddScoped<IRatingService, RatingService>();
+builder.Services.AddScoped<ICatalogService, CatalogService>();
+// Р РµРіРёСЃС‚СЂР°С†РёСЏ СЃРµСЂРІРёСЃР° СѓРІРµРґРѕРјР»РµРЅРёР№
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IChapterService, ChapterService>();
+builder.Services.AddHostedService<SimilarBookCalculatorService>();
+builder.Services.AddScoped<ISimilarBookCalculatorService, SimilarBookCalculatorService>();
+builder.Services.AddScoped<IPdfExportService, PdfExportService>();
+builder.Services.AddSingleton<IPdfCacheService, PdfCacheService>();
+// Р”РѕР±Р°РІРёС‚СЊ РІ РєРѕРЅС‚РµР№РЅРµСЂ Р·Р°РІРёСЃРёРјРѕСЃС‚РµР№
+builder.Services.AddScoped<IRatingManagerService, RatingManagerService>();
+// Р РµРіРёСЃС‚СЂР°С†РёСЏ С„РѕРЅРѕРІРѕРіРѕ СЃРµСЂРІРёСЃР°
+builder.Services.AddHostedService<RatingRecalculationService>();
+builder.Services.AddScoped<IReadingProgressService, ReadingProgressService>();
+builder.Services.AddSignalR(options =>
+{
+    // РЈРІРµР»РёС‡РёРІР°РµРј Р»РёРјРёС‚ РґРѕ 512 РљР‘ (РёР»Рё Р±РѕР»СЊС€Рµ, РµСЃР»Рё РєРЅРёРіРё РѕРіСЂРѕРјРЅС‹Рµ)
+    options.MaximumReceiveMessageSize = 100 * 1024*1024; // 512 KB
+    options.EnableDetailedErrors = true;
+});
 // ===========================================
-
+builder.Services.AddImageSharp();
 builder.Services.AddControllersWithViews();
+
 
 var app = builder.Build();
 
-// Конфигурация конвейера HTTP-запросов.
+// РљРѕРЅС„РёРіСѓСЂР°С†РёСЏ РєРѕРЅРІРµР№РµСЂР° HTTP-Р·Р°РїСЂРѕСЃРѕРІ.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
-
+app.MapHub<MajorAuthor.Hubs.CollaborativeChapterHub>("/collaborativeChapterHub");
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
 
-// --- Автоматическое применение миграций и инициализация базы данных при запуске (ТОЛЬКО ДЛЯ РАЗРАБОТКИ!) ---
-// Этот блок кода очень полезен в процессе разработки для автоматического обновления и заполнения базы данных.
-// В production-среде миграции следует применять контролируемо, например, с помощью CI/CD пайплайна,
-// а инициализацию данных - отдельно, если это необходимо.
+// --- РђРІС‚РѕРјР°С‚РёС‡РµСЃРєРѕРµ РїСЂРёРјРµРЅРµРЅРёРµ РјРёРіСЂР°С†РёР№ Рё РёРЅРёС†РёР°Р»РёР·Р°С†РёСЏ Р±Р°Р·С‹ РґР°РЅРЅС‹С… РїСЂРё Р·Р°РїСѓСЃРєРµ (РўРћР›Р¬РљРћ Р”Р›РЇ Р РђР—Р РђР‘РћРўРљР!) ---
+// Р­С‚РѕС‚ Р±Р»РѕРє РєРѕРґР° РѕС‡РµРЅСЊ РїРѕР»РµР·РµРЅ РІ РїСЂРѕС†РµСЃСЃРµ СЂР°Р·СЂР°Р±РѕС‚РєРё РґР»СЏ Р°РІС‚РѕРјР°С‚РёС‡РµСЃРєРѕРіРѕ РѕР±РЅРѕРІР»РµРЅРёСЏ Рё Р·Р°РїРѕР»РЅРµРЅРёСЏ Р±Р°Р·С‹ РґР°РЅРЅС‹С….
+// Р’ production-СЃСЂРµРґРµ РјРёРіСЂР°С†РёРё СЃР»РµРґСѓРµС‚ РїСЂРёРјРµРЅСЏС‚СЊ РєРѕРЅС‚СЂРѕР»РёСЂСѓРµРјРѕ, РЅР°РїСЂРёРјРµСЂ, СЃ РїРѕРјРѕС‰СЊСЋ CI/CD РїР°Р№РїР»Р°Р№РЅР°,
+// Р° РёРЅРёС†РёР°Р»РёР·Р°С†РёСЋ РґР°РЅРЅС‹С… - РѕС‚РґРµР»СЊРЅРѕ, РµСЃР»Рё СЌС‚Рѕ РЅРµРѕР±С…РѕРґРёРјРѕ.
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
         var context = services.GetRequiredService<MajorAuthorDbContext>();
-        context.Database.Migrate(); // Применяет все ожидающие миграции
+        context.Database.Migrate(); // РџСЂРёРјРµРЅСЏРµС‚ РІСЃРµ РѕР¶РёРґР°СЋС‰РёРµ РјРёРіСЂР°С†РёРё
         Console.WriteLine("Database migrations applied successfully.");
 
-        // Инициализация базы данных (seeding)
-        await DbInitializer.Initialize(context); // Вызов метода инициализации
+        // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ Р±Р°Р·С‹ РґР°РЅРЅС‹С… (seeding)
+        await DbInitializer.Initialize(context); // Р’С‹Р·РѕРІ РјРµС‚РѕРґР° РёРЅРёС†РёР°Р»РёР·Р°С†РёРё
         Console.WriteLine("Database seeded successfully.");
     }
     catch (Exception ex)
@@ -105,8 +184,8 @@ using (var scope = app.Services.CreateScope())
 }
 // --------------------------------------------------------------------------------------
 
-// app.UseAuthentication(); // Если используете ASP.NET Core Identity (раскомментируйте после настройки)
- app.UseAuthorization();  // Если используете ASP.NET Core Identity (раскомментируйте после настройки)
+// app.UseAuthentication(); // Р•СЃР»Рё РёСЃРїРѕР»СЊР·СѓРµС‚Рµ ASP.NET Core Identity (СЂР°СЃРєРѕРјРјРµРЅС‚РёСЂСѓР№С‚Рµ РїРѕСЃР»Рµ РЅР°СЃС‚СЂРѕР№РєРё)
+ app.UseAuthorization();  // Р•СЃР»Рё РёСЃРїРѕР»СЊР·СѓРµС‚Рµ ASP.NET Core Identity (СЂР°СЃРєРѕРјРјРµРЅС‚РёСЂСѓР№С‚Рµ РїРѕСЃР»Рµ РЅР°СЃС‚СЂРѕР№РєРё)
 
 app.MapControllerRoute(
     name: "default",

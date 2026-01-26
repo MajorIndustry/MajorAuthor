@@ -39,12 +39,6 @@ namespace MajorAuthor.Data.Entities
         public string? PenName { get; set; }
 
         /// <summary>
-        /// ФИО автора
-        /// </summary>
-        [Required]
-        public string FullName { get; set; }
-
-        /// <summary>
         /// Дата создания авторского профиля.
         /// </summary>
         public DateTime AuthorProfileCreationDate { get; set; } = DateTime.UtcNow;
@@ -55,16 +49,10 @@ namespace MajorAuthor.Data.Entities
         public string Description { get; set; }
 
         /// <summary>
-        /// URL фотографии автора (опционально).
-        /// </summary>
-        [MaxLength(500)]
-        public string? PhotoUrl { get; set; }
-
-        /// <summary>
         /// Коллекция связей с книгами, в которых этот автор участвовал (для совместного написания).
         /// </summary>
         public ICollection<BookAuthor> BookAuthors { get; set; } = new List<BookAuthor>();
-
+        public ICollection<BookCycle> BookCycles { get; set; } = new List<BookCycle>();
         /// <summary>
         /// Коллекция стихов, написанных этим автором.
         /// </summary>
@@ -79,5 +67,9 @@ namespace MajorAuthor.Data.Entities
         /// Навигационное свойство к блогу автора (если есть).
         /// </summary>
         public ICollection<Blog> Blogs { get; set; } = new List<Blog>();
+        public double Rating { get; set; } = 0;
+        public double WeeklyRating { get; set; } = 0;
+        public double MonthlyRating { get; set; } = 0;
+        public double YearlyRating { get; set; } = 0;
     }
 }

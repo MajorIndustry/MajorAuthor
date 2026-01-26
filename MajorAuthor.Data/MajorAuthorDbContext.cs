@@ -52,7 +52,12 @@ namespace MajorAuthor.Data
         public DbSet<PromotionPlan> PromotionPlans { get; set; }
         public DbSet<BlogLike> BlogLikes { get; set; }
         public DbSet<BookInvitation> BookInvitations { get; set; }
-
+        public DbSet<PoemReading> PoemReadings { get; set; }
+        public DbSet<BlogReading> BlogReadings { get; set; }
+        public DbSet<BookType> BookTypes { get; set; }
+        public DbSet<BookCycle> BookCycles { get; set; }
+        public DbSet<BookStatus> BookStatuses { get; set; }
+        public DbSet<SimilarBook> SimilarBooks { get; set; }
         /// <summary>
         /// Метод для настройки модели базы данных.
         /// </summary>
@@ -60,6 +65,33 @@ namespace MajorAuthor.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder); // Важно вызвать базовый метод для настройки Identity
+
+            // Конфигурация для BookType
+            modelBuilder.Entity<BookType>()
+                .HasMany(bt => bt.Books)
+                .WithOne(b => b.Type)
+                .HasForeignKey(b => b.TypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Конфигурация для BookCycle
+            modelBuilder.Entity<BookCycle>()
+                .HasMany(bc => bc.Books)
+                .WithOne(b => b.Cycle)
+                .HasForeignKey(b => b.CycleId)
+                .OnDelete(DeleteBehavior.SetNull); // SetNull т.к. CycleId nullable
+
+            modelBuilder.Entity<BookCycle>()
+                .HasOne(bc => bc.Author)
+                .WithMany(a => a.BookCycles)
+                .HasForeignKey(bc => bc.AuthorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Конфигурация для BookStatus
+            modelBuilder.Entity<BookStatus>()
+                .HasMany(bs => bs.Books)
+                .WithOne(b => b.Status)
+                .HasForeignKey(b => b.StatusId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Настройка составного первичного ключа для BookGenre
             modelBuilder.Entity<BookGenre>()
@@ -78,6 +110,10 @@ namespace MajorAuthor.Data
             // Настройка составного первичного ключа для UserPreferredGenre
             modelBuilder.Entity<UserPreferredGenre>()
                 .HasKey(upg => new { upg.ApplicationUserId, upg.GenreId });
+
+            modelBuilder.Entity<Author>()
+        .HasIndex(a => a.PenName)
+        .IsUnique();
 
             modelBuilder.Entity<UserPreferredGenre>()
                 .HasOne(upg => upg.ApplicationUser)
@@ -227,8 +263,6 @@ namespace MajorAuthor.Data
                 .HasForeignKey(ufb => ufb.BookId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-
-            // Настройки для стихов
             modelBuilder.Entity<Poem>()
                 .HasOne(p => p.Author)
                 .WithMany(a => a.Poems)
@@ -339,6 +373,54 @@ namespace MajorAuthor.Data
                 .WithMany(b => b.BookInvitations)
                 .HasForeignKey(bi => bi.BookId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PoemReading>()
+               .HasOne(pr => pr.Poem)
+               .WithMany(p => p.Readings)
+               .HasForeignKey(pr => pr.PoemId)
+               .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PoemReading>()
+                .HasOne(pr => pr.ApplicationUser)
+                .WithMany(u => u.PoemReadings)
+                .HasForeignKey(pr => pr.ApplicationUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Настройка для BlogReading
+            modelBuilder.Entity<BlogReading>()
+                .HasOne(br => br.Blog)
+                .WithMany(b => b.Readings)
+                .HasForeignKey(br => br.BlogId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<BlogReading>()
+                .HasOne(br => br.ApplicationUser)
+                .WithMany(u => u.BlogReadings)
+                .HasForeignKey(br => br.ApplicationUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SimilarBook>(entity =>
+            {
+                entity.HasIndex(e => e.BookId);
+                entity.HasIndex(e => e.SimilarToBookId);
+                entity.HasIndex(e => new { e.BookId, e.SimilarToBookId }).IsUnique();
+
+                entity.Property(e => e.SimilarityScore)
+                    .HasPrecision(4, 3);
+
+                entity.Property(e => e.CalculationDate)
+                    .HasDefaultValueSql("GETUTCDATE()");
+
+                entity.HasOne(e => e.Book)
+                    .WithMany(b => b.SimilarBooks)
+                    .HasForeignKey(e => e.BookId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.SimilarToBook)
+                    .WithMany()
+                    .HasForeignKey(e => e.SimilarToBookId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
         }
     }
 }

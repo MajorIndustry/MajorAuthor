@@ -10,8 +10,10 @@ namespace MajorAuthor.Services
     /// </summary>
     public interface IBookInvitationService
     {
-        Task AddInvitationAsync(BookInvitation invitation);
         Task<BookInvitation> GetInvitationByTokenAsync(string token);
+        Task AddInvitationAsync(BookInvitation invitation);
         Task UpdateInvitationAsync(BookInvitation invitation);
+        Task<List<BookInvitation>> GetPendingInvitationsByEmailAsync(string email);
+        Task<BookInvitation> CreateInvitationAsync(int bookId, string email, string userId = null);
     }
 }
