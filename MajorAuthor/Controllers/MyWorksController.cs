@@ -2,6 +2,7 @@
 using MajorAuthor.Data.Entities;
 using MajorAuthor.Models;
 using MajorAuthor.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -17,6 +18,7 @@ using System.Threading.Tasks;
 
 namespace MajorAuthor.Controllers
 {
+    [Authorize]
     public partial class MyWorksController : Controller
     {
         private readonly IBookService _bookService;
@@ -370,6 +372,7 @@ namespace MajorAuthor.Controllers
             return View(model);
         }
 
+        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> AcceptInvitation(string token)
         {
@@ -394,7 +397,7 @@ namespace MajorAuthor.Controllers
             var currentUser = await _userManager.GetUserAsync(User);
 
             // Проверяем, соответствует ли email приглашения email пользователя
-            if (currentUser.Email != invitation.InviteeEmail)
+            if (currentUser == null || currentUser.Email != invitation.InviteeEmail)
             {
                 ViewBag.Message = "Это приглашение предназначено для другого email адреса.";
                 return View("InvitationResult");
@@ -809,7 +812,7 @@ namespace MajorAuthor.Controllers
         public async Task<IActionResult> TogglePublication([FromBody] TogglePublicationModel model)
         {
             var author = await GetCurrentAuthorAsync();
-            if (!await _bookService.IsAuthorOfBookAsync(model.bookId, author.Id))
+            if (author == null || !await _bookService.IsAuthorOfBookAsync(model.bookId, author.Id))
             {
                 return Forbid();
             }
@@ -923,7 +926,7 @@ namespace MajorAuthor.Controllers
         public async Task<IActionResult> AddTag(int bookId, string newTag)
         {
             var author = await GetCurrentAuthorAsync();
-            if (!await _bookService.IsAuthorOfBookAsync(bookId, author.Id))
+            if (author == null || !await _bookService.IsAuthorOfBookAsync(bookId, author.Id))
             {
                 return Forbid();
             }
@@ -957,7 +960,7 @@ namespace MajorAuthor.Controllers
         public async Task<IActionResult> RemoveTag(int bookId, string tagName)
         {
             var author = await GetCurrentAuthorAsync();
-            if (!await _bookService.IsAuthorOfBookAsync(bookId, author.Id))
+            if (author == null || !await _bookService.IsAuthorOfBookAsync(bookId, author.Id))
             {
                 return Forbid();
             }
@@ -972,7 +975,7 @@ namespace MajorAuthor.Controllers
         public async Task<IActionResult> AddCoAuthor(int bookId, string newCoAuthorEmail)
         {
             var author = await GetCurrentAuthorAsync();
-            if (!await _bookService.IsAuthorOfBookAsync(bookId, author.Id))
+            if (author == null || !await _bookService.IsAuthorOfBookAsync(bookId, author.Id))
             {
                 return Forbid();
             }
@@ -1021,7 +1024,7 @@ namespace MajorAuthor.Controllers
         public async Task<IActionResult> RemoveCoAuthor(int bookId, int coAuthorId)
         {
             var author = await GetCurrentAuthorAsync();
-            if (!await _bookService.IsAuthorOfBookAsync(bookId, author.Id))
+            if (author == null || !await _bookService.IsAuthorOfBookAsync(bookId, author.Id))
             {
                 return Forbid();
             }
@@ -1036,7 +1039,7 @@ namespace MajorAuthor.Controllers
         public async Task<IActionResult> UpdateBookStatus(int bookId, string status)
         {
             var author = await GetCurrentAuthorAsync();
-            if (!await _bookService.IsAuthorOfBookAsync(bookId, author.Id))
+            if (author == null || !await _bookService.IsAuthorOfBookAsync(bookId, author.Id))
             {
                 return Forbid();
             }
@@ -1055,7 +1058,7 @@ namespace MajorAuthor.Controllers
         public async Task<IActionResult> DeleteBook(int bookId)
         {
             var author = await GetCurrentAuthorAsync();
-            if (!await _bookService.IsAuthorOfBookAsync(bookId, author.Id))
+            if (author == null || !await _bookService.IsAuthorOfBookAsync(bookId, author.Id))
             {
                 return Forbid();
             }
@@ -1452,17 +1455,24 @@ namespace MajorAuthor.Controllers
             if (chapterId.HasValue)
             {
                 var chapter = await _chapterService.GetChapterByIdAsync(chapterId.Value);
-                if (chapter != null)
+                if (chapter == null)
                 {
-                    model.ChapterTitle = chapter.Title;
-                    model.IsPublic = chapter.IsPublic;
-                    model.Order = chapter.Order;
-
-                    // Получаем объединенный текст и изображения
-                    var pagesInfo = await _chapterService.GetChapterPagesInfoAsync(chapterId.Value);
-                    model.Content = pagesInfo.TextContent;
-                    model.ImagePages = pagesInfo.ImagePages;
+                    return NotFound();
                 }
+
+                if (chapter.BookId != bookId)
+                {
+                    return Forbid();
+                }
+
+                model.ChapterTitle = chapter.Title;
+                model.IsPublic = chapter.IsPublic;
+                model.Order = chapter.Order;
+
+                // Получаем объединенный текст и изображения
+                var pagesInfo = await _chapterService.GetChapterPagesInfoAsync(chapterId.Value);
+                model.Content = pagesInfo.TextContent;
+                model.ImagePages = pagesInfo.ImagePages;
             }
             else
             {
@@ -1490,14 +1500,25 @@ namespace MajorAuthor.Controllers
         [HttpPost]
         public async Task<IActionResult> SaveCollaborativeSnapshot([FromBody] ChapterEditorViewModel model)
         {
+            if (model == null || !model.ChapterId.HasValue)
+            {
+                return BadRequest(new { success = false, message = "Некорректные данные главы" });
+            }
+
             var author = await GetCurrentAuthorAsync();
             if (author == null) return Forbid();
 
             // Получаем старый статус главы для проверки
-            var oldChapter = model.ChapterId.HasValue
-                ? await _chapterService.GetChapterByIdAsync(model.ChapterId.Value)
-                : null;
-            var wasPublic = oldChapter?.IsPublic ?? false;
+            var oldChapter = await _chapterService.GetChapterByIdAsync(model.ChapterId.Value);
+            if (oldChapter == null) return NotFound();
+
+            if (oldChapter.BookId != model.BookId ||
+                !await _bookService.IsAuthorOfBookAsync(oldChapter.BookId, author.Id))
+            {
+                return Forbid();
+            }
+
+            var wasPublic = oldChapter.IsPublic;
 
             // Передаем IsPublic = true только при публикации
             if (await _chapterService.SaveChapterSnapshotAsync(model, author.ApplicationUserId))
@@ -1754,6 +1775,8 @@ namespace MajorAuthor.Controllers
                     return NotFound();
 
                 var chapter = await _chapterService.GetChapterByIdAsync(page.First().ChapterId);
+                if (chapter == null)
+                    return NotFound();
 
                 // Проверяем права доступа
                 if (!await _bookService.IsAuthorOfBookAsync(chapter.BookId, author.Id))

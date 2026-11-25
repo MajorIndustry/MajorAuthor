@@ -10,8 +10,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Routing;
 
-using Microsoft.EntityFrameworkCore;
-using SixLabors.ImageSharp.Web.DependencyInjection; // Используем Entity Framework Core
+using Microsoft.EntityFrameworkCore; // Используем Entity Framework Core
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,14 +29,13 @@ builder.Services.AddDbContextFactory<MajorAuthorDbContext>(options =>
 // Настройка ASP.NET Core Identity
 builder.Services.AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<MajorAuthorDbContext>(); // Использование MajorAuthorDbContext
-// Конфигурация для HTTP: МАКСИМАЛЬНОЕ ПОНИЖЕНИЕ БЕЗОПАСНОСТИ
-// Это позволит работать без HTTPS, но НЕ РЕКОМЕНДУЕТСЯ.
-// 1. Конфигурируем основной Identity Cookie, отключая Secure
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    // Отключаем требование HTTPS для основного cookie
-    options.Cookie.SecurePolicy = CookieSecurePolicy.None;
-    // Явно указываем, что это не межсайтовый запрос (Lax)
+    options.LoginPath = "/Account/Login";
+    options.LogoutPath = "/Account/Logout";
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
     options.Cookie.SameSite = SameSiteMode.Lax;
 });
 
@@ -136,12 +134,11 @@ builder.Services.AddHostedService<RatingRecalculationService>();
 builder.Services.AddScoped<IReadingProgressService, ReadingProgressService>();
 builder.Services.AddSignalR(options =>
 {
-    // Увеличиваем лимит до 512 КБ (или больше, если книги огромные)
-    options.MaximumReceiveMessageSize = 100 * 1024*1024; // 512 KB
-    options.EnableDetailedErrors = true;
+    options.MaximumReceiveMessageSize = 1 * 1024 * 1024; // 1 MB
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
 });
 // ===========================================
-builder.Services.AddImageSharp();
+builder.Services.AddHealthChecks();
 builder.Services.AddControllersWithViews();
 
 
@@ -153,40 +150,45 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
-app.MapHub<MajorAuthor.Hubs.CollaborativeChapterHub>("/collaborativeChapterHub");
+
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
 
-// --- Автоматическое применение миграций и инициализация базы данных при запуске (ТОЛЬКО ДЛЯ РАЗРАБОТКИ!) ---
-// Этот блок кода очень полезен в процессе разработки для автоматического обновления и заполнения базы данных.
-// В production-среде миграции следует применять контролируемо, например, с помощью CI/CD пайплайна,
-// а инициализацию данных - отдельно, если это необходимо.
-using (var scope = app.Services.CreateScope())
-{
-    var services = scope.ServiceProvider;
-    try
-    {
-        var context = services.GetRequiredService<MajorAuthorDbContext>();
-        context.Database.Migrate(); // Применяет все ожидающие миграции
-        Console.WriteLine("Database migrations applied successfully.");
+app.UseAuthentication();
+app.UseAuthorization();
 
-        // Инициализация базы данных (seeding)
-        await DbInitializer.Initialize(context); // Вызов метода инициализации
-        Console.WriteLine("Database seeded successfully.");
-    }
-    catch (Exception ex)
+// --- Автоматическое применение миграций и инициализация базы данных при запуске (ТОЛЬКО ДЛЯ РАЗРАБОТКИ или при Database:AutoMigrate=true) ---
+var autoMigrate = app.Environment.IsDevelopment() ||
+                  app.Configuration.GetValue<bool>("Database:AutoMigrate");
+
+if (autoMigrate)
+{
+    using (var scope = app.Services.CreateScope())
     {
+        var services = scope.ServiceProvider;
         var logger = services.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while migrating or seeding the database.");
+        try
+        {
+            var context = services.GetRequiredService<MajorAuthorDbContext>();
+            context.Database.Migrate(); // Применяет все ожидающие миграции
+            logger.LogInformation("Database migrations applied successfully.");
+
+            // Инициализация базы данных (seeding)
+            await DbInitializer.Initialize(context); // Вызов метода инициализации
+            logger.LogInformation("Database seeded successfully.");
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "An error occurred while migrating or seeding the database.");
+        }
     }
 }
 // --------------------------------------------------------------------------------------
 
-// app.UseAuthentication(); // Если используете ASP.NET Core Identity (раскомментируйте после настройки)
- app.UseAuthorization();  // Если используете ASP.NET Core Identity (раскомментируйте после настройки)
-
+app.MapHealthChecks("/health");
+app.MapHub<MajorAuthor.Hubs.CollaborativeChapterHub>("/collaborativeChapterHub");
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

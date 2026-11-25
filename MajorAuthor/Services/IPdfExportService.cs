@@ -1,7 +1,6 @@
 ﻿// IPdfExportService.cs
 using MajorAuthor.Models;
 using NuGet.Packaging;
-using SixLabors.ImageSharp.Formats.Jpeg;
 
 namespace MajorAuthor.Services
 {

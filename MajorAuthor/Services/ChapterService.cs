@@ -4,8 +4,7 @@ using MajorAuthor.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Formats.Webp;
+using SkiaSharp;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -375,14 +374,19 @@ namespace MajorAuthor.Services
             string filePath = Path.Combine(uploadFolder, uniqueFileName);
 
             // Конвертируем и сохраняем изображение в формате WebP
-            using (var image1 = await Image.LoadAsync(image.OpenReadStream()))
+            await using (var inputStream = image.OpenReadStream())
+            using (var bitmap = SKBitmap.Decode(inputStream))
             {
-                // Оптимизируем изображение (можно настроить качество)
-                await image1.SaveAsWebpAsync(filePath, new WebpEncoder
-                {
-                    Quality = 80, // Качество от 1 до 100
-                    Method = WebpEncodingMethod.BestQuality // Можно изменить на BestSpeed для быстрейшей обработки
-                });
+                if (bitmap == null)
+                    throw new ArgumentException("Неподдерживаемый или поврежденный формат изображения");
+
+                using var skImage = SKImage.FromBitmap(bitmap);
+                using var encodedData = skImage.Encode(SKEncodedImageFormat.Webp, 80);
+                if (encodedData == null)
+                    throw new InvalidOperationException("Не удалось преобразовать изображение в формат WebP");
+
+                await using var outputStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
+                encodedData.SaveTo(outputStream);
             }
 
             // Создаем новую страницу с изображением
