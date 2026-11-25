@@ -303,10 +303,20 @@ namespace MajorAuthor.Controllers
                     }
 
                     bool invitationSent = false;
-                    if (!string.IsNullOrEmpty(model.CoAuthorEmail))
+                    var coAuthorInput = model.CoAuthorEmail?.Trim();
+                    if (!string.IsNullOrEmpty(coAuthorInput))
                     {
-                        // Ищем пользователя по email
-                        var inviteeUser = await _userManager.FindByEmailAsync(model.CoAuthorEmail);
+                        // Ищем пользователя сначала по UserName, затем по Email
+                        var inviteeUser = await _userManager.FindByNameAsync(coAuthorInput)
+                            ?? await _userManager.FindByEmailAsync(coAuthorInput);
+
+                        if (inviteeUser == null && !coAuthorInput.Contains('@'))
+                        {
+                            TempData["WarningMessage"] = "Книга создана, но пользователь с таким логином не найден, а указанное значение не является корректным email.";
+                            return View("BookCreated", newBook);
+                        }
+
+                        var targetEmail = inviteeUser?.Email ?? coAuthorInput;
 
                         if (inviteeUser != null)
                         {
@@ -329,7 +339,7 @@ namespace MajorAuthor.Controllers
                         // Создаем приглашение
                         var invitation = await _bookInvitationService.CreateInvitationAsync(
                             newBook.Id,
-                            model.CoAuthorEmail,
+                            targetEmail,
                             inviteeUser?.Id);
 
                         // Генерируем ссылку для принятия приглашения
@@ -344,7 +354,7 @@ namespace MajorAuthor.Controllers
                             newBook.Id,
                             model.Title,
                             author.PenName,
-                            model.CoAuthorEmail,
+                            targetEmail,
                             invitationLink,
                             inviteeUser?.Id);
 
@@ -980,10 +990,12 @@ namespace MajorAuthor.Controllers
                 return Forbid();
             }
 
-            if (!string.IsNullOrEmpty(newCoAuthorEmail))
+            var coAuthorInput = newCoAuthorEmail?.Trim();
+            if (!string.IsNullOrEmpty(coAuthorInput))
             {
-                // Ищем пользователя по email
-                var coAuthorUser = await _userManager.FindByEmailAsync(newCoAuthorEmail);
+                // Ищем пользователя сначала по UserName, затем по Email
+                var coAuthorUser = await _userManager.FindByNameAsync(coAuthorInput)
+                    ?? await _userManager.FindByEmailAsync(coAuthorInput);
                 if (coAuthorUser != null)
                 {
                     // Проверяем, является ли пользователь автором
@@ -1009,12 +1021,14 @@ namespace MajorAuthor.Controllers
                 }
                 else
                 {
-                    TempData["ErrorMessage"] = "Пользователь с таким email не найден";
+                    TempData["ErrorMessage"] = coAuthorInput.Contains('@')
+                        ? "Пользователь с таким email не найден"
+                        : "Пользователь не найден. Укажите точный логин или корректный email.";
                 }
             }
             else
             {
-                TempData["ErrorMessage"] = "Email не может быть пустым";
+                TempData["ErrorMessage"] = "Логин или email не может быть пустым";
             }
 
             return RedirectToAction("BookDashboard", new { id = bookId });

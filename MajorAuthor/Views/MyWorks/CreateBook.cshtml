@@ -438,9 +438,9 @@
 
             // Функция для выбора элемента
             function selectItem(li) {
-                const email = li.getAttribute('data-email');
-                if (email) {
-                    emailInput.value = email;
+                const value = li.getAttribute('data-value') || li.getAttribute('data-email');
+                if (value) {
+                    emailInput.value = value;
                     suggestionsList.style.display = 'none';
                     currentFocus = -1;
 
@@ -487,10 +487,9 @@
                                 <div class="font-medium" style="color: var(--accent-gold)">${escapeHtml(user.userName)}</div>
                                 ${userType}
                             </div>
-                            <div class="text-sm" style="color: var(--text-primary)">${escapeHtml(user.email)}</div>
                             ${user.penName ? `<div class="text-xs mt-1" style="color: var(--text-secondary)">Псевдоним: ${escapeHtml(user.penName)}</div>` : ''}
                         `;
-                        li.setAttribute('data-email', user.email);
+                        li.setAttribute('data-value', user.userName || '');
                         suggestionsList.appendChild(li);
                     });
                     suggestionsList.style.display = 'block';
@@ -515,7 +514,8 @@
             }
 
             function escapeHtml(unsafe) {
-                return unsafe
+                if (unsafe === null || unsafe === undefined) return '';
+                return String(unsafe)
                     .replace(/&/g, "&amp;")
                     .replace(/</g, "&lt;")
                     .replace(/>/g, "&gt;")

@@ -1068,10 +1068,9 @@
                                 <div class="font-medium text-gold">${escapeHtml(user.userName)}</div>
                                 ${userType}
                             </div>
-                            <div class="text-sm email-inverse">${escapeHtml(user.email)}</div>
                             ${user.penName ? `<div class="text-xs mt-1 text-gold">Псевдоним: ${escapeHtml(user.penName)}</div>` : ''}
                         `;
-                        li.setAttribute('data-email', user.email);
+                        li.setAttribute('data-value', user.userName || '');
                         suggestionsList.appendChild(li);
                     });
                     suggestionsList.style.display = 'block';
@@ -1086,9 +1085,9 @@
             }
 
             function selectEmailItem(li) {
-                const email = li.getAttribute('data-email');
-                if (email) {
-                    document.getElementById('newCoAuthorEmail').value = email;
+                const value = li.getAttribute('data-value') || li.getAttribute('data-email');
+                if (value) {
+                    document.getElementById('newCoAuthorEmail').value = value;
                     suggestionsList.style.display = 'none';
                     currentFocus = -1;
                 }
@@ -1568,7 +1567,8 @@
         }
         // Вспомогательные функции
         function escapeHtml(unsafe) {
-            return unsafe
+            if (unsafe === null || unsafe === undefined) return '';
+            return String(unsafe)
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;")
