@@ -1,15 +1,18 @@
 ﻿using MajorAuthor.Data;
 using MajorAuthor.Data.Entities;
 using MajorAuthor.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace MajorAuthor.Controllers.Api
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class UsersController : ControllerBase
@@ -28,16 +31,22 @@ namespace MajorAuthor.Controllers.Api
         [HttpGet("search")]
         public async Task<IActionResult> SearchUsers([FromQuery] string email)
         {
-            if (string.IsNullOrEmpty(email) || email.Length < 2)
+            var query = email?.Trim();
+            if (string.IsNullOrEmpty(query) || query.Length < 2)
             {
-                return Ok(new object[0]);
+                return Ok(Array.Empty<object>());
             }
 
             // Получаем ID текущего пользователя
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var normalizedEmail = _userManager.NormalizeEmail(query);
 
             var usersQuery = _context.Users
-                .Where(u => (u.Email.Contains(email) || u.UserName.Contains(email)));
+                .AsNoTracking()
+                .Where(u =>
+                    (u.UserName != null && u.UserName.Contains(query)) ||
+                    (u.AuthorProfile != null && u.AuthorProfile.PenName != null && u.AuthorProfile.PenName.Contains(query)) ||
+                    (u.NormalizedEmail != null && u.NormalizedEmail == normalizedEmail));
 
             // Исключаем текущего пользователя из результатов
             if (!string.IsNullOrEmpty(currentUserId))
@@ -49,7 +58,6 @@ namespace MajorAuthor.Controllers.Api
                 .Select(u => new
                 {
                     id = u.Id,
-                    email = u.Email,
                     userName = u.UserName,
                     hasAuthorProfile = u.AuthorProfile != null,
                     penName = u.AuthorProfile != null ? u.AuthorProfile.PenName : null,

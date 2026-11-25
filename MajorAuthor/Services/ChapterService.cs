@@ -1,4 +1,5 @@
-﻿using MajorAuthor.Data;
+﻿using Ganss.Xss;
+using MajorAuthor.Data;
 using MajorAuthor.Data.Entities;
 using MajorAuthor.Models;
 using Microsoft.AspNetCore.Hosting;
@@ -49,28 +50,16 @@ namespace MajorAuthor.Services
             return pages;
         }
 
+        private static readonly HtmlSanitizer _htmlSanitizer = new();
+
         private string RemoveDangerousHtml(string html)
         {
-            var dangerousPatterns = new[]
+            if (string.IsNullOrEmpty(html))
             {
-                @"<script[^>]*>.*?</script>",
-                @"<style[^>]*>.*?</style>",
-                @"<iframe[^>]*>.*?</iframe>",
-                @"<object[^>]*>.*?</object>",
-                @"<embed[^>]*>.*?</embed>",
-                @"<applet[^>]*>.*?</applet>",
-                @"<form[^>]*>.*?</form>",
-                @"on\w+=""[^""]*""",
-                @"on\w+='[^']*'",
-                @"javascript:"
-            };
-
-            foreach (var pattern in dangerousPatterns)
-            {
-                html = Regex.Replace(html, pattern, "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                return string.Empty;
             }
 
-            return html;
+            return _htmlSanitizer.Sanitize(html);
         }
 
         private async Task RenumberPagesInternalAsync(int chapterId)

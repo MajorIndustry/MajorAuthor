@@ -19,6 +19,7 @@
   <ItemGroup>
     <PackageReference Include="AspNet.Security.OAuth.Yandex" Version="9.4.0" />
     <PackageReference Include="EntityFramework" Version="6.5.1" />
+    <PackageReference Include="HtmlSanitizer" Version="11.0.26" />
     <PackageReference Include="iTextSharp" Version="5.5.13.4" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="9.0.6" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="9.0.6" />
