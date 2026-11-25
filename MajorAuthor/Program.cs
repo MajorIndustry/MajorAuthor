@@ -62,38 +62,31 @@ builder.Services.ConfigureExternalCookie(options =>
     options.SlidingExpiration = true;
 });
 // --- Начало изменений для внешних провайдеров ---
-builder.Services.AddAuthentication()
-    .AddGoogle(googleOptions =>
+var authBuilder = builder.Services.AddAuthentication();
+
+var googleClientId = builder.Configuration["Authentication:Google:ClientId"];
+var googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+if (!string.IsNullOrEmpty(googleClientId) && !string.IsNullOrEmpty(googleClientSecret))
+{
+    authBuilder.AddGoogle(googleOptions =>
     {
-        // Получение Client ID и Client Secret из конфигурации
-        // Для разработки используйте User Secrets: dotnet user-secrets set "Authentication:Google:ClientId" "ВАШ_CLIENT_ID"
-        // dotnet user-secrets set "Authentication:Google:ClientSecret" "ВАШ_CLIENT_SECRET"
-        googleOptions.ClientId = builder.Configuration["Authentication:Google:ClientId"];
-        googleOptions.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"];
-    })
-    .AddYandex(yandexOptions =>
-    {
-        // Для разработки используйте User Secrets: dotnet user-secrets set "Authentication:Yandex:ClientId" "ВАШ_APP_ID"
-        // dotnet user-secrets set "Authentication:Yandex:ClientSecret" "ВАШ_APP_SECRET"
-        yandexOptions.ClientId = builder.Configuration["Authentication:Yandex:ClientId"];
-        yandexOptions.ClientSecret = builder.Configuration["Authentication:Yandex:ClientSecret"];
-        // 💡 НОВОЕ: Добавляем параметр для принудительного выбора аккаунта
-        yandexOptions.Scope.Add("login:info"); // Предполагается, что это уже есть
-        yandexOptions.Scope.Add("login:email"); // Предполагается, что это уже есть
-
-        //yandexOptions.Events.OnRedirectToAuthorizationEndpoint = context =>
-        //{
-        //    // Добавляем параметр prompt=select_account (или login=yes, или force_auth=true)
-        //    // Яндекс часто использует force_auth=true или редирект с параметром
-        //    var separator = context.RedirectUri.Contains('?') ? "&" : "?";
-
-        //    // В зависимости от версии API Яндекса, может потребоваться 'force_auth=yes'
-        //    context.RedirectUri = context.RedirectUri + separator + "force_auth=yes";
-
-        //    context.Response.Redirect(context.RedirectUri);
-        //    return Task.CompletedTask;
-        //};
+        googleOptions.ClientId = googleClientId;
+        googleOptions.ClientSecret = googleClientSecret;
     });
+}
+
+var yandexClientId = builder.Configuration["Authentication:Yandex:ClientId"];
+var yandexClientSecret = builder.Configuration["Authentication:Yandex:ClientSecret"];
+if (!string.IsNullOrEmpty(yandexClientId) && !string.IsNullOrEmpty(yandexClientSecret))
+{
+    authBuilder.AddYandex(yandexOptions =>
+    {
+        yandexOptions.ClientId = yandexClientId;
+        yandexOptions.ClientSecret = yandexClientSecret;
+        yandexOptions.Scope.Add("login:info");
+        yandexOptions.Scope.Add("login:email");
+    });
+}
 // --- Конец изменений для внешних провайдеров ---
 
 // === НАСТРОЙКИ И РЕГИСТРАЦИЯ СЛУЖБЫ EMAIL ===
