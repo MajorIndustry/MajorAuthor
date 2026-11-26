@@ -146,7 +146,7 @@
         <h2 class="text-2xl font-bold mb-6 gradient-text">Добавить новую книгу</h2>
 
         <form asp-action="CreateBook" method="post" enctype="multipart/form-data" class="space-y-6">
-            <div asp-validation-summary="ModelOnly" class="text-red-500 text-sm"></div>
+            <div asp-validation-summary="All" class="text-red-500 text-sm"></div>
 
             <!-- Название книги -->
             <div class="form-group">
@@ -234,12 +234,12 @@
                 <p class="text-secondary-custom text-sm mb-4">Если вы хотите работать над книгой вместе, вы можете пригласить другого пользователя по его email.</p>
 
                 <div class="autocomplete-container relative">
-                    <label asp-for="CoAuthorEmail" class="form-label block text-sm font-medium mb-2">Email соавтора</label>
+                    <label asp-for="CoAuthorEmail" class="form-label block text-sm font-medium mb-2">Логин или Email соавтора</label>
                     <input asp-for="CoAuthorEmail" id="coAuthorEmailInput"
                            class="form-control w-full px-4 py-2 rounded-lg border focus:ring-2 focus:ring-opacity-20 transition-all duration-200"
-                           type="email" autocomplete="off" placeholder="Введите email пользователя" />
+                           type="text" autocomplete="off" placeholder="Введите логин или email пользователя" />
                     <ul id="emailSuggestions" class="autocomplete-list rounded"></ul>
-                    <div class="text-xs text-secondary-custom mt-1">Начните вводить email для поиска пользователей</div>
+                    <div class="text-xs text-secondary-custom mt-1">Начните вводить логин, псевдоним или email для поиска пользователей</div>
                 </div>
             </div>
 

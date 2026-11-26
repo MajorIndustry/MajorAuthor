@@ -84,19 +84,12 @@ namespace MajorAuthor.Services
             _context.Books.Add(book);
             await _context.SaveChangesAsync();
 
-            // Запускаем расчет похожих книг в фоне
+            // Запускаем расчет похожих книг в фоне (SimilarBookCalculatorService создает собственный scope)
             _ = Task.Run(async () =>
             {
                 try
                 {
                     await _similarBookCalculator.CalculateSimilaritiesForBookAsync(book.Id);
-
-                    // Также пересчитываем для книг, которые могут быть похожи на новую
-                    var similarToCurrent = await GetSimilarBooksAsync(book.Id, 20);
-                    foreach (var similarBook in similarToCurrent)
-                    {
-                        await _similarBookCalculator.CalculateSimilaritiesForBookAsync(similarBook.Id);
-                    }
                 }
                 catch (Exception ex)
                 {
@@ -1205,8 +1198,7 @@ namespace MajorAuthor.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, $"Ошибка при получении рассчитанных похожих книг для {bookId}");
-                // Возвращаем пустой список или используем старый метод как fallback
-                return await GetSimilarBooksAsync(bookId, count);
+                return new List<Book>();
             }
         }
         public async Task<Comment> GetCommentByIdAsync(int commentId)

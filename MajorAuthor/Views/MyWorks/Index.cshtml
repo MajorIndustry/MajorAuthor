@@ -36,6 +36,11 @@
             }
             else
             {
+                <div class="flex justify-end mb-6">
+                    <button id="registerAuthorBtn" class="auth-btn-secondary px-4 py-2 rounded-lg font-medium text-sm flex items-center gap-2">
+                        <i class="fas fa-user-edit"></i> Изменить псевдоним
+                    </button>
+                </div>
                 <!-- Основной контент для авторов -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                     <!-- Книги -->
@@ -192,11 +197,11 @@
                 <div class="sm:flex sm:items-start">
                     <div class="mt-3 text-center sm:mt-0 sm:text-left w-full">
                         <h3 class="text-lg leading-6 font-medium text-[var(--auth-block-text)]" id="modal-title">
-                            Стать автором
+                            @(Model.IsUserAuthor ? "Изменить псевдоним" : "Стать автором")
                         </h3>
                         <div class="mt-4">
                             <p class="text-sm text-[var(--text-secondary)] mb-4">
-                                Чтобы зарегистрироваться как автор, пожалуйста, введите ваше имя или псевдоним.
+                                @(Model.IsUserAuthor ? "Введите новый псевдоним автора." : "Чтобы зарегистрироваться как автор, пожалуйста, введите ваше имя или псевдоним.")
                             </p>
                             <input type="text" id="penNameInput"
                                    class="auth-input w-full rounded-lg px-4 py-3"
@@ -452,7 +457,7 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    showMessage("Поздравляем, вы стали автором!");
+                    showMessage(result.message || "Сохранено!");
                     setTimeout(() => {
                         window.location.reload();
                     }, 1000);

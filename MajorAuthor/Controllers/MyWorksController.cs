@@ -221,18 +221,30 @@ namespace MajorAuthor.Controllers
 
             return bookAuthors.Any(a => a.Id == userAuthor.Id);
         }
-        public IActionResult AddWork()
+        public async Task<IActionResult> AddWork()
         {
+            var author = await GetCurrentAuthorAsync();
+            if (author == null)
+            {
+                return RedirectToAction("Index");
+            }
             return View();
         }
 
-        public IActionResult CreateBook()
+        [HttpGet]
+        public async Task<IActionResult> CreateBook()
         {
-            var model = new CreateBookViewModel();
+            var author = await GetCurrentAuthorAsync();
+            if (author == null)
+            {
+                return RedirectToAction("Index");
+            }
 
-            // Загружаем типы книг и жанры для выпадающих списков
-            model.BookTypes = _bookService.GetAllBookTypesAsync().Result;
-            model.Genres = _bookService.GetAllGenresAsync().Result;
+            var model = new CreateBookViewModel
+            {
+                BookTypes = await _bookService.GetAllBookTypesAsync(),
+                Genres = await _bookService.GetAllGenresAsync()
+            };
 
             return View(model);
         }
@@ -246,6 +258,23 @@ namespace MajorAuthor.Controllers
                 var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
                 var author = await _authorService.GetAuthorByUserIdAsync(userId);
                 var currentUser = await _userManager.GetUserAsync(User);
+
+                if (author == null && currentUser != null)
+                {
+                    var fallbackPenName = !string.IsNullOrWhiteSpace(currentUser.UserName)
+                        ? currentUser.UserName
+                        : currentUser.Email?.Split('@')[0] ?? $"Author_{Guid.NewGuid():N}"[..12];
+
+                    var registrationResult = await _authorService.RegisterAuthorAsync(userId, fallbackPenName);
+                    if (registrationResult.success)
+                    {
+                        author = await _authorService.GetAuthorByUserIdAsync(userId);
+                    }
+                    else
+                    {
+                        ModelState.AddModelError("", $"Не удалось создать авторский профиль: {registrationResult.message}");
+                    }
+                }
 
                 if (author != null)
                 {
@@ -268,7 +297,7 @@ namespace MajorAuthor.Controllers
                     var newBook = new Book
                     {
                         Title = model.Title,
-                        Description = model.Description,
+                        Description = model.Description ?? string.Empty,
                         CoverImageUrl = uniqueFileName != null ? "/images/books/" + uniqueFileName : null,
                         IsAdultContent = model.IsAdultContent,
                         IsPublic = false,
@@ -293,12 +322,32 @@ namespace MajorAuthor.Controllers
                     // Добавляем теги
                     if (model.Tags != null && model.Tags.Any())
                     {
-                        foreach (var tag in model.Tags)
+                        var parsedTags = new List<string>();
+                        foreach (var rawTag in model.Tags)
                         {
-                            if (!string.IsNullOrWhiteSpace(tag))
+                            if (string.IsNullOrWhiteSpace(rawTag)) continue;
+                            var trimmed = rawTag.Trim();
+                            if (trimmed.StartsWith("[") && trimmed.EndsWith("]"))
                             {
-                                await _bookService.AddTagToBookAsync(newBook.Id, tag);
+                                try
+                                {
+                                    var jsonTags = System.Text.Json.JsonSerializer.Deserialize<List<string>>(trimmed);
+                                    if (jsonTags != null) parsedTags.AddRange(jsonTags);
+                                }
+                                catch
+                                {
+                                    parsedTags.Add(trimmed);
+                                }
                             }
+                            else
+                            {
+                                parsedTags.Add(trimmed);
+                            }
+                        }
+
+                        foreach (var tag in parsedTags.Where(t => !string.IsNullOrWhiteSpace(t)).Distinct())
+                        {
+                            await _bookService.AddTagToBookAsync(newBook.Id, tag.Trim());
                         }
                     }
 
@@ -1144,7 +1193,7 @@ namespace MajorAuthor.Controllers
         [HttpPost]
         public async Task<IActionResult> RegisterAuthor([FromBody] AuthorRegistrationModel model)
         {
-            if (string.IsNullOrEmpty(model.PenName))
+            if (string.IsNullOrWhiteSpace(model?.PenName))
             {
                 return Json(new { success = false, message = "Пожалуйста, введите псевдоним или имя." });
             }
@@ -1156,8 +1205,15 @@ namespace MajorAuthor.Controllers
                 return Json(new { success = false, message = "Ошибка: пользователь не аутентифицирован." });
             }
 
-            await _authorService.RegisterAuthorAsync(userId, model.PenName);
-            return Json(new { success = true, message = "Поздравляем, вы стали автором! Ждём от вас новых интересных произведений." });
+            var existingAuthor = await _authorService.GetAuthorByUserIdAsync(userId);
+            if (existingAuthor != null)
+            {
+                var updateResult = await _authorService.UpdatePenNameAsync(userId, model.PenName);
+                return Json(new { success = updateResult.success, message = updateResult.message });
+            }
+
+            var result = await _authorService.RegisterAuthorAsync(userId, model.PenName);
+            return Json(new { success = result.success, message = result.message });
         }
 
         [HttpDelete]

@@ -21,7 +21,8 @@ RUN mkdir -p \
         /app/wwwroot/images/blogs \
         /app/wwwroot/images/chapters \
         /app/wwwroot/images/avatars \
-    && chown -R $APP_UID:$APP_UID /app
+        /home/app/.aspnet/DataProtection-Keys \
+    && chown -R $APP_UID:$APP_UID /app /home/app
 
 ENV ASPNETCORE_URLS=http://+:8080 \
     DOTNET_EnableDiagnostics=0 \
